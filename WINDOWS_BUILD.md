@@ -20,8 +20,13 @@ BitcoinMinerStudio\
 Requirements:
 
 - Windows 10/11 x64
-- Python 3.11+ x64 (3.13 recommended)
+- **Python 3.12 x64**
 - Internet access for the initial dependency install
+
+Python 3.12 is the pinned Windows release-builder runtime for v2.0.1. The build
+script also preflights pywebview's WinForms/pythonnet CLR layer before creating
+the EXE so an incompatible GUI runtime cannot produce a successful release
+artifact.
 
 From PowerShell in the repository root:
 
@@ -43,9 +48,9 @@ BitcoinMinerStudio-Windows-build.json
 The repository includes `.github/workflows/windows-portable.yml`.
 
 You can run it from **Actions → Build Windows x64 Portable → Run workflow**.
-Pushing a `v*` tag also triggers the build. The workflow publishes a GitHub
-Actions artifact named `BitcoinMinerStudio-Windows-x64` containing the ZIP,
-checksums, and build metadata.
+Pushing a `v*` tag also triggers the build. The workflow uses Python 3.12 x64
+and publishes a GitHub Actions artifact named `BitcoinMinerStudio-Windows-x64`
+containing the ZIP, checksums, and build metadata.
 
 ## Purple Dragon behavior
 

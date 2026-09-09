@@ -59,9 +59,6 @@ Write-Host 'GUI architecture: C# WinForms + Microsoft Edge WebView2'
 Write-Host 'Python bridge: private stdin/stdout JSON transport'
 Write-Host 'pywebview/pythonnet/Qt/PyInstaller: NOT USED'
 
-# ---------------------------------------------------------------------------
-# 1. Official embedded CPython runtime
-# ---------------------------------------------------------------------------
 $EmbeddedPythonVersion = '3.12.10'
 $EmbeddedZip = Join-Path $BuildDir "python-$EmbeddedPythonVersion-embed-amd64.zip"
 $EmbeddedUrl = "https://www.python.org/ftp/python/$EmbeddedPythonVersion/python-$EmbeddedPythonVersion-embed-amd64.zip"
@@ -78,8 +75,6 @@ $PthPath = Join-Path $RuntimeRoot 'python312._pth'
     'import site'
 ) | Set-Content -Path $PthPath -Encoding ASCII
 
-# The backend needs py7zr for release/update package inspection.  Do NOT install
-# pywebview, pythonnet, clr-loader, PySide6, Qt, or PyInstaller in this runtime.
 Write-Host 'Installing minimal non-GUI Python runtime dependencies...'
 & $BuildPython -m pip install --disable-pip-version-check --no-warn-script-location --upgrade --target $SitePackages `
     'py7zr==0.22.0'
@@ -87,9 +82,6 @@ if ($LASTEXITCODE -ne 0) {
     throw 'Failed to install the embedded Python runtime dependencies.'
 }
 
-# ---------------------------------------------------------------------------
-# 2. Copy the exact signed Bitcoin Miner Studio application surface
-# ---------------------------------------------------------------------------
 foreach ($Relative in $ProtectedFiles) {
     $Source = Join-Path $Root $Relative
     if (-not (Test-Path $Source -PathType Leaf)) {
@@ -104,8 +96,6 @@ foreach ($Relative in $ProtectedFiles) {
 }
 Copy-Item -LiteralPath $ManifestPath -Destination (Join-Path $PortableRoot 'purple_dragon_manifest.json') -Force
 
-# Copy any non-protected visual resources without creating nested ui/ui or
-# assets/assets directories when protected files already created the folder.
 foreach ($ResourceDir in @('assets', 'ui')) {
     $SourceDir = Join-Path $Root $ResourceDir
     $DestinationDir = Join-Path $PortableRoot $ResourceDir
@@ -117,16 +107,11 @@ foreach ($ResourceDir in @('assets', 'ui')) {
     }
 }
 
-# Runtime bridge is intentionally isolated under _runtime.  The compiled host
-# contains and checks its exact SHA-256 before Python is allowed to execute it.
 $BridgeRuntimePath = Join-Path $RuntimeRoot 'bms_native_bridge.py'
 Copy-Item -LiteralPath $BridgeSourcePath -Destination $BridgeRuntimePath -Force
 $BridgeHash = (Get-FileHash $BridgeRuntimePath -Algorithm SHA256).Hash.ToLowerInvariant()
 Write-Host "Native bridge SHA-256: $BridgeHash"
 
-# ---------------------------------------------------------------------------
-# 3. Microsoft WebView2 SDK: host WebView2 directly, no pywebview/pythonnet
-# ---------------------------------------------------------------------------
 $WebView2Version = '1.0.4191.47'
 $WebViewPackage = Join-Path $BuildDir "Microsoft.Web.WebView2.$WebView2Version.nupkg"
 $WebViewPackageZip = "$WebViewPackage.zip"
@@ -151,9 +136,6 @@ Copy-Item $CoreDll.FullName (Join-Path $PortableRoot 'Microsoft.Web.WebView2.Cor
 Copy-Item $WinFormsDll.FullName (Join-Path $PortableRoot 'Microsoft.Web.WebView2.WinForms.dll') -Force
 Copy-Item $LoaderDll.FullName (Join-Path $PortableRoot 'WebView2Loader.dll') -Force
 
-# ---------------------------------------------------------------------------
-# 4. Compile the direct native WebView2 host
-# ---------------------------------------------------------------------------
 $AssemblyParts = @($Version -split '[^0-9]+' | Where-Object { $_ -ne '' } | Select-Object -First 3)
 while ($AssemblyParts.Count -lt 3) { $AssemblyParts += '0' }
 $AssemblyVersion = "$($AssemblyParts[0]).$($AssemblyParts[1]).$($AssemblyParts[2]).0"
@@ -174,7 +156,7 @@ if (-not $Csc) {
 
 $ExePath = Join-Path $PortableRoot 'BitcoinMinerStudio.exe'
 $IconPath = Join-Path $Root 'assets\BitcoinMinerStudio.ico'
-& $Csc /nologo /target:winexe /platform:x64 /optimize+ /langversion:latest `
+& $Csc /nologo /target:winexe /platform:x64 /optimize+ /langversion:5 `
     /reference:System.dll `
     /reference:System.Core.dll `
     /reference:System.Drawing.dll `
@@ -189,9 +171,6 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path $ExePath -PathType Leaf)) {
     throw 'Failed to compile the direct WebView2 BitcoinMinerStudio.exe host.'
 }
 
-# ---------------------------------------------------------------------------
-# 5. Verify embedded runtime and Purple Dragon before launching anything
-# ---------------------------------------------------------------------------
 $RuntimePython = Join-Path $RuntimeRoot 'python.exe'
 $env:PYTHONHOME = $RuntimeRoot
 $env:PYTHONNOUSERSITE = '1'
@@ -240,9 +219,6 @@ finally {
     Pop-Location
 }
 
-# ---------------------------------------------------------------------------
-# 6. Full application smoke test through the REAL EXE + bridge + WebView2
-# ---------------------------------------------------------------------------
 Write-Host 'Running full direct-WebView2 application smoke test...'
 $StartupError = Join-Path $PortableRoot 'startup-error.log'
 $BackendLog = Join-Path $PortableRoot 'native-backend.log'
@@ -269,12 +245,8 @@ if (-not [bool]$Smoke.ok) {
 }
 Write-Host ("Full native bridge/WebView2 startup passed in {0:N2}s" -f ([double]$Smoke.startup_ms / 1000.0)) -ForegroundColor Green
 
-# Smoke/debug files must never ship.
 Remove-Item $StartupError, $BackendLog, $SmokeResult -Force -ErrorAction SilentlyContinue
 
-# ---------------------------------------------------------------------------
-# 7. Package release assets
-# ---------------------------------------------------------------------------
 $ReadmeFirst = @"
 Bitcoin Miner Studio v$Version — Windows x64 Portable
 ====================================================

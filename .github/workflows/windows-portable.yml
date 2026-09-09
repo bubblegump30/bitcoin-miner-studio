@@ -37,6 +37,10 @@ jobs:
         shell: pwsh
         run: .\build_windows_portable.ps1 -SkipInstall
 
+      - name: Optimize Qt portable package
+        shell: pwsh
+        run: .\optimize_windows_portable.ps1
+
       - name: Upload Windows release assets
         uses: actions/upload-artifact@v4
         with:

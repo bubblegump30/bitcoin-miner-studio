@@ -1,52 +1,75 @@
 # Windows EXE build — Bitcoin Miner Studio v2.0.1
 
-The Windows distribution now uses a **native launcher + embedded CPython + Microsoft Edge WebView2** architecture. It does **not** freeze pywebview/pythonnet with PyInstaller and it does **not** ship Qt/PySide6.
+The public Windows distribution uses a **direct native WebView2 host + embedded CPython backend**.
+
+It does **not** use PyInstaller, Qt/PySide6, pywebview, pythonnet, clr-loader, or a frozen Python GUI runtime.
 
 ```text
 BitcoinMinerStudio\
-├─ BitcoinMinerStudio.exe        # tiny native Windows launcher
-├─ launch.pyw                    # signed Purple Dragon entry point
+├─ BitcoinMinerStudio.exe
+├─ Microsoft.Web.WebView2.Core.dll
+├─ Microsoft.Web.WebView2.WinForms.dll
+├─ WebView2Loader.dll
 ├─ purple_dragon_manifest.json
-├─ signed application files
-├─ assets\
+├─ signed Bitcoin Miner Studio application files
 ├─ ui\
-├─ README-FIRST.txt
+├─ assets\
 └─ _runtime\
-   ├─ pythonw.exe
    ├─ python.exe
+   ├─ pythonw.exe
    ├─ python312.dll
    ├─ python312.zip
+   ├─ bms_native_bridge.py
    └─ Lib\site-packages\
-      ├─ pywebview
-      ├─ pythonnet
-      └─ py7zr
+      └─ py7zr and its runtime dependencies
 ```
 
-End users launch `BitcoinMinerStudio.exe`. No system Python installation is required.
+`run.bat` remains the source/developer launcher. The public portable release is launched with `BitcoinMinerStudio.exe`.
 
-## Why this architecture
+## Why this architecture exists
 
-Two frozen GUI approaches were tested and rejected:
+The first EXE packaging attempts exposed two independent problems:
 
-1. PyInstaller + WinForms/pythonnet failed after freezing at `Python.Runtime.dll`, even though normal-interpreter checks passed.
-2. PyInstaller + Qt/PySide6 started successfully but added a very large Chromium/Qt payload, slow cold starts, and rendering/compositing instability.
+1. PyInstaller + pywebview WinForms could fail at the pythonnet `Python.Runtime.dll` loader boundary.
+2. Replacing WinForms with Qt/PySide6 removed that CLR failure, but added a very large Chromium/Qt runtime, slower cold startup, and rendering/compositing instability on the target Windows machine.
 
-The production Windows package therefore keeps Python **non-frozen**, using CPython's official embedded runtime, and forces pywebview to use Windows' native `edgechromium` renderer backed by Microsoft Edge WebView2. This is substantially closer to the source/developer execution model that was already stable.
+The current design removes both problem layers rather than tuning them:
 
-## Runtime requirements
+```text
+BitcoinMinerStudio.exe
+        │
+        ├── Microsoft Edge WebView2 (native C# host)
+        │
+        └── embedded CPython 3.12 backend
+                 │
+                 └── private stdin/stdout JSON bridge
+```
 
-- Windows 10/11 x64
-- Microsoft Edge WebView2 Runtime
+The JavaScript interface still sees the existing `window.pywebview.api` shape through a compatibility proxy injected by the native host, so the signed UI does not need to be rewritten for this distribution.
 
-Current Windows 10/11 systems with Microsoft Edge normally already have WebView2. Python does not need to be installed.
+## Native bridge
+
+`windows_native_bridge.py` adapts the existing signed `WebBackend` and explicit `api_contract.py` method list to a private line-delimited JSON channel.
+
+The channel:
+
+- uses inherited stdin/stdout handles only;
+- does not open a TCP/HTTP port;
+- does not create firewall rules;
+- exposes only methods already listed in `EXPOSED_API_METHODS`;
+- preserves the existing Purple Dragon critical-action gating inside the backend;
+- routes the existing file/folder picker calls to native Windows dialogs;
+- keeps the existing dependency-free Windows tray manager connected to the native host.
+
+The compiled EXE embeds the bridge SHA-256 and refuses to run a changed bridge file.
 
 ## Build locally
 
-The build host requires:
+Requirements:
 
-- Windows x64
-- Python 3.12 x64
-- Internet access to download the official CPython 3.12 embedded package and Python runtime dependencies
+- Windows 10/11 x64
+- Python 3.12 x64 on the build machine
+- Internet access while building, to download the official CPython embedded runtime and Microsoft WebView2 SDK package
 
 Run:
 
@@ -55,28 +78,52 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\build_windows_portable.ps1
 ```
 
-Outputs are written to `release-windows/`:
+The build outputs:
 
 ```text
-BitcoinMinerStudio-v2.0.1-Windows-x64.zip
-SHA256SUMS-Windows.txt
-BitcoinMinerStudio-Windows-build.json
+release-windows\
+├─ BitcoinMinerStudio-v2.0.1-Windows-x64.zip
+├─ SHA256SUMS-Windows.txt
+└─ BitcoinMinerStudio-Windows-build.json
 ```
 
 ## GitHub Actions
 
-Run **Actions → Build Windows x64 Portable → Run workflow**. Pushing a `v*` tag also triggers the build.
+Run:
 
-The workflow builds the native launcher, creates the isolated embedded Python runtime, verifies the Edge WebView2/pythonnet import path in that exact runtime, verifies Purple Dragon, launches the actual packaged application as a startup smoke test, then publishes:
+**Actions → Build Windows x64 Portable → Run workflow**
+
+The workflow uses a Windows x64 runner and Python 3.12 only as a build tool. The resulting end-user package includes its own official CPython 3.12 embedded runtime.
+
+A successful run uploads the artifact:
 
 ```text
 BitcoinMinerStudio-Windows-x64
 ```
 
-## Purple Dragon behavior
+## Release gates
 
-The packaging layer does not modify signed application files. It reads the existing signed `purple_dragon_manifest.json`, copies the exact protected bytes into the portable application root, and verifies them using the same embedded runtime shipped to users.
+The builder fails instead of publishing an artifact unless all of these pass:
 
-The publisher private key is **not required** for Windows packaging and must never be committed to GitHub or placed in GitHub Actions.
+1. Source `purple_dragon_manifest.json` is publisher-signed.
+2. Every Purple Dragon protected source file exists.
+3. Public runtime contains **no pywebview, pythonnet, clr-loader, PySide6, Qt, or PyInstaller**.
+4. Embedded Python can construct the existing Bitcoin Miner Studio backend.
+5. Purple Dragon verifies the copied release tree as `TRUSTED` with every protected file valid.
+6. The real `BitcoinMinerStudio.exe` starts the embedded backend.
+7. Direct Microsoft WebView2 initializes successfully.
+8. The injected JavaScript bridge calls the real `get_bootstrap` backend method and receives a response.
 
-Purple Dragon provenance and Windows Authenticode are separate trust layers. Until `BitcoinMinerStudio.exe` is Authenticode-signed with a Windows code-signing certificate, Windows SmartScreen may still show an unknown-publisher warning even when Purple Dragon reports `TRUSTED`.
+That final test exercises the actual release path instead of merely importing a GUI package.
+
+## Runtime requirements
+
+End users do **not** need Python installed.
+
+The Microsoft Edge WebView2 Runtime is required. It is normally already present on current Windows 10/11 installations with Microsoft Edge. If it is missing or damaged, Bitcoin Miner Studio reports that specific condition instead of falling back to another renderer.
+
+## Purple Dragon and Windows trust
+
+The existing Purple Dragon signature still covers the signed Bitcoin Miner Studio application files. The Windows native host and its bridge are release-container components; the host pins the exact bridge SHA-256 before launching it.
+
+Windows Authenticode signing remains a separate trust layer. Until the project has a Windows code-signing certificate, SmartScreen can still display an unknown-publisher warning for `BitcoinMinerStudio.exe` even when the internal Purple Dragon report is `TRUSTED`.

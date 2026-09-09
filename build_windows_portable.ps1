@@ -50,15 +50,16 @@ Invoke-PythonCommand -CommandArgs @('-c', "import sys; print('Python:', sys.exec
 if (-not $SkipInstall) {
     Write-Host 'Installing release-build dependencies...'
     Invoke-PythonCommand -CommandArgs @('-m', 'pip', 'install', '--upgrade', 'pip')
-    Invoke-PythonCommand -CommandArgs @('-m', 'pip', 'install', '-r', 'requirements.txt', 'pyinstaller>=6.14,<7')
+    Invoke-PythonCommand -CommandArgs @('-m', 'pip', 'install', '-r', 'requirements.txt', 'pywebview[pyside6]>=6.2,<7', 'pyinstaller>=6.14,<7')
 }
 
-Invoke-PythonCommand -CommandArgs @('-c', "import webview, py7zr, PyInstaller; print('pywebview:', getattr(webview, '__version__', 'installed')); print('py7zr:', py7zr.__version__); print('PyInstaller:', PyInstaller.__version__)")
+Invoke-PythonCommand -CommandArgs @('-c', "import webview, py7zr, PyInstaller, PySide6; print('pywebview:', getattr(webview, '__version__', 'installed')); print('py7zr:', py7zr.__version__); print('PyInstaller:', PyInstaller.__version__); print('PySide6:', PySide6.__version__)")
 
-# Preflight the exact Windows GUI runtime that pywebview uses. This catches
-# pythonnet/CLR incompatibilities before PyInstaller publishes an unusable EXE.
-Write-Host 'Preflighting pywebview WinForms/pythonnet runtime...'
-Invoke-PythonCommand -CommandArgs @('-c', "import clr; import webview.platforms.winforms; print('WinForms/pythonnet preflight: OK')")
+# Public frozen builds use pywebview's Qt backend. The previous WinForms path
+# depended on pythonnet/CLR and failed only after freezing, even though a normal
+# interpreter preflight passed. Qt avoids that CLR dependency entirely.
+Write-Host 'Preflighting pywebview Qt/PySide6 runtime...'
+Invoke-PythonCommand -CommandArgs @('-c', "import os; os.environ['QT_QPA_PLATFORM']='offscreen'; from PySide6.QtWidgets import QApplication; app=QApplication([]); import webview.platforms.qt; print('Qt/PySide6 preflight: OK'); app.quit()")
 
 $ManifestPath = Join-Path $Root 'purple_dragon_manifest.json'
 if (-not (Test-Path $ManifestPath -PathType Leaf)) {
@@ -80,7 +81,17 @@ $ReleaseDir = Join-Path $Root 'release-windows'
 Remove-Item $BuildDir -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item $DistDir -Recurse -Force -ErrorAction SilentlyContinue
 Remove-Item $ReleaseDir -Recurse -Force -ErrorAction SilentlyContinue
+New-Item $BuildDir -ItemType Directory | Out-Null
 New-Item $ReleaseDir -ItemType Directory | Out-Null
+
+# Force Qt before pywebview chooses a Windows backend. The hook is generated in
+# the build workspace and embedded by PyInstaller; it is not shipped as an
+# unsigned application source file.
+$RuntimeHookPath = Join-Path $BuildDir 'pyi_rth_bms_qt.py'
+@'
+import os
+os.environ['PYWEBVIEW_GUI'] = 'qt'
+'@ | Set-Content -Path $RuntimeHookPath -Encoding ASCII
 
 $PyInstallerArgs = @(
     '--noconfirm',
@@ -90,12 +101,20 @@ $PyInstallerArgs = @(
     '--contents-directory=_internal',
     "--icon=$Root\assets\BitcoinMinerStudio.ico",
     "--version-file=$Root\windows_version_info.txt",
+    "--runtime-hook=$RuntimeHookPath",
     '--collect-all=webview',
     '--collect-all=py7zr',
-    '--collect-all=pythonnet',
-    '--collect-all=clr_loader',
-    '--hidden-import=clr',
-    '--hidden-import=pythonnet'
+    '--hidden-import=webview.platforms.qt',
+    '--hidden-import=PySide6.QtCore',
+    '--hidden-import=PySide6.QtGui',
+    '--hidden-import=PySide6.QtWidgets',
+    '--hidden-import=PySide6.QtWebChannel',
+    '--hidden-import=PySide6.QtWebEngineCore',
+    '--hidden-import=PySide6.QtWebEngineWidgets',
+    '--exclude-module=clr',
+    '--exclude-module=pythonnet',
+    '--exclude-module=clr_loader',
+    '--exclude-module=webview.platforms.winforms'
 )
 
 foreach ($Relative in $ProtectedFiles) {
@@ -122,13 +141,30 @@ $ExePath = Join-Path $PortableRoot 'BitcoinMinerStudio.exe'
 if (-not (Test-Path $ExePath -PathType Leaf)) {
     throw 'BitcoinMinerStudio.exe was not produced.'
 }
-if (-not (Test-Path (Join-Path $InternalRoot 'purple_dragon_manifest.json') -PathType Leaf)) {
-    throw 'Frozen package is missing the Purple Dragon manifest.'
-}
 
-$env:BMS_FROZEN_VERIFY_ROOT = $InternalRoot
+# PyInstaller stores added data under _internal, while Purple Dragon's frozen
+# runtime resolves its verification root beside BitcoinMinerStudio.exe. Copy
+# the exact signed surfaces to the portable root as well so runtime trust uses
+# the same 67/67 bytes that were signed. The embedded runtime copies remain for
+# normal module/data resolution.
+foreach ($Relative in $ProtectedFiles) {
+    $Source = Join-Path $InternalRoot $Relative
+    $Destination = Join-Path $PortableRoot $Relative
+    if (-not (Test-Path $Source -PathType Leaf)) {
+        throw "Frozen package is missing protected file: $Relative"
+    }
+    $DestinationDir = Split-Path $Destination -Parent
+    if (-not (Test-Path $DestinationDir)) {
+        New-Item $DestinationDir -ItemType Directory -Force | Out-Null
+    }
+    Copy-Item $Source $Destination -Force
+}
+Copy-Item (Join-Path $InternalRoot 'purple_dragon_manifest.json') (Join-Path $PortableRoot 'purple_dragon_manifest.json') -Force
+
+# Verify the actual runtime root, not only the PyInstaller _internal directory.
+$env:BMS_FROZEN_VERIFY_ROOT = $PortableRoot
 $VerifyScript = @'
-import json, os, sys
+import json, os
 from purple_dragon_security import verify_integrity
 root = os.environ['BMS_FROZEN_VERIFY_ROOT']
 state = verify_integrity(root)
@@ -152,9 +188,61 @@ raise SystemExit(0 if ok else 9)
 '@
 $VerifyScript | & $Python.Exe @($Python.Prefix) -
 if ($LASTEXITCODE -ne 0) {
-    throw 'Purple Dragon verification failed against the frozen package.'
+    throw 'Purple Dragon verification failed against the actual portable runtime root.'
 }
 Remove-Item Env:BMS_FROZEN_VERIFY_ROOT -ErrorAction SilentlyContinue
+
+# Build and execute a tiny frozen Qt probe. This specifically tests the layer
+# that failed in the first two artifacts: importing and initializing the GUI
+# backend after PyInstaller freezing.
+Write-Host 'Running frozen Qt backend smoke test...'
+$SmokeSource = Join-Path $BuildDir 'bms_qt_frozen_smoke.py'
+$SmokeDist = Join-Path $BuildDir 'smoke-dist'
+$SmokeWork = Join-Path $BuildDir 'smoke-work'
+$SmokeSpec = Join-Path $BuildDir 'smoke-spec'
+New-Item $SmokeSpec -ItemType Directory -Force | Out-Null
+@'
+import os
+os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+os.environ['PYWEBVIEW_GUI'] = 'qt'
+from PySide6.QtWidgets import QApplication
+app = QApplication([])
+import webview.platforms.qt
+app.quit()
+raise SystemExit(0)
+'@ | Set-Content -Path $SmokeSource -Encoding ASCII
+
+$SmokeArgs = @(
+    '--noconfirm',
+    '--clean',
+    '--console',
+    '--name=BMSQtFrozenSmoke',
+    "--distpath=$SmokeDist",
+    "--workpath=$SmokeWork",
+    "--specpath=$SmokeSpec",
+    "--runtime-hook=$RuntimeHookPath",
+    '--hidden-import=webview.platforms.qt',
+    '--hidden-import=PySide6.QtWebChannel',
+    '--hidden-import=PySide6.QtWebEngineWidgets',
+    '--exclude-module=clr',
+    '--exclude-module=pythonnet',
+    '--exclude-module=clr_loader',
+    '--exclude-module=webview.platforms.winforms',
+    $SmokeSource
+)
+& $Python.Exe @($Python.Prefix) -m PyInstaller @SmokeArgs
+if ($LASTEXITCODE -ne 0) {
+    throw 'Frozen Qt smoke-test build failed.'
+}
+$SmokeExe = Join-Path $SmokeDist 'BMSQtFrozenSmoke\BMSQtFrozenSmoke.exe'
+if (-not (Test-Path $SmokeExe -PathType Leaf)) {
+    throw 'Frozen Qt smoke-test executable was not produced.'
+}
+$SmokeProcess = Start-Process -FilePath $SmokeExe -PassThru -Wait -NoNewWindow
+if ($SmokeProcess.ExitCode -ne 0) {
+    throw "Frozen Qt backend smoke test failed with exit code $($SmokeProcess.ExitCode)."
+}
+Write-Host 'Frozen Qt backend smoke test: OK' -ForegroundColor Green
 
 $ReadmeFirst = @"
 Bitcoin Miner Studio v2.0.1 — Windows x64 Portable
@@ -162,9 +250,11 @@ Bitcoin Miner Studio v2.0.1 — Windows x64 Portable
 
 Launch: BitcoinMinerStudio.exe
 
-Keep BitcoinMinerStudio.exe and the _internal folder together.
-The source/developer launcher run.bat remains in the GitHub source tree; it is
-not required for this portable build.
+Keep BitcoinMinerStudio.exe, purple_dragon_manifest.json, the signed application
+files, and the _internal folder together. Do not move the EXE out of this folder.
+
+The Windows portable build uses pywebview's Qt / PySide6 backend. Python is not
+required on the destination PC.
 
 Purple Dragon Security verifies the signed protected application surfaces at
 runtime. Windows Authenticode signing is a separate trust layer; SmartScreen
@@ -192,6 +282,7 @@ $BuildInfo = [ordered]@{
     version = $Version
     platform = 'windows-x64'
     python = '3.12'
+    gui_backend = 'qt-pyside6'
     packaging = 'pyinstaller-onedir'
     executable = 'BitcoinMinerStudio.exe'
     executable_sha256 = $ExeHash
@@ -200,6 +291,7 @@ $BuildInfo = [ordered]@{
     purple_dragon_build_id = [string]$Manifest.build_id
     purple_dragon_publisher_key_id = [string]$Manifest.publisher_key_id
     purple_dragon_protected_files = $ProtectedFiles.Count
+    frozen_gui_smoke_test = 'passed'
 }
 $BuildInfo | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $ReleaseDir 'BitcoinMinerStudio-Windows-build.json') -Encoding UTF8
 

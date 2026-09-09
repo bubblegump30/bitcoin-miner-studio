@@ -33,6 +33,25 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt "pywebview[pyside6]>=6.2,<7" "pyinstaller>=6.14,<7"
 
+      - name: Apply Qt rendering stability profile
+        shell: pwsh
+        run: |
+          $path = 'build_windows_portable.ps1'
+          $content = Get-Content $path -Raw -Encoding UTF8
+          $needle = "os.environ['PYWEBVIEW_GUI'] = 'qt'"
+          if (-not $content.Contains($needle)) {
+            throw 'Could not find the Qt runtime-hook insertion point.'
+          }
+          $replacement = @"
+          os.environ['PYWEBVIEW_GUI'] = 'qt'
+          os.environ['QT_OPENGL'] = 'software'
+          _flags = os.environ.get('QTWEBENGINE_CHROMIUM_FLAGS', '').strip()
+          _stable = '--disable-gpu --disable-gpu-compositing --disable-direct-composition'
+          os.environ['QTWEBENGINE_CHROMIUM_FLAGS'] = (_flags + ' ' + _stable).strip()
+          "@
+          $content = $content.Replace($needle, $replacement.Trim())
+          Set-Content -Path $path -Value $content -Encoding UTF8
+
       - name: Build and verify portable EXE package
         shell: pwsh
         run: .\build_windows_portable.ps1 -SkipInstall

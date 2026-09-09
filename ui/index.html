@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="bms-provenance" content="pd-provenance-v2">
+  <meta name="bms-purple-dragon-seal" content="3df72acaa15c444590477080">
+  <meta charset="UTF-8" />
+  <meta name="author" content="Purple Dragon Foundation ltd">
+  <meta name="application-name" content="Bitcoin Miner Studio">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bitcoin Miner Studio — Holographic UI</title>
+  <link rel="icon" type="image/png" href="assets/BitcoinMinerStudio.png">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="aurora aurora-a"></div><div class="aurora aurora-b"></div><div class="grid-noise"></div>
+  <div class="app-shell">
+    <aside class="sidebar glass">
+      <div class="brand"><div class="brand-foundation-mark foundation-symbol-crop" title="Purple Dragon Foundation ltd"><img src="assets/PurpleDragonFoundationLogo.png" alt="Purple Dragon Foundation ltd logo"></div><div class="brand-copy"><strong>BITCOIN MINER</strong><span>STUDIO · v2 WORKSPACE</span><small class="brand-publisher">PURPLE DRAGON FOUNDATION LTD</small></div><button class="sidebar-compact-toggle" id="sidebarCompactToggle" type="button" title="Toggle compact sidebar" aria-label="Toggle compact sidebar">⇤</button></div>
+      <nav class="nav">
+        <span class="nav-section-label">WORKSPACE</span>
+        <button class="nav-item active" data-view="dashboard"><span>⌂</span>Dashboard</button>
+        <button class="nav-item benchmark-nav" data-view="benchmark"><span>◇</span>Benchmark Lab</button>
+        <button class="nav-item academy-nav" data-view="academy"><span>◎</span>Mining Academy</button>
+        <button class="nav-item assistant-nav" data-view="assistant"><span>✦</span>Mining Assistant</button>
+        <button class="nav-item profitability-nav" data-view="profitability"><span>₿</span>Profitability &amp; Power</button>
+        <button class="nav-item hardware-nav" data-view="hardware"><span>▦</span>Hardware Compatibility</button>
+        <span class="nav-section-label">OPERATIONS</span>
+        <button class="nav-item" data-view="asic"><span>◈</span>ASIC Control</button>
+        <button class="nav-item" data-view="pool"><span>⌁</span>Pool PowerTools</button>
+        <button class="nav-item" data-view="core"><span>Ⓑ</span>Bitcoin Core</button>
+        <button class="nav-item" data-view="monitoring"><span>⌁</span>Monitoring</button>
+        <button class="nav-item tray-nav" data-view="tray"><span>▣</span>Tray &amp; Background</button>
+        <button class="nav-item" data-view="logs"><span>▤</span>Logs</button>
+        <span class="nav-section-label">SYSTEM</span>
+        <button class="nav-item diagnostics-nav" data-view="diagnostics"><span>⊕</span>Diagnostics &amp; Support</button>
+        <button class="nav-item" data-view="minerxp"><span>★</span>Miner XP</button>
+        <button class="nav-item update-nav" data-view="release"><span>⇧</span>Update &amp; Release</button>
+        <button class="nav-item" data-view="security"><span>◆</span>Purple Dragon</button>
+      </nav>
+      <div class="status-card"><span class="status-dot"></span><div><strong id="sideHealth">100%</strong><small>Mining Health</small></div></div>
+      <button class="donate-card" id="paypalDonate" type="button" title="Support Purple Dragon Foundation ltd through PayPal.me — opens in your default browser">
+        <span class="donate-foundation-mark foundation-symbol-crop" aria-hidden="true"><img src="assets/PurpleDragonFoundationLogo.png" alt=""></span>
+        <div><strong>SUPPORT PURPLE DRAGON</strong><small>Purple Dragon Foundation ltd · PayPal</small></div>
+        <b>↗</b>
+      </button>
+      <button class="pro-card btn-3d" data-view-jump="dashboard"><span>₿</span><div><strong>SHA-256d ENGINE</strong><small id="sideVersion">Holographic Edition</small></div></button>
+    </aside>
+
+    <main class="content">
+      <header class="topbar glass">
+        <button class="mobile-menu" id="mobileMenu">☰</button>
+        <div class="search-wrap"><span>⌕</span><input id="searchInput" type="text" placeholder="Search tools or run a command..."/><kbd>Ctrl K</kbd></div>
+        <div class="top-actions">
+          <button class="architecture-top-chip" id="architectureTopChip" data-view-jump="diagnostics" title="v2 application architecture health"><span>▦</span><strong>Architecture</strong><small id="architectureTopState">STARTING</small></button>
+          <button class="performance-plus-toggle" id="performancePlusToggle" title="Reduce UI/GPU overhead and prioritize mining responsiveness"><span>⚡</span><strong>Performance+</strong><small id="performancePlusState">OFF</small></button>
+          <button class="security-top-chip" id="securityTopChip" data-view-jump="security" title="Purple Dragon build trust"><span>◆</span><strong>Security</strong><small id="securityTopState">CHECKING</small></button>
+          <div class="theme-picker" id="themePicker">
+            <button class="theme-top-chip" id="themeToggle" type="button" aria-haspopup="true" aria-expanded="false" title="Change Bitcoin Miner Studio color theme"><span>◐</span><strong>Theme</strong><small id="themeCurrent">PURPLE</small></button>
+            <div class="theme-popover glass" id="themePopover" hidden>
+              <div class="theme-popover-head"><div><strong>THEME STUDIO</strong><small>Choose your holographic color system</small></div><span id="themeActiveName">Purple</span></div>
+              <div class="theme-grid" id="themeGrid">
+                <button class="theme-option" type="button" data-theme-value="purple"><i class="theme-swatch swatch-purple"></i><span><strong>Purple</strong><small>Original</small></span><b>✓</b></button>
+                <button class="theme-option" type="button" data-theme-value="graphite"><i class="theme-swatch swatch-graphite"></i><span><strong>Graphite</strong><small>Grey</small></span><b>✓</b></button>
+                <button class="theme-option" type="button" data-theme-value="obsidian"><i class="theme-swatch swatch-obsidian"></i><span><strong>Obsidian</strong><small>Black</small></span><b>✓</b></button>
+                <button class="theme-option" type="button" data-theme-value="frost"><i class="theme-swatch swatch-frost"></i><span><strong>Frost</strong><small>White</small></span><b>✓</b></button>
+                <button class="theme-option" type="button" data-theme-value="sapphire"><i class="theme-swatch swatch-sapphire"></i><span><strong>Sapphire</strong><small>Blue</small></span><b>✓</b></button>
+                <button class="theme-option" type="button" data-theme-value="crimson"><i class="theme-swatch swatch-crimson"></i><span><strong>Crimson</strong><small>Red</small></span><b>✓</b></button>
+                <button class="theme-option" type="button" data-theme-value="emerald"><i class="theme-swatch swatch-emerald"></i><span><strong>Emerald</strong><small>Green</small></span><b>✓</b></button>
+                <button class="theme-option" type="button" data-theme-value="cyan"><i class="theme-swatch swatch-cyan"></i><span><strong>Cyan</strong><small>Electric</small></span><b>✓</b></button>
+                <button class="theme-option" type="button" data-theme-value="amber"><i class="theme-swatch swatch-amber"></i><span><strong>Amber</strong><small>Gold</small></span><b>✓</b></button>
+                <button class="theme-option" type="button" data-theme-value="rose"><i class="theme-swatch swatch-rose"></i><span><strong>Rose</strong><small>Pink</small></span><b>✓</b></button>
+              </div>
+              <p class="theme-note">Theme changes are cosmetic only. Mining, Pool, ASIC, Bitcoin Core, security, and payout settings are untouched.</p>
+            </div>
+          </div>
+          <button class="icon-btn" id="refreshBtn" title="Refresh">↻</button>
+          <button class="icon-btn notification" data-view-jump="logs">♢<b id="alertCount">0</b></button>
+          <button class="profile" data-view-jump="pool"><span class="avatar">BTC</span><span><strong>SHA-256d</strong><small id="profileStatus">Ready</small></span><span>⌄</span></button>
+        </div>
+      </header>
+
+      <section class="workspace-bar glass" id="workspaceBar">
+        <div class="workspace-context">
+          <small>ACTIVE WORKSPACE</small>
+          <strong id="workspaceCurrent">Dashboard</strong>
+          <span id="workspaceArchitecture">BMS-ARCH-2 · STARTING</span>
+        </div>
+        <div class="workspace-recents" id="workspaceRecents" aria-label="Recent workspaces"></div>
+        <div class="workspace-bar-actions">
+          <button class="ghost-btn" id="workspaceCommandButton" type="button">Command Palette <kbd>Ctrl K</kbd></button>
+        </div>
+      </section>
+
+      <section class="view active" id="view-dashboard">
+        <section class="hero glass holographic-border">
+          <div class="hero-copy">
+            <p class="eyebrow" id="modeEyebrow">SYSTEM READY</p>
+            <h1>BITCOIN MINING COMMAND CENTER</h1>
+            <p>Pool mining, SHA-256d benchmarking, ASIC fleet control, and Bitcoin Core connectivity in one holographic workspace.</p>
+            <div class="stat-grid">
+              <article class="stat-card"><span class="stat-icon">◇</span><div><strong id="heroHashrate">0 H/s</strong><small>HASHRATE</small></div></article>
+              <article class="stat-card"><span class="stat-icon">✓</span><div><strong id="heroAccepted">0</strong><small>ACCEPTED</small></div></article>
+              <article class="stat-card"><span class="stat-icon">◎</span><div><strong id="heroDifficulty">—</strong><small>DIFFICULTY</small></div></article>
+              <article class="stat-card"><span class="stat-icon">◷</span><div><strong id="heroUptime">00:00:00</strong><small>UPTIME</small></div></article>
+            </div>
+          </div>
+          <div class="assistant-card">
+            <div class="orb-wrap"><div class="orb"></div><div class="orb-ring ring-a"></div><div class="orb-ring ring-b"></div></div>
+            <div><span class="online" id="engineOnline">● Ready</span><h3>MINING ENGINE</h3><p id="engineCopy">No active mining session.</p><button class="btn-3d primary" id="enginePrimary">Start Mining →</button></div>
+          </div>
+        </section>
+
+        <section class="v2-architecture-strip glass" id="v2ArchitectureStrip">
+          <div class="v2-arch-title"><span>▦</span><div><small>v2.0 APPLICATION ARCHITECTURE</small><strong id="v2ArchOverall">STARTING</strong></div></div>
+          <div class="v2-arch-metric"><small>SERVICES</small><strong id="v2ArchServices">0</strong></div>
+          <div class="v2-arch-metric"><small>RUNNING</small><strong id="v2ArchRunning">0</strong></div>
+          <div class="v2-arch-metric"><small>ISSUES</small><strong id="v2ArchIssues">0</strong></div>
+          <button class="ghost-btn" data-view-jump="diagnostics" type="button">Architecture Details →</button>
+        </section>
+
+        <button class="miner-rank-strip glass" data-view-jump="minerxp" type="button" aria-label="Open Miner XP and Hash Hunt">
+          <span class="miner-rank-coin">₿</span>
+          <span class="miner-rank-copy"><small>MINER RANK</small><strong id="dashboardMinerLevel">Level 1</strong><em id="dashboardMinerTitle">Hash Rookie</em></span>
+          <span class="miner-rank-progress-wrap">
+            <span class="miner-rank-xp-label"><b id="dashboardMinerXp">0 / 50 XP</b><i id="dashboardMinerNext">50 XP to next level</i></span>
+            <span class="miner-rank-track"><span id="dashboardMinerXpBar"></span></span>
+          </span>
+          <span class="miner-rank-open">Open Hash Hunt →</span>
+        </button>
+
+        <section class="dashboard-grid">
+          <article class="panel glass">
+            <div class="panel-head"><h2>PERFORMANCE OVERVIEW</h2><span id="liveStatus">● Idle</span></div>
+            <div class="performance-layout">
+              <div class="gauge" id="healthGauge" style="--value:100"><div class="gauge-inner"><strong id="gaugeValue">100%</strong><span>HEALTH</span><small id="gaugeLabel">Ready</small></div></div>
+              <div class="meters">
+                <div class="meter"><div><span>AVG / CURRENT</span><strong id="meterAvgText">0%</strong></div><i><b id="meterAvg" style="width:0%"></b></i></div>
+                <div class="meter"><div><span>ACCEPTANCE</span><strong id="meterAcceptanceText">0%</strong></div><i><b id="meterAcceptance" style="width:0%"></b></i></div>
+                <div class="meter"><div><span>SHARES</span><strong id="meterSharesText">0</strong></div><i><b id="meterShares" style="width:0%"></b></i></div>
+                <div class="meter"><div><span>WORKERS</span><strong id="meterWorkersText">0</strong></div><i><b id="meterWorkers" style="width:0%"></b></i></div>
+              </div>
+            </div><canvas id="sparkline" height="105" data-css-height="105"></canvas>
+          </article>
+
+          <article class="panel glass">
+            <div class="panel-head"><h2>MINING SESSION</h2><button class="ghost-btn" data-view-jump="pool">Configure</button></div>
+            <div class="model-list">
+              <div class="model-row"><span class="model-icon">⌁</span><div><strong>Pool Endpoint</strong><small id="sessionEndpoint">No pool session</small></div><span class="badge active" id="sessionMode">Ready</span></div>
+              <div class="model-row"><span class="model-icon">◇</span><div><strong>Current Job</strong><small id="sessionJob">—</small></div><span class="value-pill" id="sessionLatency">—</span></div>
+              <div class="model-row"><span class="model-icon">▥</span><div><strong>Total Hashes</strong><small id="sessionHashes">0</small></div><span class="value-pill" id="sessionWorkers">0 workers</span></div>
+              <div class="model-row"><span class="model-icon">◎</span><div><strong>Expected Share</strong><small id="sessionEta">—</small></div><span class="badge idle" id="sessionAcceptance">—</span></div>
+            </div>
+          </article>
+
+          <article class="panel glass quick-actions">
+            <div class="panel-head"><h2>QUICK ACTIONS</h2></div>
+            <div class="action-grid">
+              <button class="btn-3d action" id="quickMining"><span>₿</span>Start Mining</button>
+              <button class="btn-3d action" id="quickBenchmark"><span>◇</span>Start Benchmark</button>
+              <button class="btn-3d action" id="quickLocalPool"><span>⌁</span>Local Test Pool</button>
+              <button class="btn-3d action" id="quickPoolTest"><span>✓</span>Test Pool</button>
+              <button class="btn-3d action" id="quickCoreTest"><span>Ⓑ</span>Test Bitcoin Core</button>
+              <button class="btn-3d action" id="quickAsic"><span>◈</span>Refresh ASIC Fleet</button>
+            </div>
+          </article>
+
+          <article class="panel glass data-panel wide dashboard-hashrate"><div class="panel-head"><h2>HASHRATE ACTIVITY</h2><span>Live session</span></div><canvas id="dataChart" height="240" data-css-height="240"></canvas></article>
+          <article class="panel glass system-monitor dashboard-system-monitor"><div class="panel-head"><h2>SYSTEM MONITOR</h2><span>Live hardware</span></div><div class="radar"><div class="radar-core"></div><div class="radar-ring r1"></div><div class="radar-ring r2"></div><div class="radar-ring r3"></div></div><div class="hardware-stats"><div><strong id="sysCores">—</strong><small>CPU CORES</small></div><div><strong id="sysAsics">0</strong><small>ASIC DEVICES</small></div><div><strong id="sysSubmitted">0</strong><small>SUBMITTED</small></div><div><strong id="sysRejected">0</strong><small>REJECTED</small></div></div></article>
+          <article class="panel glass dashboard-recent-activity"><div class="panel-head"><h2>RECENT ACTIVITY</h2><button class="ghost-btn" data-view-jump="logs">View All</button></div><div class="activity-list activity-list-dashboard" id="activityList"></div></article>
+        </section>
+      </section>
+
+
+      <section class="view" id="view-benchmark">
+        <div class="benchmark-page-head">
+          <div>
+            <span class="assistant-eyebrow">v1.6.0 · BENCHMARK LAB 2.0</span>
+            <h1 class="view-title">Benchmark Lab 2.0</h1>
+            <p class="view-sub">Measure this PC's local SHA-256d CPU performance with timed runs, stability scoring, worker-scaling analysis, local history, and exportable reports. No pool or wallet connection is used.</p>
+          </div>
+          <div class="benchmark-head-actions">
+            <button class="ghost-btn requires-python-api" id="benchmarkExportJson">Export JSON</button>
+            <button class="btn-3d primary requires-python-api" id="benchmarkPrimary">Start Benchmark</button>
+          </div>
+        </div>
+
+        <section class="benchmark-hero glass holographic-border">
+          <div class="benchmark-live-copy">
+            <span class="benchmark-live-badge" id="benchmarkStatusBadge">READY</span>
+            <h2 id="benchmarkLiveTitle">Local SHA-256d Performance</h2>
+            <p id="benchmarkLiveMeta">Choose a preset or custom duration, then run a local benchmark.</p>
+            <div class="benchmark-progress-track"><span id="benchmarkProgressBar"></span></div>
+            <div class="benchmark-progress-meta"><span id="benchmarkElapsed">0.0s elapsed</span><span id="benchmarkRemaining">Ready</span></div>
+          </div>
+          <div class="benchmark-score-orb">
+            <small>BMS SCORE</small>
+            <strong id="benchmarkScore">0.00</strong>
+            <span id="benchmarkScoreDelta">Local comparison score</span>
+          </div>
+        </section>
+
+        <div class="benchmark-kpi-grid">
+          <article class="stat-card glass"><span class="stat-icon">◇</span><div><strong id="benchmarkCurrentRate">0 H/s</strong><small>CURRENT</small></div></article>
+          <article class="stat-card glass"><span class="stat-icon">◎</span><div><strong id="benchmarkAverageRate">0 H/s</strong><small>AVERAGE</small></div></article>
+          <article class="stat-card glass"><span class="stat-icon">↗</span><div><strong id="benchmarkPeakRate">0 H/s</strong><small>PEAK</small></div></article>
+          <article class="stat-card glass"><span class="stat-icon">≋</span><div><strong id="benchmarkStability">100%</strong><small>STABILITY</small></div></article>
+          <article class="stat-card glass"><span class="stat-icon">▥</span><div><strong id="benchmarkHashes">0</strong><small>TOTAL HASHES</small></div></article>
+        </div>
+
+        <section class="benchmark-grid">
+          <article class="panel glass benchmark-control-panel">
+            <div class="panel-head"><h2>BENCHMARK RUN</h2><span>Timed local test</span></div>
+            <div class="benchmark-presets" id="benchmarkPresets">
+              <button class="benchmark-preset" data-duration="10" data-label="Quick"><strong>Quick</strong><small>10 sec</small></button>
+              <button class="benchmark-preset active" data-duration="30" data-label="Standard"><strong>Standard</strong><small>30 sec</small></button>
+              <button class="benchmark-preset" data-duration="60" data-label="Sustained"><strong>Sustained</strong><small>60 sec</small></button>
+              <button class="benchmark-preset" data-duration="120" data-label="Stress"><strong>Stress</strong><small>2 min</small></button>
+            </div>
+            <div class="form-grid benchmark-form-grid">
+              <label>Workers<input type="number" id="benchmarkWorkers" min="1" max="64" value="2"></label>
+              <label>Duration (seconds)<input type="number" id="benchmarkDuration" min="3" max="3600" value="30"></label>
+              <label>Run Label<input type="text" id="benchmarkLabel" maxlength="80" value="Standard"></label>
+            </div>
+            <div class="benchmark-run-actions">
+              <button class="btn-3d primary requires-python-api" id="benchmarkStart">Start Timed Run</button>
+              <button class="btn-3d danger requires-python-api" id="benchmarkStop" disabled>Stop</button>
+            </div>
+            <div class="assistant-note"><strong>Score formula</strong><p>BMS Score = average kH/s × measured stability. It is intended for comparing this PC with its own prior runs, not as a universal hardware ranking.</p></div>
+          </article>
+
+          <article class="panel glass benchmark-scaling-panel">
+            <div class="panel-head"><h2>WORKER SCALING TEST</h2><span id="benchmarkScalingStatus">Ready</span></div>
+            <p class="panel-copy">Automatically tests 1, 2, 4… workers up to this CPU's logical processor count and measures scaling efficiency.</p>
+            <div class="form-grid benchmark-scaling-form">
+              <label>Seconds / step<input type="number" id="benchmarkScalingSeconds" min="3" max="120" value="8"></label>
+            </div>
+            <div class="benchmark-run-actions">
+              <button class="btn-3d action requires-python-api" id="benchmarkScalingStart">Run Scaling Test</button>
+              <button class="ghost-btn requires-python-api" id="benchmarkScalingStop" disabled>Stop Test</button>
+            </div>
+            <div class="benchmark-scaling-list" id="benchmarkScalingList"><div class="benchmark-empty">No scaling run yet.</div></div>
+          </article>
+
+          <article class="panel glass benchmark-history-panel wide">
+            <div class="panel-head"><h2>BENCHMARK HISTORY</h2><div class="benchmark-history-actions"><button class="ghost-btn" data-academy-lesson="sha256d">Learn This</button><button class="ghost-btn requires-python-api" id="benchmarkExportCsv">Export CSV</button><button class="ghost-btn requires-python-api" id="benchmarkClearHistory">Clear History</button></div></div>
+            <div class="benchmark-history-summary">
+              <div><small>RUNS</small><strong id="benchmarkHistoryCount">0</strong></div>
+              <div><small>BEST SCORE</small><strong id="benchmarkBestScore">0.00</strong></div>
+              <div><small>LATEST SCORE</small><strong id="benchmarkLatestScore">0.00</strong></div>
+              <div><small>CPU</small><strong id="benchmarkCpuCount">—</strong></div>
+            </div>
+            <div class="table-wrap benchmark-table-wrap">
+              <table class="data-table benchmark-history-table">
+                <thead><tr><th>TIME</th><th>RUN</th><th>WORKERS</th><th>AVG</th><th>PEAK</th><th>STABILITY</th><th>SCORE</th><th>SCALING</th></tr></thead>
+                <tbody id="benchmarkHistoryBody"><tr><td colspan="8">No benchmark results yet.</td></tr></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+      </section>
+
+
+      <section class="view" id="view-academy">
+        <div class="academy-page-head">
+          <div>
+            <span class="assistant-eyebrow">v1.7.0 · LOCAL INTERACTIVE LEARNING CENTER</span>
+            <h1 class="view-title">Mining Academy</h1>
+            <p class="view-sub">Learn Bitcoin mining from fundamentals through block headers, Proof of Work, Stratum, ASIC efficiency, economics and security. Academy labs are isolated from wallets, credentials, ASIC controls, live workers, Bitcoin Core state and block submission.</p>
+          </div>
+          <div class="inline-actions"><button class="btn-3d secondary requires-python-api" id="academyRefresh">Refresh</button><button class="btn-3d danger requires-python-api" id="academyReset">Reset Progress</button></div>
+        </div>
+
+        <article class="academy-hero glass holographic-border">
+          <div class="academy-orb"><span>◎</span></div>
+          <div class="academy-hero-copy">
+            <small>ACADEMY RANK</small><h2 id="academyRank">NEW MINER</h2><p id="academyHeroText">Complete lessons, labs and quizzes to build local Academy progress.</p>
+            <div class="academy-progress"><i><b id="academyProgressBar"></b></i><span id="academyProgressText">0%</span></div>
+          </div>
+          <div class="academy-hero-kpis">
+            <div><small>LESSONS</small><strong id="academyLessonsKpi">0 / 12</strong></div>
+            <div><small>LABS</small><strong id="academyLabsKpi">0 / 5</strong></div>
+            <div><small>QUIZZES</small><strong id="academyQuizKpi">0 / 12</strong></div>
+            <div><small>ACADEMY XP</small><strong id="academyPointsKpi">0</strong></div>
+          </div>
+        </article>
+
+        <section class="academy-layout">
+          <article class="panel glass academy-catalog-panel">
+            <div class="panel-head"><h2>LEARNING PATH</h2><span id="academyCatalogMeta">12 lessons</span></div>
+            <div class="academy-filter-row" id="academyFilters">
+              <button class="active" data-academy-filter="all">All</button><button data-academy-filter="Beginner">Beginner</button><button data-academy-filter="Intermediate">Intermediate</button><button data-academy-filter="Advanced">Advanced</button>
+            </div>
+            <div class="academy-lesson-list" id="academyLessonList"><div class="empty-state">Loading Mining Academy…</div></div>
+          </article>
+
+          <article class="panel glass academy-lesson-panel">
+            <div class="academy-lesson-head"><div><small id="academyLessonTrack">FUNDAMENTALS · BEGINNER</small><h2 id="academyLessonTitle">What Bitcoin Mining Does</h2><p id="academyLessonSummary">Select a lesson from the learning path.</p></div><span class="academy-status-pill" id="academyLessonStatus">NOT STARTED</span></div>
+            <div class="academy-objectives" id="academyObjectives"></div>
+            <div class="academy-sections" id="academySections"></div>
+            <div class="inline-actions academy-lesson-actions"><button class="btn-3d secondary requires-python-api" id="academyStartLesson">Mark In Progress</button><button class="btn-3d primary requires-python-api" id="academyCompleteLesson">Complete Lesson</button></div>
+
+            <div class="academy-quiz" id="academyQuizBox">
+              <div class="panel-head"><h2>KNOWLEDGE CHECK</h2><span id="academyQuizState">Not attempted</span></div>
+              <p class="academy-quiz-question" id="academyQuizQuestion">Choose a lesson to load its knowledge check.</p>
+              <div class="academy-quiz-choices" id="academyQuizChoices"></div>
+              <div class="result-box compact" id="academyQuizResult">Select one answer. You can retry immediately.</div>
+            </div>
+          </article>
+        </section>
+
+        <div class="academy-section-title"><div><span class="assistant-eyebrow">INTERACTIVE LABS</span><h2>Proof-of-Work Laboratory</h2></div><p>Every lab is local and educational. None can submit a block, control an ASIC, alter a wallet, or connect to a pool.</p></div>
+        <section class="academy-lab-grid">
+          <article class="panel glass academy-lab-card" id="academyHashLab">
+            <div class="panel-head"><h2>HASH EXPLORER</h2><span>SHA-256 · SHA-256d</span></div>
+            <label class="field"><span>UTF-8 INPUT</span><textarea id="academyHashInput" rows="3">Purple Dragon Foundation ltd</textarea></label>
+            <button class="btn-3d primary requires-python-api" id="academyHashRun">Calculate Hashes</button>
+            <div class="academy-output"><small>SHA-256</small><code id="academySha256">—</code><small>SHA-256d</small><code id="academySha256d">—</code></div>
+          </article>
+
+          <article class="panel glass academy-lab-card" id="academyDifficultyLab">
+            <div class="panel-head"><h2>DIFFICULTY &amp; TARGET</h2><span>numeric visualizer</span></div>
+            <div class="academy-lab-inputs"><label class="field"><span>DIFFICULTY</span><input id="academyDifficulty" type="number" min="0.00000001" step="any" value="1"></label><label class="field"><span>nBITS (OPTIONAL)</span><input id="academyBits" value=""></label></div>
+            <button class="btn-3d primary requires-python-api" id="academyDifficultyRun">Calculate Target</button>
+            <div class="academy-output"><small>CALCULATED DIFFICULTY</small><strong id="academyDifficultyOut">—</strong><small>256-BIT TARGET</small><code id="academyTargetOut">—</code></div>
+          </article>
+
+          <article class="panel glass academy-lab-card academy-lab-wide" id="academyHeaderLab">
+            <div class="panel-head"><h2>80-BYTE BLOCK HEADER LAB</h2><span>Genesis block defaults</span></div>
+            <div class="academy-header-inputs">
+              <label class="field"><span>VERSION</span><input id="academyHeaderVersion" type="number" value="1"></label>
+              <label class="field"><span>TIME</span><input id="academyHeaderTime" type="number" value="1231006505"></label>
+              <label class="field"><span>nBITS</span><input id="academyHeaderBits" value="0x1d00ffff"></label>
+              <label class="field"><span>NONCE</span><input id="academyHeaderNonce" type="number" value="2083236893"></label>
+              <label class="field full"><span>PREVIOUS BLOCK HASH</span><input id="academyHeaderPrev" class="mono" value="0000000000000000000000000000000000000000000000000000000000000000"></label>
+              <label class="field full"><span>MERKLE ROOT</span><input id="academyHeaderMerkle" class="mono" value="4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"></label>
+            </div>
+            <button class="btn-3d primary requires-python-api" id="academyHeaderRun">Build &amp; Hash Header</button>
+            <div class="academy-header-result"><div><small>HEADER</small><code id="academyHeaderHex">—</code></div><div><small>BLOCK HASH</small><code id="academyHeaderHash">—</code></div><div><small>TARGET</small><code id="academyHeaderTarget">—</code></div><div class="academy-pow-result"><small>PROOF OF WORK</small><strong id="academyHeaderValid">—</strong></div></div>
+          </article>
+
+          <article class="panel glass academy-lab-card" id="academyMerkleLab">
+            <div class="panel-head"><h2>MERKLE TREE LAB</h2><span>up to 32 TXIDs</span></div>
+            <label class="field"><span>TRANSACTION IDS · ONE PER LINE</span><textarea id="academyMerkleTxids" rows="5" class="mono">4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b</textarea></label>
+            <button class="btn-3d primary requires-python-api" id="academyMerkleRun">Build Merkle Tree</button>
+            <div class="academy-output"><small>MERKLE ROOT</small><code id="academyMerkleRoot">—</code><small>LEVELS</small><div id="academyMerkleLevels" class="academy-merkle-levels">—</div></div>
+          </article>
+
+          <article class="panel glass academy-lab-card" id="academyNonceLab">
+            <div class="panel-head"><h2>NONCE MINING SIMULATOR</h2><span>educational easy target</span></div>
+            <label class="field"><span>SEED</span><input id="academyNonceSeed" value="Purple Dragon Mining Academy"></label>
+            <div class="academy-lab-inputs"><label class="field"><span>LEADING ZERO NIBBLES</span><select id="academyNonceZeros"><option value="2">2 · Easy</option><option value="3" selected>3 · Normal</option><option value="4">4 · Hard</option><option value="5">5 · Very Hard</option></select></label><label class="field"><span>MAX ATTEMPTS</span><input id="academyNonceAttempts" type="number" min="1" max="250000" value="100000"></label></div>
+            <button class="btn-3d primary requires-python-api" id="academyNonceRun">Search Nonces</button>
+            <div class="academy-output"><small>RESULT</small><strong id="academyNonceStatus">Ready</strong><small>BEST / FOUND HASH</small><code id="academyNonceHash">—</code><div class="academy-mini-kpis"><span>Attempts <b id="academyNonceCount">0</b></span><span>Rate <b id="academyNonceRate">0 H/s</b></span><span>Nonce <b id="academyNonceValue">—</b></span></div></div>
+          </article>
+        </section>
+
+        <article class="panel glass academy-policy-panel"><div class="panel-head"><h2>ACADEMY SAFETY BOUNDARY</h2><span>local learning only</span></div><div class="academy-policy-grid"><div><strong>NO WALLET ACCESS</strong><span>No seeds, keys, wallet RPC or payout changes.</span></div><div><strong>NO POOL CREDENTIALS</strong><span>No workers, passwords or live Stratum sessions.</span></div><div><strong>NO ASIC CONTROL</strong><span>No frequency, voltage, restart or pool changes.</span></div><div><strong>NO BLOCK SUBMISSION</strong><span>No submitblock or proposal path from Academy.</span></div></div><div class="result-box compact" id="academyResult">Mining Academy progress is stored locally under .bitcoin-miner-studio.</div></article>
+      </section>
+
+      <section class="view" id="view-assistant">
+        <div class="assistant-page-head">
+          <div>
+            <span class="assistant-eyebrow">v1.1.0.1 · GUIDED SETUP</span>
+            <h1 class="view-title">Mining Assistant</h1>
+            <p class="view-sub">“Can I Mine?” readiness checks and guided setup for beginners. Advisory only — it never starts mining or changes hardware by itself.</p>
+          </div>
+          <button class="btn-3d primary requires-python-api" id="assistantRunCheck">Run Guided Check</button>
+        </div>
+
+        <article class="assistant-hero glass holographic-border">
+          <div class="assistant-orb"><span>✦</span></div>
+          <div class="assistant-hero-copy">
+            <small id="assistantHeroGoal">CAN I MINE?</small>
+            <h2 id="assistantOverall">CHECKING...</h2>
+            <p id="assistantSummary">Reading local Miner Studio readiness...</p>
+            <div class="assistant-score-row"><div class="assistant-score-track"><i id="assistantScoreBar"></i></div><strong id="assistantScore">—/100</strong></div>
+          </div>
+          <div class="assistant-hero-meta">
+            <div><small>CURRENT GOAL</small><strong id="assistantGoalName">Learn &amp; Test</strong></div>
+            <div><small>SAFETY</small><strong>ADVISORY ONLY</strong></div>
+          </div>
+        </article>
+
+        <div class="assistant-section-head">
+          <div><h2>WHAT DO YOU WANT TO DO?</h2><p>Pick a goal and Mining Assistant will build a recommended path.</p></div>
+        </div>
+        <div class="assistant-goal-grid" id="assistantGoals">
+          <button class="assistant-goal active" data-assistant-goal="learn"><span>◎</span><strong>Learn &amp; Test</strong><small>CPU benchmark + Local Test Pool + Regtest</small></button>
+          <button class="assistant-goal" data-assistant-goal="cpu"><span>⌁</span><strong>Test This PC</strong><small>Measure local SHA-256d performance</small></button>
+          <button class="assistant-goal" data-assistant-goal="pool"><span>↗</span><strong>Pool Mining</strong><small>Configure and validate Stratum</small></button>
+          <button class="assistant-goal" data-assistant-goal="asic"><span>◈</span><strong>Connect an ASIC</strong><small>Private-LAN authorized devices</small></button>
+          <button class="assistant-goal" data-assistant-goal="core"><span>Ⓑ</span><strong>Bitcoin Core</strong><small>Detect, connect and verify sync</small></button>
+          <button class="assistant-goal" data-assistant-goal="solo"><span>◆</span><strong>Solo Mining</strong><small>Core + payout + guarded workflow</small></button>
+        </div>
+
+        <div class="assistant-section-head">
+          <div><h2>SYSTEM READINESS</h2><p>Ready, setup and optional states explain exactly what is available.</p></div>
+          <span class="assistant-local-badge">LOCAL CHECKS ONLY</span>
+        </div>
+        <div class="assistant-readiness-grid" id="assistantReadiness">
+          <article class="assistant-ready-card" data-assistant-key="cpu"><div class="assistant-ready-icon">⌁</div><div><small>THIS PC</small><strong>CHECKING</strong><p>Reading CPU runtime...</p></div><button data-assistant-route="dashboard">Open</button></article>
+          <article class="assistant-ready-card" data-assistant-key="pool"><div class="assistant-ready-icon">↗</div><div><small>POOL</small><strong>CHECKING</strong><p>Reading pool configuration...</p></div><button data-assistant-route="pool">Open</button></article>
+          <article class="assistant-ready-card" data-assistant-key="core"><div class="assistant-ready-icon">Ⓑ</div><div><small>BITCOIN CORE</small><strong>CHECKING</strong><p>Reading node status...</p></div><button data-assistant-route="core">Open</button></article>
+          <article class="assistant-ready-card" data-assistant-key="asic"><div class="assistant-ready-icon">◈</div><div><small>ASIC</small><strong>CHECKING</strong><p>Reading positively identified fleet...</p></div><button data-assistant-route="asic">Open</button></article>
+          <article class="assistant-ready-card" data-assistant-key="solo"><div class="assistant-ready-icon">◆</div><div><small>SOLO</small><strong>CHECKING</strong><p>Reading Core/payout readiness...</p></div><button data-assistant-route="core">Open</button></article>
+          <article class="assistant-ready-card" data-assistant-key="security"><div class="assistant-ready-icon">◇</div><div><small>SECURITY</small><strong>CHECKING</strong><p>Reading Purple Dragon trust...</p></div><button data-assistant-route="security">Open</button></article>
+        </div>
+
+        <div class="assistant-layout">
+          <article class="panel glass">
+            <div class="panel-head"><h2>RECOMMENDED PATH</h2><span id="assistantPathGoal">LEARN &amp; TEST</span></div>
+            <div class="assistant-steps" id="assistantSteps"><div class="empty-state">Run a guided check to build your path.</div></div>
+          </article>
+
+          <article class="panel glass assistant-hardware-panel">
+            <div class="panel-head"><h2>THIS COMPUTER</h2><span>Local summary</span></div>
+            <div class="assistant-hardware-list">
+              <div><small>CPU</small><strong id="assistantCpuName">—</strong></div>
+              <div><small>LOGICAL THREADS</small><strong id="assistantCpuThreads">—</strong></div>
+              <div><small>ARCHITECTURE</small><strong id="assistantArch">—</strong></div>
+              <div><small>PYTHON</small><strong id="assistantPython">—</strong></div>
+            </div>
+            <div class="assistant-note"><strong>Important</strong><p id="assistantMainnetNote">CPU SHA-256d is useful for learning and benchmarking. Modern Bitcoin mainnet mining is ASIC-dominated.</p></div>
+          </article>
+        </div>
+
+        <article class="assistant-safety glass">
+          <span>◆</span>
+          <div><strong>Mining Assistant does not mine by itself.</strong><p id="assistantDisclaimer">It only reads local readiness and routes you to existing controls.</p></div>
+          <button class="ghost-btn" id="assistantComplete">Mark Setup Reviewed</button>
+        </article>
+      </section>
+
+      <section class="view" id="view-pool">
+        <h1 class="view-title">Pool Profiles &amp; Smart Failover</h1>
+        <p class="view-sub">Persistent pool profiles, secure per-profile credentials, policy-aware Stratum failover, primary recovery, endpoint diagnostics, and share analytics.</p>
+
+        <article class="template-engine glass pool-pt-hero">
+          <div class="panel-head"><h2>POOL SESSION</h2><span>Stratum V1 · automatic failover · PowerTools 2.0</span></div>
+          <div class="template-status-row">
+            <div class="template-ready"><span class="template-dot" id="poolPtDot"></span><div><small>SESSION STATUS</small><strong id="poolPtStatus">Idle</strong><span id="poolPtDetail">Configure a primary endpoint and start mining when ready.</span></div></div>
+            <div class="template-timing"><div><small>HEALTH</small><strong id="poolPtHealth">—</strong></div><div><small>ENDPOINT</small><strong id="poolPtEndpointIndex">—</strong></div><div><small>JOB AGE</small><strong id="poolPtJobAge">—</strong></div></div>
+          </div>
+
+          <div class="template-stat-grid pool-pt-stat-grid">
+            <div class="template-stat"><small>ACTIVE ENDPOINT</small><strong id="poolPtActiveEndpoint">—</strong></div>
+            <div class="template-stat"><small>CONNECT LATENCY</small><strong id="poolPtConnectLatency">—</strong></div>
+            <div class="template-stat"><small>SHARE LATENCY P95</small><strong id="poolPtShareP95">—</strong></div>
+            <div class="template-stat"><small>FAILOVERS</small><strong id="poolPtFailovers">0</strong></div>
+            <div class="template-stat"><small>RECONNECTS</small><strong id="poolPtReconnects">0</strong></div>
+            <div class="template-stat"><small>JOBS RECEIVED</small><strong id="poolPtJobs">0</strong></div>
+            <div class="template-stat"><small>DIFF CHANGES</small><strong id="poolPtDiffChanges">0</strong></div>
+            <div class="template-stat"><small>BEST SHARE DIFF</small><strong id="poolPtBestShare">—</strong></div>
+            <div class="template-stat"><small>FAILOVER POLICY</small><strong id="poolPtPolicy">—</strong></div>
+            <div class="template-stat"><small>PRIMARY RECOVERY</small><strong id="poolPtRecovery">—</strong></div>
+            <div class="template-stat"><small>ENDPOINT UPTIME</small><strong id="poolPtEndpointUptime">—</strong></div>
+            <div class="template-stat"><small>LAST FAILOVER</small><strong id="poolPtFailoverReason">—</strong></div>
+          </div>
+        </article>
+
+        <article class="pool-profile-center glass holographic-border">
+          <div class="panel-head">
+            <div><h2>POOL PROFILE CENTER</h2><span>v1.4.0 · local profiles · secure credentials</span></div>
+            <span class="pool-profile-active-badge" id="poolProfileActiveBadge">NO ACTIVE PROFILE</span>
+          </div>
+
+          <div class="pool-profile-hero-grid">
+            <div><small>PROFILES</small><strong id="poolProfileCount">0</strong></div>
+            <div><small>ACTIVE PROFILE</small><strong id="poolProfileActiveName">—</strong></div>
+            <div><small>FAILOVER POLICY</small><strong id="poolProfilePolicyKpi">BALANCED</strong></div>
+            <div><small>PRIMARY RECOVERY</small><strong id="poolProfileRecoveryKpi">5 min</strong></div>
+            <div><small>PROFILE CREDENTIAL</small><strong id="poolProfileCredentialKpi">—</strong></div>
+          </div>
+
+          <div class="pool-profile-layout">
+            <div class="pool-profile-editor">
+              <div class="form-grid">
+                <div class="field"><label>PROFILE</label><select id="poolProfileSelect"><option value="">New profile…</option></select></div>
+                <div class="field"><label>PROFILE NAME</label><input id="poolProfileName" maxlength="60" placeholder="Example: Primary BTC Pool"></div>
+                <div class="field"><label>SMART FAILOVER POLICY</label><select id="poolFailoverPolicy"><option value="manual">Manual Only</option><option value="conservative">Conservative</option><option value="balanced" selected>Balanced</option><option value="aggressive">Aggressive</option></select></div>
+                <div class="field"><label>PRIMARY RECOVERY</label><div class="profit-unit-field"><input id="poolPrimaryRecovery" type="number" min="0" max="86400" step="30" value="300"><b>sec</b></div></div>
+                <div class="field"><label>POOL FEE</label><div class="profit-unit-field"><input id="poolProfileFee" type="number" min="0" max="100" step="0.01" value="1"><b>%</b></div></div>
+                <div class="field"><label>PROFILE STATUS</label><label class="check-row"><input id="poolProfileEnabled" type="checkbox" checked> Enabled for activation</label></div>
+                <div class="field full"><label>PRIVATE NOTES</label><textarea id="poolProfileNotes" rows="2" maxlength="1000" placeholder="Optional local notes. Notes are excluded from sanitized exports."></textarea></div>
+              </div>
+              <p class="muted-note" id="poolFailoverPolicyDetail">Balanced: fail over after one confirmed endpoint failure and retry the primary after 5 minutes on a healthy backup.</p>
+              <div class="inline-actions pool-profile-actions">
+                <button class="btn-3d primary" id="poolProfileSave">Save Profile</button>
+                <button class="btn-3d secondary" id="poolProfileActivate">Activate</button>
+                <button class="btn-3d secondary" id="poolProfileTest">Test Profile</button>
+                <button class="btn-3d raised" id="poolProfileNew">New</button>
+                <button class="btn-3d raised" id="poolProfileExport">Export Sanitized</button>
+                <button class="btn-3d danger" id="poolProfileDelete">Delete</button>
+              </div>
+            </div>
+            <div class="pool-profile-list-wrap">
+              <div class="panel-head compact-head"><h3>SAVED PROFILES</h3><span>passwords never stored here</span></div>
+              <div class="table-wrap"><table class="data-table compact-table pool-profile-table"><thead><tr><th>PROFILE</th><th>ENDPOINTS</th><th>POLICY</th><th>FEE</th><th>CREDENTIAL</th><th>STATE</th></tr></thead><tbody id="poolProfilesTable"></tbody></table></div>
+              <div class="result-box compact" id="poolProfileResult">Create or select a pool profile.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="form-panel glass pool-pt-config">
+          <div class="panel-head"><h2>ACTIVE ENDPOINT CONFIGURATION</h2><span><b id="credentialBackend">Credential storage</b> · profile passwords stay in the secure credential backend</span></div>
+          <div class="form-grid">
+            <div class="field full"><label>PRIMARY POOL URL</label><input id="poolUrl" placeholder="stratum+tcp://host:3333"/></div>
+            <div class="field"><label>BACKUP ENDPOINT 1</label><input id="poolBackup1" placeholder="optional"/></div>
+            <div class="field"><label>BACKUP ENDPOINT 2</label><input id="poolBackup2" placeholder="optional"/></div>
+            <div class="field full"><label>BACKUP ENDPOINT 3</label><input id="poolBackup3" placeholder="optional"/></div>
+
+            <div class="field"><label>WORKER / WALLET</label><input id="poolWorker"/></div>
+            <div class="field"><label>PASSWORD</label><input id="poolPassword" type="password" placeholder="Stored credential or x"/></div>
+            <div class="field"><label>MINING PROCESSES</label><input id="miningProcesses" type="number" min="1" max="64" value="2"/></div>
+            <div class="field"><label>JOB-SILENCE WATCHDOG</label><input id="poolJobTimeout" type="number" min="20" max="1800" value="120"/></div>
+
+            <div class="field"><label>SUGGEST DIFFICULTY</label><input id="suggestDifficulty" type="number" min="0.000001" step="0.1" value="1"/></div>
+            <div class="field pool-checkbox-stack">
+              <label class="check-row"><input id="suggestEnabled" type="checkbox"/> Request suggested share difficulty</label>
+              <label class="check-row"><input id="poolFailoverEnabled" type="checkbox" checked/> Smart endpoint failover enabled</label>
+            </div>
+          </div>
+
+          <p class="muted-note">Smart Failover cycles only through endpoints you explicitly configure or save in the active profile. The worker/password is shared across those endpoints and remains in the existing credential backend; passwords are never written into diagnostic reports or Stratum Inspector history.</p>
+
+          <div class="inline-actions pool-pt-actions">
+            <button class="btn-3d primary" id="poolStart">Start Mining</button>
+            <button class="btn-3d secondary" id="poolStop">Stop Mining</button>
+            <button class="btn-3d secondary" id="poolReset">Reset Session</button>
+            <button class="btn-3d primary" id="poolDiagnosticsStart">Test All Endpoints</button>
+            <button class="btn-3d raised" id="poolTest">Quick Test Primary</button>
+            <button class="btn-3d raised" id="localPoolToggle">Start Local Test Pool</button>
+          </div>
+        </article>
+
+        <section class="pool-pt-two-col">
+          <article class="panel glass">
+            <div class="panel-head"><h2>STRATUM INSPECTOR</h2><span>sanitized live protocol state</span></div>
+            <div class="template-details pool-inspector-details">
+              <div><span>Connected</span><strong id="poolPtConnected">No</strong></div>
+              <div><span>Authorized</span><strong id="poolPtAuthorized">No</strong></div>
+              <div><span>Current job</span><strong class="mono" id="poolPtCurrentJob">—</strong></div>
+              <div><span>Difficulty</span><strong id="poolPtDifficulty">—</strong></div>
+              <div><span>Extranonce1</span><strong class="mono" id="poolPtEx1">—</strong></div>
+              <div><span>Extranonce2 bytes</span><strong id="poolPtEx2Size">—</strong></div>
+              <div><span>Clean jobs</span><strong id="poolPtCleanJobs">0</strong></div>
+              <div><span>Job updates</span><strong id="poolPtJobUpdates">0</strong></div>
+              <div><span>Duplicate submits prevented</span><strong id="poolPtDuplicates">0</strong></div>
+              <div><span>Last disconnect</span><strong id="poolPtDisconnect">—</strong></div>
+            </div>
+
+            <div class="panel-head compact-head"><h3>PROTOCOL EVENTS</h3><span>credentials redacted by design</span></div>
+            <div class="table-wrap pool-protocol-wrap"><table class="data-table compact-table"><thead><tr><th>TIME</th><th>DIR</th><th>METHOD</th><th>DETAIL</th></tr></thead><tbody id="poolProtocolTable"></tbody></table></div>
+          </article>
+
+          <article class="panel glass">
+            <div class="panel-head"><h2>SHARE ANALYTICS</h2><span>current / retained session</span></div>
+            <div class="pool-share-kpis">
+              <div><small>ACCEPTED</small><strong id="poolShareAccepted">0</strong></div>
+              <div><small>REJECTED</small><strong id="poolShareRejected">0</strong></div>
+              <div><small>STALE</small><strong id="poolShareStale">0</strong></div>
+              <div><small>AVG RESPONSE</small><strong id="poolShareAvg">—</strong></div>
+            </div>
+            <div class="table-wrap pool-share-wrap"><table class="data-table compact-table"><thead><tr><th>TIME</th><th>RESULT</th><th>JOB</th><th>NONCE</th><th>DIFF</th><th>RESPONSE</th></tr></thead><tbody id="poolShareTable"></tbody></table></div>
+
+            <div class="panel-head compact-head"><h3>DIFFICULTY HISTORY</h3><span>latest pool changes</span></div>
+            <div class="table-wrap pool-diff-wrap"><table class="data-table compact-table"><thead><tr><th>TIME</th><th>DIFFICULTY</th><th>SOURCE</th></tr></thead><tbody id="poolDifficultyTable"></tbody></table></div>
+          </article>
+        </section>
+
+        <article class="panel glass pool-diagnostics-panel">
+          <div class="panel-head"><h2>ENDPOINT DIAGNOSTICS LAB</h2><span id="poolDiagStatus">Idle</span></div>
+          <p class="muted-note" id="poolDiagDetail">Tests run on a Python background thread so the WebView stays responsive. Each configured endpoint is profiled through DNS, TCP/TLS, mining.subscribe, mining.authorize, and first-job observation.</p>
+
+          <div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>ENDPOINT</th><th>SCORE</th><th>TRANSPORT</th><th>DNS</th><th>CONNECT</th><th>SUBSCRIBE</th><th>AUTHORIZE</th><th>FIRST JOB</th><th>STATUS</th></tr></thead><tbody id="poolDiagnosticsTable"></tbody></table></div>
+
+          <div class="inline-actions pool-diag-actions">
+            <button class="btn-3d secondary" id="poolDiagnosticsCopy">Copy Diagnostic Report</button>
+            <button class="btn-3d raised" id="poolDiagnosticsClear">Clear Diagnostics</button>
+          </div>
+          <div class="result-box compact" id="poolResult">Ready.</div>
+        </article>
+      </section>
+
+      <section class="view" id="view-core">
+        <h1 class="view-title">Bitcoin Core</h1><p class="view-sub">Automatic Bitcoin Core setup, live JSON-RPC node health, and a decoded getblocktemplate work engine.</p>
+
+        <article class="core-setup-assistant glass">
+          <div class="panel-head"><h2>BITCOIN CORE SETUP ASSISTANT</h2><span>v1.3.0.2 · Data-Dir Guard</span></div>
+          <div class="setup-banner"><span class="setup-dot" id="setupDot"></span><div><small>DETECTION STATUS</small><strong id="setupStatus">Not scanned</strong><span id="setupStatusDetail">Detect your local Bitcoin Core installation and RPC configuration.</span></div></div>
+          <div class="setup-grid">
+            <div><small>DATA DIRECTORY</small><strong class="mono" id="setupDataDir">—</strong></div>
+            <div><small>DATA-DIR GUARD</small><strong class="core-data-guard" id="setupDataGuard" data-guard="UNKNOWN">UNKNOWN</strong></div>
+            <div><small>NETWORK</small><strong id="setupNetwork">—</strong></div>
+            <div><small>RPC PORT</small><strong id="setupPort">—</strong></div>
+            <div><small>RPC LISTENING</small><strong id="setupListening">—</strong></div>
+            <div><small>COOKIE AUTH</small><strong id="setupCookie">—</strong></div>
+            <div><small>SERVER=1</small><strong id="setupServer">—</strong></div>
+            <div class="wide"><small>CORE EXECUTABLE</small><strong class="mono" id="setupExecutable">—</strong></div>
+            <div class="wide"><small>COOKIE FILE</small><strong class="mono" id="setupCookiePath">—</strong></div>
+          </div>
+          <div class="inline-actions setup-actions">
+            <button class="btn-3d primary requires-python-api" id="coreDetect">Detect Bitcoin Core</button>
+            <button class="btn-3d secondary requires-python-api" id="coreLocateExe">Locate Core EXE</button>
+            <button class="btn-3d secondary requires-python-api" id="coreLocateData">Choose Data Folder</button>
+            <button class="btn-3d primary requires-python-api" id="coreStartNode">Start Bitcoin Core</button>
+            <button class="btn-3d raised requires-python-api" id="coreAutoConfigure">Auto Configure</button>
+            <button class="btn-3d raised requires-python-api" id="coreOpenData">Open Data Folder</button>
+            <button class="btn-3d raised requires-python-api" id="coreDownload">Download Bitcoin Core</button>
+            <button class="btn-3d raised requires-python-api" id="coreShowFix">Show Recommended Config</button>
+          </div>
+          <div class="result-box compact setup-result" id="coreSetupResult">Detection has not run yet.</div>
+        </article>
+
+        <article class="core-status-strip glass" id="coreStatusStrip">
+          <div class="core-status-main"><span class="core-node-dot" id="coreNodeDot"></span><div><small>NODE STATUS</small><strong id="coreStatusText">Not checked</strong><span id="coreStatusDetail">Configure Bitcoin Core RPC below.</span></div></div>
+          <div class="core-status-meta"><div><small>LAST CHECK</small><strong id="coreLastCheck">—</strong></div><div><small>RPC LATENCY</small><strong id="coreLatency">—</strong></div></div>
+        </article>
+
+        <div class="core-stat-grid">
+          <article class="core-stat glass"><span>◈</span><div><small>CHAIN</small><strong id="coreChain">—</strong></div></article>
+          <article class="core-stat glass"><span>#</span><div><small>BLOCK HEIGHT</small><strong id="coreBlocks">—</strong></div></article>
+          <article class="core-stat glass"><span>◴</span><div><small>SYNC</small><strong id="coreSync">—</strong></div></article>
+          <article class="core-stat glass"><span>⌁</span><div><small>PEERS</small><strong id="coreConnections">—</strong></div></article>
+          <article class="core-stat glass"><span>◇</span><div><small>DIFFICULTY</small><strong id="coreDifficulty">—</strong></div></article>
+          <article class="core-stat glass"><span>∿</span><div><small>NETWORK HASH</small><strong id="coreNetworkHash">—</strong></div></article>
+          <article class="core-stat glass"><span>▤</span><div><small>MEMPOOL TX</small><strong id="coreMempool">—</strong></div></article>
+          <article class="core-stat glass"><span>Ⓑ</span><div><small>NODE VERSION</small><strong id="coreVersion">—</strong></div></article>
+        </div>
+
+        <div class="two-col core-layout">
+          <article class="form-panel glass">
+            <div class="panel-head"><h2>RPC CONNECTION</h2><span>Automatic health checks</span></div>
+            <div class="form-grid">
+              <div class="field"><label>AUTH METHOD</label><select id="coreAuthMode"><option value="cookie">Automatic .cookie (recommended)</option><option value="password">RPC username + password</option></select></div>
+              <div class="field"><label>NETWORK</label><select id="coreNetwork"><option value="main">Mainnet</option><option value="testnet">Testnet3</option><option value="testnet4">Testnet4</option><option value="signet">Signet</option><option value="regtest">Regtest</option></select></div>
+              <div class="field full"><label>BITCOIN CORE EXECUTABLE</label><input id="coreExecutable" placeholder="Locate bitcoin-qt.exe or bitcoind.exe"/></div>
+              <div class="field full"><label>BITCOIN DATA DIRECTORY · PINNED FOR LAUNCH</label><input id="coreDataDir" placeholder="Choose the exact Bitcoin data directory Miner Studio must launch"/></div>
+              <div class="field full cookie-auth-field"><label>COOKIE FILE</label><input id="coreCookiePath" placeholder="Available after Bitcoin Core starts"/></div>
+              <div class="field full"><label>RPC URL</label><input id="rpcUrl"/></div>
+              <div class="field manual-auth-field"><label>RPC USER</label><input id="rpcUser"/></div>
+              <div class="field manual-auth-field"><label>RPC PASSWORD</label><input id="rpcPassword" type="password" placeholder="Stored credential"/></div>
+              <label class="check-row"><input id="coreAutoRefresh" type="checkbox"/> Automatic RPC health checks</label>
+              <div class="field"><label>NODE REFRESH SECONDS</label><input id="coreRefreshSeconds" type="number" min="5" max="300" value="10"/></div>
+              <label class="check-row"><input id="templateAutoRefresh" type="checkbox"/> Automatic block-template refresh</label>
+              <div class="field"><label>TEMPLATE REFRESH SECONDS</label><input id="templateRefreshSeconds" type="number" min="5" max="300" value="15"/></div>
+            </div>
+            <div class="inline-actions" style="margin-top:18px"><button class="btn-3d primary requires-python-api" id="coreTest">Test Integration</button><button class="btn-3d secondary requires-python-api" id="coreRefresh">Refresh Now</button><button class="btn-3d raised requires-python-api" id="coreSave">Save Configuration</button></div>
+          </article>
+
+          <article class="panel glass">
+            <div class="panel-head"><h2>NODE DETAILS</h2><span>v1.0.0 Stable · Coinbase + Core manager</span></div>
+            <div class="core-detail-list">
+              <div><span>Blocks / headers</span><strong id="coreBlocksHeaders">—</strong></div>
+              <div><span>Initial block download</span><strong id="coreIbd">—</strong></div>
+              <div><span>Pruned</span><strong id="corePruned">—</strong></div>
+              <div><span>Network active</span><strong id="coreNetworkActive">—</strong></div>
+              <div><span>Protocol version</span><strong id="coreProtocol">—</strong></div>
+              <div><span>Relay fee</span><strong id="coreRelayFee">—</strong></div>
+              <div class="full"><span>Best block hash</span><strong class="mono" id="coreBestHash">—</strong></div>
+              <div class="full"><span>Warnings</span><strong id="coreWarnings">None</strong></div>
+            </div>
+          </article>
+        </div>
+
+        <article class="template-engine glass">
+          <div class="panel-head"><h2>BLOCK TEMPLATE ENGINE</h2><span id="templateEngineMeta">getblocktemplate · waiting</span></div>
+          <div class="template-status-row">
+            <div class="template-ready"><span class="template-dot" id="templateDot"></span><div><small>WORK TEMPLATE</small><strong id="templateStatus">Waiting</strong><span id="templateStatusDetail">Request a template from Bitcoin Core.</span></div></div>
+            <div class="template-timing"><div><small>AGE</small><strong id="templateAge">—</strong></div><div><small>NEXT REFRESH</small><strong id="templateRefreshIn">—</strong></div><div><small>RPC</small><strong id="templateLatency">—</strong></div></div>
+          </div>
+          <div class="template-stat-grid">
+            <div class="template-stat"><small>NEXT HEIGHT</small><strong id="templateHeight">—</strong></div>
+            <div class="template-stat"><small>TRANSACTIONS</small><strong id="templateTransactions">—</strong></div>
+            <div class="template-stat"><small>COINBASE VALUE</small><strong id="templateCoinbase">—</strong></div>
+            <div class="template-stat"><small>TEMPLATE DIFFICULTY</small><strong id="templateDifficulty">—</strong></div>
+            <div class="template-stat"><small>TX FEES</small><strong id="templateFees">—</strong></div>
+            <div class="template-stat"><small>SUBSIDY EST.</small><strong id="templateSubsidy">—</strong></div>
+            <div class="template-stat"><small>TX WEIGHT</small><strong id="templateWeight">—</strong></div>
+            <div class="template-stat"><small>VERSION</small><strong id="templateVersion">—</strong></div>
+          </div>
+          <div class="two-col template-layout">
+            <div class="template-details">
+              <div class="full"><span>Previous block hash</span><strong class="mono" id="templatePrevHash">—</strong></div>
+              <div class="full"><span>Target</span><strong class="mono" id="templateTarget">—</strong></div>
+              <div><span>Compact bits</span><strong id="templateBits">—</strong></div>
+              <div><span>Nonce range</span><strong class="mono" id="templateNonceRange">—</strong></div>
+              <div><span>Current time</span><strong id="templateCurtime">—</strong></div>
+              <div><span>Minimum time</span><strong id="templateMintime">—</strong></div>
+              <div><span>Weight limit</span><strong id="templateWeightLimit">—</strong></div>
+              <div><span>Sigop limit</span><strong id="templateSigopLimit">—</strong></div>
+              <div class="full"><span>Rules</span><strong id="templateRules">—</strong></div>
+              <div class="full"><span>Mutable fields</span><strong id="templateMutable">—</strong></div>
+            </div>
+            <div class="template-control">
+              <p>The engine requests a SegWit-aware work template, validates the target, and prepares normalized work metadata for the upcoming solo-mining stages.</p>
+              <div class="inline-actions"><button class="btn-3d primary requires-python-api" id="templateRefresh">Refresh Template</button><button class="btn-3d secondary requires-python-api" id="templateTest">Test Template Engine</button></div>
+              <div class="result-box compact" id="templateResult">Waiting for getblocktemplate.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="template-engine glass coinbase-engine">
+          <div class="panel-head"><h2>COINBASE &amp; PAYOUT</h2><span id="coinbaseMeta">public-address payout · preview only</span></div>
+          <div class="template-status-row">
+            <div class="template-ready"><span class="template-dot" id="coinbaseDot"></span><div><small>COINBASE BUILDER</small><strong id="coinbaseStatus">Waiting</strong><span id="coinbaseStatusDetail">Enter a payout address and build a preview.</span></div></div>
+            <div class="template-timing"><div><small>HEIGHT</small><strong id="coinbaseHeight">—</strong></div><div><small>SCRIPT SIG</small><strong id="coinbaseScriptBytes">—</strong></div><div><small>OUTPUTS</small><strong id="coinbaseOutputs">—</strong></div></div>
+          </div>
+          <div class="two-col">
+            <div>
+              <div class="form-grid">
+                <div class="field full"><label>BITCOIN PAYOUT ADDRESS</label><input id="coinbaseAddress" autocomplete="off" spellcheck="false" placeholder="bc1... / 1... / 3..."/></div>
+                <div class="field full"><label>COINBASE MESSAGE / TAG</label><input id="coinbaseTag" maxlength="64" placeholder="Bitcoin Miner Studio / Purple Dragon Foundation ltd"/></div>
+                <div class="field"><label>EXTRANONCE PLACEHOLDER BYTES</label><input id="coinbaseExtranonce" type="number" min="4" max="32" value="8"/></div>
+                <div class="field"><label>NETWORK</label><input id="coinbaseNetwork" value="main" readonly/></div>
+              </div>
+              <p class="muted-note">Use a public receiving address only. Bitcoin Miner Studio never needs your wallet seed phrase or private key to construct a coinbase payout.</p>
+              <div class="inline-actions"><button class="btn-3d secondary requires-python-api" id="coinbaseValidate">Validate Address</button><button class="btn-3d primary requires-python-api" id="coinbaseBuild">Build Coinbase Preview</button><button class="btn-3d raised requires-python-api" id="coinbaseSave">Save Payout Config</button></div>
+            </div>
+            <div class="template-stat-grid coinbase-stats">
+              <div class="template-stat"><small>PAYOUT TYPE</small><strong id="coinbaseType">—</strong></div>
+              <div class="template-stat"><small>MAX REWARD</small><strong id="coinbaseReward">—</strong></div>
+              <div class="template-stat"><small>SUBSIDY</small><strong id="coinbaseSubsidy">—</strong></div>
+              <div class="template-stat"><small>TEMPLATE FEES</small><strong id="coinbaseFees">—</strong></div>
+              <div class="template-stat"><small>TX SIZE</small><strong id="coinbaseSize">—</strong></div>
+              <div class="template-stat"><small>TX WEIGHT</small><strong id="coinbaseWeight">—</strong></div>
+              <div class="template-stat"><small>SEGWIT COMMITMENT</small><strong id="coinbaseWitness">—</strong></div>
+              <div class="template-stat"><small>EXTRANONCE</small><strong id="coinbaseExtraStat">—</strong></div>
+            </div>
+          </div>
+          <div class="template-details coinbase-details">
+            <div class="full"><span>Coinbase TXID</span><strong class="mono" id="coinbaseTxid">—</strong></div>
+            <div class="full"><span>Payout scriptPubKey</span><strong class="mono" id="coinbaseScriptPubKey">—</strong></div>
+            <div class="full"><span>Witness commitment</span><strong class="mono" id="coinbaseWitnessCommitment">—</strong></div>
+          </div>
+          <div class="result-box compact coinbase-result" id="coinbaseResult">Coinbase preview has not been built yet.</div>
+          <details class="raw-preview"><summary>Raw coinbase transaction preview</summary><pre id="coinbaseRaw">—</pre></details>
+        </article>
+
+        <article class="template-engine glass solo-engine">
+          <div class="panel-head"><h2>SOLO MINING DASHBOARD+</h2><span id="soloMeta">SHA-256d · live probability · stale-work protection</span></div>
+          <div class="template-status-row">
+            <div class="template-ready"><span class="template-dot" id="soloDot"></span><div><small>LOCAL CANDIDATE SEARCH</small><strong id="soloStatus">Idle</strong><span id="soloStatusDetail">Ready for a validated payout address and current block template.</span></div></div>
+            <div class="template-timing"><div><small>HEIGHT</small><strong id="soloHeight">—</strong></div><div><small>WORK AGE</small><strong id="soloWorkAge">—</strong></div><div><small>EXTRANONCE</small><strong id="soloExtranonce">—</strong></div></div>
+          </div>
+
+          <div class="template-stat-grid solo-stats solo-dashboard-stats">
+            <div class="template-stat"><small>HASHRATE</small><strong id="soloHashrate">—</strong></div>
+            <div class="template-stat"><small>TOTAL HASHES</small><strong id="soloHashes">0</strong></div>
+            <div class="template-stat"><small>BEST DIFFICULTY</small><strong id="soloBestDifficulty">—</strong></div>
+            <div class="template-stat"><small>BEST / TARGET</small><strong id="soloTargetRatio">—</strong></div>
+
+            <div class="template-stat"><small>AVG HASHRATE</small><strong id="soloAvgHashrate">—</strong></div>
+            <div class="template-stat"><small>PEAK HASHRATE</small><strong id="soloPeakHashrate">—</strong></div>
+            <div class="template-stat"><small>EXPECTED MEAN TIME</small><strong id="soloExpected">—</strong></div>
+            <div class="template-stat"><small>50% PROBABILITY TIME</small><strong id="soloTime50">—</strong></div>
+
+            <div class="template-stat"><small>SESSION CHANCE</small><strong id="soloSessionChance">—</strong></div>
+            <div class="template-stat"><small>1 HOUR CHANCE</small><strong id="soloChance1h">—</strong></div>
+            <div class="template-stat"><small>24 HOUR CHANCE</small><strong id="soloChance24h">—</strong></div>
+            <div class="template-stat"><small>7 DAY CHANCE</small><strong id="soloChance7d">—</strong></div>
+          </div>
+
+          <div class="solo-progress-grid">
+            <div class="solo-progress-card">
+              <div><span>BEST WORK TOWARD TARGET</span><strong id="soloTargetProgressText">—</strong></div>
+              <div class="solo-progress-track"><i id="soloTargetProgress"></i></div>
+              <small>100% means a target-valid candidate was found.</small>
+            </div>
+            <div class="solo-progress-card">
+              <div><span>WORK RELIABILITY</span><strong id="soloReliability">Idle</strong></div>
+              <div class="solo-reliability-grid">
+                <span>Template switches <b id="soloTemplateSwitches">0</b></span>
+                <span>Stale batches <b id="soloStaleBatches">0</b></span>
+                <span>Stale hashes <b id="soloStaleHashes">0</b></span>
+                <span>Rejected stale candidates <b id="soloStaleCandidates">0</b></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="solo-chart-card">
+            <div class="panel-head compact-head"><h3>SOLO HASHRATE</h3><span id="soloChartMeta">last 90 seconds</span></div>
+            <canvas id="soloHashrateChart" height="130" data-css-height="130"></canvas>
+          </div>
+
+          <div class="two-col solo-layout">
+            <div>
+              <div class="form-grid">
+                <div class="field"><label>HASH BATCH SIZE</label><input id="soloBatchSize" type="number" min="500" max="250000" step="500" value="20000"/></div>
+                <div class="field"><label>ROLL EXTRANONCE AFTER HASHES</label><input id="soloRollHashes" type="number" min="20000" max="50000000" step="10000" value="2000000"/></div>
+              </div>
+              <label class="check-row solo-check"><input id="soloAutoTemplate" type="checkbox" checked/> Automatically switch to fresh chain-tip work when Bitcoin Core sees a new block</label>
+              <p class="muted-note">Mainnet CPU solo mining is a real SHA-256d search but the probability is extremely small. Dashboard+ reports the probability mathematically and protects against stale work; use Regtest Mining Laboratory to exercise rapid accepted-block workflows.</p>
+              <div class="inline-actions"><button class="btn-3d secondary requires-python-api" id="soloTest">Test Mining Pipeline</button><button class="btn-3d primary requires-python-api" id="soloStart">Start Solo Mining</button><button class="btn-3d raised requires-python-api" id="soloStop">Stop</button><button class="btn-3d raised requires-python-api" id="soloReset">Reset Stats</button></div>
+            </div>
+
+            <div class="template-details solo-details">
+              <div><span>Nonce</span><strong id="soloNonce">—</strong></div>
+              <div><span>Extranonce rolls</span><strong id="soloRolls">0</strong></div>
+              <div><span>Effective batch</span><strong id="soloEffectiveBatch">—</strong></div>
+              <div><span>Auto fresh work</span><strong id="soloAutoState">—</strong></div>
+              <div class="full"><span>Previous block</span><strong class="mono" id="soloPrevHash">—</strong></div>
+              <div class="full"><span>Merkle root</span><strong class="mono" id="soloMerkle">—</strong></div>
+              <div class="full"><span>Best hash</span><strong class="mono" id="soloBestHash">—</strong></div>
+              <div class="full"><span>Network target</span><strong class="mono" id="soloTarget">—</strong></div>
+              <div class="full"><span>Candidate header</span><strong class="mono" id="soloCandidateHeader">—</strong></div>
+              <div class="full"><span>Submission</span><strong id="soloSubmitState">Guarded v1.0.0 Stable path</strong></div>
+            </div>
+          </div>
+
+          <div class="solo-best-history">
+            <div class="panel-head compact-head"><h3>BEST WORK HISTORY</h3><span>new session bests only</span></div>
+            <div id="soloBestHistory" class="solo-best-history-list"><div class="empty-state">No best-work samples yet.</div></div>
+          </div>
+
+          <div class="result-box compact solo-result" id="soloResult">Solo Mining Dashboard+ has not been started.</div>
+        </article>
+
+        <article class="template-engine glass submission-engine">
+          <div class="panel-head"><h2>BLOCK ASSEMBLY &amp; SUBMISSION</h2><span>background block assembly · proposal validation · guarded submitblock</span></div>
+          <div class="template-status-row">
+            <div class="template-ready"><span class="template-dot" id="submissionDot"></span><div><small>CANDIDATE PIPELINE</small><strong id="submissionStatus">Waiting</strong><span id="submissionDetail">Waiting for a target-valid solo-mining candidate.</span></div></div>
+            <div class="template-timing"><div><small>HEIGHT</small><strong id="submissionHeight">—</strong></div><div><small>SIZE</small><strong id="submissionSize">—</strong></div><div><small>WEIGHT</small><strong id="submissionWeight">—</strong></div></div>
+          </div>
+          <div class="template-stat-grid submission-stats">
+            <div class="template-stat"><small>TRANSACTIONS</small><strong id="submissionTxCount">—</strong></div>
+            <div class="template-stat"><small>TARGET CHECK</small><strong id="submissionTargetValid">—</strong></div>
+            <div class="template-stat"><small>PROPOSAL</small><strong id="submissionProposal">—</strong></div>
+            <div class="template-stat"><small>SUBMITBLOCK</small><strong id="submissionSubmit">—</strong></div>
+          </div>
+          <div class="two-col submission-layout">
+            <div>
+              <p class="muted-note">The submission path accepts no arbitrary block hex. It only uses a candidate preserved internally after SHA-256d meets the live Bitcoin Core target. Proposal validation and a fresh chain-tip check run before submitblock.</p>
+              <label class="check-row submission-check"><input id="submissionAuthorized" type="checkbox"/> I authorize submission of a target-valid candidate to my configured local Bitcoin Core node</label>
+              <div class="inline-actions">
+                <button class="btn-3d secondary requires-python-api" id="submissionTest">Test Block Assembly</button>
+                <button class="btn-3d secondary requires-python-api" id="submissionAssemble">Assemble Candidate</button>
+                <button class="btn-3d primary requires-python-api" id="submissionValidate">Validate with Core</button>
+                <button class="btn-3d primary requires-python-api" id="submissionSubmitBtn">Submit Candidate</button>
+              </div>
+            </div>
+            <div class="template-details submission-details">
+              <div class="full"><span>Block hash</span><strong class="mono" id="submissionHash">—</strong></div>
+              <div class="full"><span>Previous block</span><strong class="mono" id="submissionPrev">—</strong></div>
+              <div class="full"><span>Merkle root</span><strong class="mono" id="submissionMerkle">—</strong></div>
+              <div class="full"><span>Candidate source</span><strong id="submissionSource">—</strong></div>
+              <div class="full"><span>Archive</span><strong class="mono" id="submissionArchive">—</strong></div>
+            </div>
+          </div>
+          <div class="result-box compact submission-result" id="submissionResult">Run Test Block Assembly any time. A structure test never becomes a mining candidate; proposal/submission controls unlock only after Solo Mining finds a target-valid hash.</div>
+        </article>
+
+        <article class="template-engine glass regtest-lab">
+          <div class="panel-head"><h2>REGTEST MINING LABORATORY</h2><span>isolated local chain · no mainnet funds · RPC 19443</span></div>
+          <div class="template-status-row">
+            <div class="template-ready"><span class="template-dot" id="regtestDot"></span><div><small>ISOLATED LAB NODE</small><strong id="regtestStatus">Stopped</strong><span id="regtestDetail">Start the lab to create a private local Bitcoin test chain.</span></div></div>
+            <div class="template-timing"><div><small>HEIGHT</small><strong id="regtestHeight">0</strong></div><div><small>PROGRESS</small><strong id="regtestProgress">—</strong></div><div><small>RPC</small><strong id="regtestRpc">19443</strong></div></div>
+          </div>
+
+          <div class="template-stat-grid regtest-stats">
+            <div class="template-stat"><small>SESSION BLOCKS</small><strong id="regtestSessionBlocks">0</strong></div>
+            <div class="template-stat"><small>SPENDABLE</small><strong id="regtestSpendable">0 BTC</strong></div>
+            <div class="template-stat"><small>IMMATURE</small><strong id="regtestImmature">0 BTC</strong></div>
+            <div class="template-stat"><small>LAST HASHES</small><strong id="regtestHashes">—</strong></div>
+            <div class="template-stat"><small>LAST NONCE</small><strong id="regtestNonce">—</strong></div>
+            <div class="template-stat"><small>PROPOSAL</small><strong id="regtestProposal">—</strong></div>
+            <div class="template-stat"><small>SUBMITBLOCK</small><strong id="regtestSubmit">—</strong></div>
+            <div class="template-stat"><small>NETWORK</small><strong>REGTEST</strong></div>
+          </div>
+
+          <div class="two-col regtest-layout">
+            <div>
+              <div class="form-grid">
+                <div class="field"><label>BLOCKS TO MINE</label><input id="regtestBlockCount" type="number" min="1" max="500" value="1"/></div>
+                <div class="field"><label>LAB RPC URL</label><input id="regtestRpcUrl" value="http://127.0.0.1:19443" readonly/></div>
+              </div>
+              <p class="muted-note">The laboratory runs a second Bitcoin Core instance in a dedicated data directory with regtest, P2P listening/discovery disabled, and its own wallet. Your synced mainnet node and mainnet wallet are not switched or modified.</p>
+              <div class="inline-actions">
+                <button class="btn-3d primary requires-python-api" id="regtestStart">Start Lab</button>
+                <button class="btn-3d secondary requires-python-api" id="regtestRefresh">Refresh Lab</button>
+                <button class="btn-3d primary requires-python-api" id="regtestMine">Mine Blocks</button>
+                <button class="btn-3d secondary requires-python-api" id="regtestMine101">Mine 101 Blocks</button>
+                <button class="btn-3d raised requires-python-api" id="regtestStop">Stop Lab</button>
+              </div>
+              <label class="check-row regtest-reset-check"><input id="regtestResetAuthorized" type="checkbox"/> I understand Reset deletes only the isolated Regtest Lab chain/data</label>
+              <button class="btn-3d raised requires-python-api" id="regtestReset">Reset Lab Chain</button>
+            </div>
+
+            <div class="template-details regtest-details">
+              <div class="full"><span>Lab data directory</span><strong class="mono" id="regtestDataDir">—</strong></div>
+              <div class="full"><span>Regtest payout address</span><strong class="mono" id="regtestAddress">—</strong></div>
+              <div class="full"><span>Best block</span><strong class="mono" id="regtestBestHash">—</strong></div>
+              <div class="full"><span>Last accepted block</span><strong class="mono" id="regtestLastHash">—</strong></div>
+              <div class="full"><span>Executable</span><strong class="mono" id="regtestExecutable">—</strong></div>
+            </div>
+          </div>
+
+          <div class="result-box compact regtest-result" id="regtestResult">Regtest Mining Laboratory has not been started.</div>
+        </article>
+
+        <article class="panel glass"><div class="panel-head"><h2>RPC DIAGNOSTICS</h2><span>mainnet Core · getblocktemplate · proposal · submitblock · isolated regtest lab</span></div><div class="result-box" id="coreResult">Waiting for Bitcoin Core.</div></article>
+      </section>
+
+
+      <section class="view" id="view-profitability">
+        <div class="profit-page-head">
+          <div>
+            <span class="assistant-eyebrow">v1.2.0 · LOCAL ESTIMATOR</span>
+            <h1 class="view-title">Profitability &amp; Power Center</h1>
+            <p class="view-sub">Estimate power cost, expected BTC production, pool-fee impact, efficiency, break-even electricity and solo odds. Estimates are not guarantees.</p>
+          </div>
+          <div class="inline-actions">
+            <button class="btn-3d raised requires-python-api" id="profitUseCore">Use Bitcoin Core</button>
+            <button class="btn-3d primary requires-python-api" id="profitCalculate">Calculate</button>
+          </div>
+        </div>
+
+        <article class="profit-hero glass holographic-border">
+          <div class="profit-hero-main">
+            <small>ESTIMATED NET / DAY</small>
+            <h2 id="profitNetDay">$0.00</h2>
+            <p id="profitHeroNote">Enter your hardware, power and market assumptions to calculate an estimate.</p>
+          </div>
+          <div class="profit-hero-kpis">
+            <div><small>BTC / DAY</small><strong id="profitBtcDay">0 BTC</strong></div>
+            <div><small>POWER / DAY</small><strong id="profitPowerDay">$0.00</strong></div>
+            <div><small>BREAK-EVEN POWER</small><strong id="profitBreakEven">— / kWh</strong></div>
+            <div><small>EFFICIENCY</small><strong id="profitEfficiency">— W/TH</strong></div>
+          </div>
+        </article>
+
+        <div class="profit-layout">
+          <article class="panel glass">
+            <div class="panel-head"><h2>MINER &amp; POWER INPUTS</h2><span>Local assumptions</span></div>
+            <div class="profit-input-grid">
+              <label class="field"><span>HASHRATE</span><div class="profit-unit-field"><input id="profitHashrate" type="number" min="0" step="any" value="0"><select id="profitHashrateUnit"><option value="1e3">kH/s</option><option value="1e6">MH/s</option><option value="1e9">GH/s</option><option value="1e12" selected>TH/s</option><option value="1e15">PH/s</option></select></div></label>
+              <label class="field"><span>POWER DRAW</span><div class="profit-unit-field"><input id="profitPowerWatts" type="number" min="0" step="1" value="0"><b>W</b></div></label>
+              <label class="field"><span>ELECTRICITY RATE</span><div class="profit-unit-field"><input id="profitElectricity" type="number" min="0" step="0.001" value="0.15"><b>$/kWh</b></div></label>
+              <label class="field"><span>POOL FEE</span><div class="profit-unit-field"><input id="profitPoolFee" type="number" min="0" max="100" step="0.01" value="1"><b>%</b></div></label>
+            </div>
+
+            <div class="panel-head profit-subhead"><h2>NETWORK &amp; MARKET ASSUMPTIONS</h2><span id="profitCoreBadge">MANUAL</span></div>
+            <div class="profit-input-grid">
+              <label class="field"><span>BTC PRICE</span><div class="profit-unit-field"><b>$</b><input id="profitBtcPrice" type="number" min="0" step="any" value="0"></div><small>Manual input · no cloud price feed</small></label>
+              <label class="field"><span>NETWORK DIFFICULTY</span><input id="profitDifficulty" type="number" min="0" step="any" value="0"></label>
+              <label class="field"><span>BLOCK HEIGHT</span><input id="profitHeight" type="number" min="0" step="1" value="0"></label>
+              <label class="field"><span>BLOCK SUBSIDY</span><div class="profit-unit-field"><input id="profitSubsidy" type="number" min="0" step="0.00000001" value="3.125"><b>BTC</b></div></label>
+              <label class="field"><span>AVG TX FEES / BLOCK</span><div class="profit-unit-field"><input id="profitFees" type="number" min="0" step="0.00000001" value="0"><b>BTC</b></div><small>Optional manual estimate</small></label>
+            </div>
+            <div class="inline-actions profit-actions">
+              <button class="btn-3d primary" id="profitCalculateBottom">Calculate Estimate</button>
+              <button class="btn-3d raised" id="profitSave">Save Inputs</button>
+            </div>
+          </article>
+
+          <article class="panel glass">
+            <div class="panel-head"><h2>POWER ECONOMICS</h2><div class="inline-actions"><span>30.44-day month</span><button class="ghost-btn" data-academy-lesson="economics">Learn This</button></div></div>
+            <div class="profit-metric-list">
+              <div><span>Energy per day</span><strong id="profitKwhDay">0.00 kWh</strong></div>
+              <div><span>Electricity / day</span><strong id="profitElectricityDay">$0.00</strong></div>
+              <div><span>Electricity / month</span><strong id="profitElectricityMonth">$0.00</strong></div>
+              <div><span>Revenue after pool / day</span><strong id="profitRevenueDay">$0.00</strong></div>
+              <div class="profit-net-row"><span>Estimated net / month</span><strong id="profitNetMonth">$0.00</strong></div>
+              <div><span>Estimated net / year</span><strong id="profitNetYear">$0.00</strong></div>
+            </div>
+            <div class="assistant-note profit-warning"><strong>Estimate only</strong><p>Pool payout schemes, downtime, difficulty changes, transaction fees, hardware degradation, taxes and electricity billing can materially change real results.</p></div>
+          </article>
+        </div>
+
+        <div class="profit-layout profit-second-row">
+          <article class="panel glass">
+            <div class="panel-head"><h2>EXPECTED MINING OUTPUT</h2><span>Statistical expectation</span></div>
+            <div class="profit-metric-grid">
+              <div><small>EXPECTED BLOCKS / DAY</small><strong id="profitBlocksDay">0</strong></div>
+              <div><small>GROSS BTC / DAY</small><strong id="profitGrossBtc">0 BTC</strong></div>
+              <div><small>AFTER POOL FEE</small><strong id="profitAfterFeeBtc">0 BTC</strong></div>
+              <div><small>NETWORK SHARE</small><strong id="profitNetworkShare">0%</strong></div>
+              <div><small>MEAN TIME TO BLOCK</small><strong id="profitMeanBlock">—</strong></div>
+              <div><small>50% PROBABILITY TIME</small><strong id="profitP50Block">—</strong></div>
+            </div>
+          </article>
+
+          <article class="panel glass">
+            <div class="panel-head"><h2>SOLO BLOCK ODDS</h2><span>Poisson estimate</span></div>
+            <div class="profit-odds-list">
+              <div><span>1 hour</span><strong id="profitOdds1h">0%</strong></div>
+              <div><span>24 hours</span><strong id="profitOdds24h">0%</strong></div>
+              <div><span>7 days</span><strong id="profitOdds7d">0%</strong></div>
+              <div><span>30 days</span><strong id="profitOdds30d">0%</strong></div>
+              <div><span>1 year</span><strong id="profitOdds365d">0%</strong></div>
+            </div>
+          </article>
+        </div>
+
+        <article class="assistant-safety glass profit-disclaimer">
+          <span>₿</span>
+          <div><strong>Financial estimates are informational only.</strong><p id="profitDisclaimer">Profitability is not guaranteed. BTC price and transaction-fee assumptions are manual; Bitcoin Core contributes local network data only.</p></div>
+          <button class="ghost-btn" data-view-jump="assistant">Open Mining Assistant</button>
+        </article>
+      </section>
+
+
+      <section class="view" id="view-hardware">
+        <div class="hardware-page-head">
+          <div>
+            <span class="assistant-eyebrow">v1.3.0.1 · LOCAL COMPATIBILITY REGISTRY</span>
+            <h1 class="view-title">Hardware Compatibility Center</h1>
+            <p class="view-sub">See exactly why an ASIC is recognized, which controls are actually available, and where support is limited. Miner Studio never promotes a generic network device just because a port is open.</p>
+          </div>
+          <div class="inline-actions">
+            <button class="btn-3d raised requires-python-api" id="hardwareReport">Create Compatibility Report</button>
+            <button class="btn-3d primary requires-python-api" id="hardwareRefresh">Refresh Center</button>
+          </div>
+        </div>
+
+        <article class="hardware-hero glass holographic-border">
+          <div class="hardware-hero-copy">
+            <small>POSITIVE-EVIDENCE ASIC INVENTORY</small>
+            <h2 id="hardwareHeroTitle">NO VERIFIED HARDWARE YET</h2>
+            <p id="hardwareHeroText">Compatibility is derived from ASIC-specific runtime evidence already collected by Miner Studio. No new network scan runs from this page.</p>
+          </div>
+          <div class="hardware-kpis">
+            <div><small>CONFIRMED ASICS</small><strong id="hardwareConfirmed">0</strong></div>
+            <div><small>VERIFIED RUNTIME</small><strong id="hardwareVerified">0</strong></div>
+            <div><small>FULL CONTROL</small><strong id="hardwareFullControl">0</strong></div>
+            <div><small>NOT PROMOTED</small><strong id="hardwareNotPromoted">0</strong></div>
+          </div>
+        </article>
+
+        <div class="hardware-legend" id="hardwareLegend">
+          <div data-level="verified"><i></i><strong>VERIFIED RUNTIME</strong><span>API evidence + recognized family</span></div>
+          <div data-level="family"><i></i><strong>SUPPORTED FAMILY</strong><span>recognized ASIC Web UI</span></div>
+          <div data-level="limited"><i></i><strong>GENERIC / LIMITED</strong><span>ASIC evidence, limited mapping</span></div>
+          <div data-level="not_promoted"><i></i><strong>NOT PROMOTED</strong><span>no positive ASIC evidence</span></div>
+        </div>
+
+        <div class="hardware-toolbar glass">
+          <label><span>FILTER HARDWARE</span><input id="hardwareSearch" type="search" placeholder="Search vendor, model, family, firmware..."></label>
+          <label><span>STATUS</span><select id="hardwareStatusFilter"><option value="all">All statuses</option><option value="verified">Verified Runtime</option><option value="family">Supported Family</option><option value="limited">Generic / Limited</option><option value="not_promoted">Not Promoted</option></select></label>
+          <button class="ghost-btn" data-view-jump="asic">Open ASIC Control</button>
+        </div>
+
+        <div class="assistant-section-head">
+          <div><h2>DETECTED / KNOWN HARDWARE</h2><p>Capabilities shown here come from current runtime evidence—not assumptions.</p></div>
+          <span class="assistant-local-badge">READ-ONLY CENTER</span>
+        </div>
+        <div class="hardware-device-list" id="hardwareDeviceList">
+          <div class="hardware-empty glass">No hardware compatibility state loaded yet.</div>
+        </div>
+
+        <div class="assistant-section-head">
+          <div><h2>BUILT-IN FAMILY REGISTRY</h2><p>Recognition families built into this release. Exact firmware behavior can vary.</p></div>
+          <span class="assistant-local-badge">LOCAL DATABASE</span>
+        </div>
+        <div class="hardware-family-grid" id="hardwareFamilyGrid"></div>
+
+        <div class="hardware-bottom-grid">
+          <article class="panel glass">
+            <div class="panel-head"><h2>CAPABILITY POLICY</h2><span>Evidence-gated</span></div>
+            <div class="hardware-policy-list">
+              <div><span>Monitoring</span><strong>ASIC API verified</strong><p>Hashrate/temperature/fan/power are shown only when the firmware actually reports them.</p></div>
+              <div><span>Pool Control</span><strong>API + pools verified</strong><p>Miner Studio does not assume pool switching merely because TCP 4028 is open.</p></div>
+              <div><span>Restart</span><strong>ASIC API verified</strong><p>The button is available only when runtime API evidence is present; firmware can still reject it.</p></div>
+              <div><span>ASIC Solo Bridge</span><strong>API verified + private LAN</strong><p>Existing ownership/admin authorization and private-LAN restrictions remain mandatory.</p></div>
+            </div>
+          </article>
+
+          <article class="panel glass hardware-shield">
+            <div class="panel-head"><h2>FALSE-POSITIVE SHIELD</h2><span>Strict discovery</span></div>
+            <div class="hardware-shield-icon">◇</div>
+            <h3>A ROUTER IS NOT AN ASIC</h3>
+            <p>Generic HTTP/HTTPS, a login page, or an open candidate port is not enough. Auto-discovery only promotes positive cgminer-compatible API evidence or a recognized Antminer, WhatsMiner, or Avalon Web UI.</p>
+            <div class="hardware-shield-rules">
+              <span>Generic HTTP only → NOT PROMOTED</span>
+              <span>Open TCP 4028 only → NOT PROMOTED</span>
+              <span>Recognized ASIC Web UI → SUPPORTED FAMILY</span>
+              <span>Verified ASIC API → VERIFIED / GENERIC API</span>
+            </div>
+          </article>
+        </div>
+
+        <article class="assistant-safety glass hardware-disclaimer">
+          <span>▦</span>
+          <div><strong>“Verified Runtime” is Miner Studio evidence—not manufacturer certification.</strong><p>The Compatibility Center does not flash firmware, modify miners, scan the LAN, or phone home. Use ASIC Control for explicit authorized device operations.</p></div>
+          <button class="ghost-btn" data-view-jump="asic">Open ASIC Control</button>
+        </article>
+      </section>
+
+      <section class="view" id="view-asic">
+        <h1 class="view-title">ASIC Control Center</h1><p class="view-sub">Discover, monitor, and connect your authorized Bitcoin ASIC miners to Miner Studio's LAN-only solo-mining bridge.</p>
+        <article class="form-panel glass"><div class="section-toolbar"><div class="inline-actions"><div class="field"><label>LAN RANGE</label><input id="asicCidr" style="min-width:230px"/></div><label class="check-row"><input id="asicAuthorized" type="checkbox"/> I own or administer these devices</label></div><div class="inline-actions"><button class="btn-3d primary" id="asicDiscover">Discover ASICs</button><button class="btn-3d secondary" id="asicRefresh">Refresh All</button><button class="btn-3d raised" id="asicAdd">Add IP</button></div></div></article>
+
+        <article class="template-engine glass asic-solo-bridge">
+          <div class="panel-head"><h2>ASIC SOLO MINING BRIDGE</h2><span>Stratum V1 · private LAN only · guarded Bitcoin Core submission</span></div>
+          <div class="template-status-row">
+            <div class="template-ready"><span class="template-dot" id="asicSoloDot"></span><div><small>LOCAL STRATUM SERVER</small><strong id="asicSoloStatus">Stopped</strong><span id="asicSoloDetail">Start the bridge after Bitcoin Core, Block Template Engine, and payout configuration are ready.</span></div></div>
+            <div class="template-timing"><div><small>HEIGHT</small><strong id="asicSoloHeight">—</strong></div><div><small>CLIENTS</small><strong id="asicSoloClients">0</strong></div><div><small>JOB AGE</small><strong id="asicSoloJobAge">—</strong></div></div>
+          </div>
+
+          <div class="template-stat-grid asic-solo-stats">
+            <div class="template-stat"><small>ACCEPTED SHARES</small><strong id="asicSoloAccepted">0</strong></div>
+            <div class="template-stat"><small>REJECTED</small><strong id="asicSoloRejected">0</strong></div>
+            <div class="template-stat"><small>STALE</small><strong id="asicSoloStale">0</strong></div>
+            <div class="template-stat"><small>BEST SHARE DIFF</small><strong id="asicSoloBestDiff">—</strong></div>
+            <div class="template-stat"><small>SHARE HASHRATE EST.</small><strong id="asicSoloHashrate">—</strong></div>
+            <div class="template-stat"><small>AUTHORIZED WORKERS</small><strong id="asicSoloWorkersCount">0</strong></div>
+            <div class="template-stat"><small>CANDIDATES</small><strong id="asicSoloCandidates">0</strong></div>
+            <div class="template-stat"><small>NETWORK</small><strong id="asicSoloNetwork">—</strong></div>
+          </div>
+
+          <div class="two-col asic-solo-layout">
+            <div>
+              <div class="form-grid">
+                <div class="field"><label>LAN BIND IP</label><input id="asicSoloBindIp" placeholder="192.168.1.10"/></div>
+                <div class="field"><label>STRATUM PORT</label><input id="asicSoloPort" type="number" min="1024" max="65535" value="3333"/></div>
+                <div class="field"><label>SHARE DIFFICULTY</label><input id="asicSoloDifficulty" type="number" min="0.00000001" step="1" value="65536"/></div>
+                <div class="field"><label>ENDPOINT</label><input id="asicSoloEndpoint" readonly value="—"/></div>
+              </div>
+              <p class="muted-note">Miner Studio never needs an ASIC wallet key. Jobs pay the public payout address configured under Bitcoin Core → Coinbase & Payout. The listener refuses wildcard/public interfaces and non-private clients. A Bitcoin-network-target-valid ASIC result is preserved but never auto-submitted.</p>
+              <div class="inline-actions"><button class="btn-3d primary requires-python-api" id="asicSoloStart">Start Solo Bridge</button><button class="btn-3d raised requires-python-api" id="asicSoloStop">Stop Bridge</button><button class="btn-3d secondary" id="asicSoloCopy">Copy Endpoint</button></div>
+              <div class="result-box compact asic-solo-result" id="asicSoloResult">ASIC Solo Bridge has not been started.</div>
+            </div>
+            <div>
+              <div class="template-details asic-solo-details">
+                <div class="full"><span>Payout address</span><strong class="mono" id="asicSoloPayout">—</strong></div>
+                <div class="full"><span>Current job</span><strong class="mono" id="asicSoloJob">—</strong></div>
+                <div class="full"><span>Previous block</span><strong class="mono" id="asicSoloPrev">—</strong></div>
+                <div class="full"><span>Last share hash</span><strong class="mono" id="asicSoloLastShare">—</strong></div>
+                <div class="full"><span>Last candidate</span><strong class="mono" id="asicSoloLastCandidate">—</strong></div>
+              </div>
+              <div class="panel-head compact-head"><h3>STRATUM WORKERS</h3><span>connected + recent</span></div>
+              <div class="table-wrap asic-solo-workers-wrap"><table class="data-table compact-table"><thead><tr><th>WORKER</th><th>IP</th><th>STATE</th><th>SHARES</th><th>STALE</th><th>BEST DIFF</th></tr></thead><tbody id="asicSoloWorkers"></tbody></table></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel glass"><div class="panel-head"><h2>MINERS</h2><span id="asicSummary">0 devices</span></div><div class="table-wrap"><table class="data-table"><thead><tr><th>IP</th><th>ALIAS</th><th>MODEL</th><th>VERIFICATION</th><th>STATUS</th><th>SOLO</th><th>HEALTH</th><th>HASHRATE</th><th>TEMP</th><th>POOL</th><th>ACTIONS</th></tr></thead><tbody id="asicTable"></tbody></table></div></article>
+      </section>
+
+
+      <section class="view" id="view-minerxp">
+        <h1 class="view-title">Miner XP &amp; Hash Hunt</h1>
+        <p class="view-sub">A local cosmetic progression mini-game. It never changes real Bitcoin mining speed, payouts, ASIC behavior, Bitcoin Core, network difficulty, or block-submission logic.</p>
+
+        <article class="miner-xp-rank-card glass">
+          <div class="miner-xp-rank-left">
+            <div class="miner-xp-coin">₿</div>
+            <div><small>MINER RANK</small><strong id="minerXpLevel">Level 1</strong><span id="minerXpTitle">Hash Rookie</span></div>
+          </div>
+          <div class="miner-xp-rank-right">
+            <div class="miner-xp-rank-label"><strong id="minerXpTotal">0 / 50 XP</strong><span id="minerXpRemaining">50 XP to next level</span></div>
+            <div class="miner-xp-big-track"><i id="minerXpBar"></i></div>
+          </div>
+        </article>
+
+        <article class="miner-game-card glass" id="hashHuntCard">
+          <div class="panel-head">
+            <div><h2>⛏ HASH HUNT</h2><span>double-SHA256 mini-game · cosmetic only</span></div>
+            <span class="badge active" id="hashHuntModeBadge">STANDARD</span>
+          </div>
+
+          <p class="miner-game-intro">Run one simulated hash attempt at a time, discover mini-game shares, build streaks, complete a block meter, and earn local Miner XP. The generated hashes are not Bitcoin block headers and are never submitted anywhere.</p>
+
+          <div class="miner-game-controls">
+            <div class="field miner-difficulty-field">
+              <label>GAME DIFFICULTY</label>
+              <select id="hashHuntDifficulty">
+                <option value="casual">Casual · 1 / 2 target</option>
+                <option value="standard" selected>Standard · 1 / 4 target</option>
+                <option value="hard">Hard · 1 / 8 target</option>
+                <option value="dragon" id="hashHuntDragonOption">Purple Dragon · 1 / 16 · Level 7</option>
+              </select>
+            </div>
+            <div class="miner-game-difficulty-info">
+              <small>SHARE XP</small><strong id="hashHuntShareXp">+10 XP</strong>
+              <small>BLOCK BONUS</small><strong id="hashHuntBlockXp">+120 XP</strong>
+            </div>
+          </div>
+
+          <div class="miner-game-stat-grid">
+            <div class="miner-game-stat"><small>VALID SHARES</small><strong id="hashHuntShares">0 / 8</strong></div>
+            <div class="miner-game-stat"><small>HASH STREAK</small><strong id="hashHuntStreak">0×</strong></div>
+            <div class="miner-game-stat"><small>ATTEMPTS</small><strong id="hashHuntAttempts">0</strong></div>
+            <div class="miner-game-stat"><small>BEST STREAK</small><strong id="hashHuntBestStreak">0×</strong></div>
+            <div class="miner-game-stat"><small>BLOCKS CLAIMED</small><strong id="hashHuntBlocks">0</strong></div>
+            <div class="miner-game-stat"><small>TOTAL GAME SHARES</small><strong id="hashHuntTotalShares">0</strong></div>
+          </div>
+
+          <div class="hash-block-meter">
+            <div class="hash-block-meter-head"><strong>BLOCK PROGRESS</strong><span id="hashHuntProgressText">0%</span></div>
+            <div class="hash-block-track"><i id="hashHuntProgressBar"></i></div>
+            <div class="hash-slot-grid" id="hashHuntSlots"></div>
+          </div>
+
+          <div class="hash-console">
+            <small>MINING CONSOLE</small>
+            <strong id="hashHuntConsoleTitle">Ready for a hash attempt.</strong>
+            <p id="hashHuntConsoleText">Press Run Hash Attempt to start the mini-game.</p>
+            <code id="hashHuntLastHash">—</code>
+          </div>
+
+          <div class="inline-actions hash-hunt-actions">
+            <button class="btn-3d primary" id="hashHuntRun">⚡ Run Hash Attempt</button>
+            <button class="btn-3d secondary" id="hashHuntClaim" disabled>₿ Claim Block Bonus +120 XP</button>
+            <button class="btn-3d raised" id="hashHuntReset">Reset Game</button>
+          </div>
+        </article>
+
+        <section class="miner-xp-two-col">
+          <article class="panel glass">
+            <div class="panel-head"><h2>★ ACHIEVEMENTS</h2><span id="hashAchievementCount">0 / 6 unlocked</span></div>
+            <div class="miner-achievement-list" id="hashAchievementList"></div>
+          </article>
+
+          <article class="panel glass">
+            <div class="panel-head"><h2>◆ COSMETIC UNLOCKS</h2><span>Miner XP only</span></div>
+            <div class="miner-unlock-list" id="minerUnlockList"></div>
+          </article>
+        </section>
+
+        <article class="panel glass miner-xp-policy">
+          <div class="panel-head"><h2>XP &amp; LEVELING POLICY</h2><span>local · cosmetic · no monetary value</span></div>
+          <p>Miner XP is stored locally in the WebView profile and can be reset at any time. It is intentionally not protected as money, mining credit, hashpower, or a transferable asset. Editing or resetting XP cannot improve real mining results.</p>
+          <div class="miner-policy-grid">
+            <div><strong>REAL HASHRATE</strong><span>Unaffected</span></div>
+            <div><strong>BITCOIN PAYOUTS</strong><span>Unaffected</span></div>
+            <div><strong>BITCOIN CORE</strong><span>Unaffected</span></div>
+            <div><strong>ASIC CONFIG</strong><span>Unaffected</span></div>
+            <div><strong>NETWORK TARGET</strong><span>Unaffected</span></div>
+            <div><strong>SUBMITBLOCK</strong><span>Unaffected</span></div>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="view" id="view-tray">
+        <div class="tray-page-head">
+          <div>
+            <span class="assistant-eyebrow">v1.5.0 · WINDOWS LOCAL COMPANION</span>
+            <h1 class="view-title">Windows Tray &amp; Background Monitoring</h1>
+            <p class="view-sub">Keep Miner Studio's existing local health monitors available while the main window is hidden. The tray is read-only for mining hardware and never exposes remote-control commands.</p>
+          </div>
+          <div class="inline-actions">
+            <button class="btn-3d secondary requires-python-api" id="trayRefresh">Refresh Status</button>
+            <button class="btn-3d primary requires-python-api" id="trayHideNow">Hide to Tray</button>
+          </div>
+        </div>
+
+        <article class="tray-hero glass holographic-border">
+          <div class="tray-icon-preview"><img src="assets/BitcoinMinerStudio.png" alt="Bitcoin Miner Studio tray icon"></div>
+          <div class="tray-hero-copy">
+            <small>WINDOWS SYSTEM TRAY</small>
+            <h2 id="trayHeroTitle">CHECKING TRAY SUPPORT</h2>
+            <p id="trayHeroDetail">Reading the local Windows tray state.</p>
+          </div>
+          <div class="tray-hero-kpis">
+            <div><small>TRAY</small><strong id="trayRunningState">—</strong></div>
+            <div><small>WINDOW</small><strong id="trayWindowState">VISIBLE</strong></div>
+            <div><small>NOTIFICATIONS</small><strong id="trayNotificationState">—</strong></div>
+            <div><small>HEALTH</small><strong id="trayHealthState">—</strong></div>
+          </div>
+        </article>
+
+        <section class="tray-main-grid">
+          <article class="panel glass">
+            <div class="panel-head"><h2>TRAY BEHAVIOR</h2><span>local Windows settings</span></div>
+            <div class="tray-settings-grid">
+              <div class="field"><label>TRAY ICON</label><select id="trayEnabled"><option value="on">Enabled</option><option value="off">Disabled</option></select></div>
+              <div class="field"><label>MINIMIZE TO TRAY</label><select id="trayMinimize"><option value="on">Enabled</option><option value="off">Disabled</option></select></div>
+              <div class="field"><label>CLOSE BUTTON</label><select id="trayClose"><option value="off">Exit normally</option><option value="on">Hide to tray</option></select></div>
+              <div class="field"><label>HEALTH NOTIFICATIONS</label><select id="trayNotifications"><option value="on">Enabled</option><option value="off">Disabled</option></select></div>
+              <div class="field"><label>BACKGROUND STATUS POLL</label><select id="trayPollSeconds"><option value="5">5 sec</option><option value="10">10 sec</option><option value="15">15 sec</option><option value="30">30 sec</option><option value="60">60 sec</option></select></div>
+            </div>
+            <div class="inline-actions tray-setting-actions">
+              <button class="btn-3d primary requires-python-api" id="traySave">Save Tray Settings</button>
+              <button class="btn-3d secondary requires-python-api" id="trayTestNotification">Test Notification</button>
+            </div>
+            <div class="result-box compact" id="trayResult">Tray settings are stored locally in Miner Studio settings.</div>
+          </article>
+
+          <article class="panel glass">
+            <div class="panel-head"><h2>BACKGROUND STATUS</h2><span>privacy-safe summary</span></div>
+            <div class="tray-status-orb" id="trayStatusOrb" data-level="ok">●</div>
+            <h3 class="tray-status-summary" id="trayStatusSummary">Pool idle · Core offline · ASIC none</h3>
+            <p class="tray-status-detail" id="trayStatusDetail">Local monitoring status will appear here.</p>
+            <div class="tray-status-list">
+              <div><span>Pool</span><strong id="trayPoolStatus">Idle</strong></div>
+              <div><span>Bitcoin Core</span><strong id="trayCoreStatus">Offline</strong></div>
+              <div><span>ASIC Fleet</span><strong id="trayAsicStatus">None</strong></div>
+              <div><span>Purple Dragon</span><strong id="traySecurityStatus">Checking</strong></div>
+              <div><span>Last notification</span><strong id="trayLastNotification">None</strong></div>
+            </div>
+          </article>
+        </section>
+
+        <section class="tray-policy-grid">
+          <article class="panel glass"><div class="panel-head"><h2>TRAY COMMANDS</h2><span>intentionally limited</span></div><div class="tray-command-list"><div><strong>Open Miner Studio</strong><span>Restore and focus the main window.</span></div><div><strong>Current Status</strong><span>Show a privacy-safe local Pool/Core/ASIC summary.</span></div><div><strong>Hide Window</strong><span>Keep background services active while removing the main window.</span></div><div><strong>Exit</strong><span>Perform the normal clean shutdown path.</span></div></div></article>
+          <article class="panel glass tray-safety"><div class="panel-head"><h2>SECURITY BOUNDARY</h2><span>Purple Dragon</span></div><div class="tray-shield">◆</div><h3>NO MINING CONTROLS IN THE TRAY</h3><p>The tray does not start mining, submit blocks, change pools, restart ASICs, reveal credentials, or accept remote commands. Those actions stay inside the existing explicit Miner Studio workflows and Purple Dragon gates.</p></article>
+        </section>
+      </section>
+
+      <section class="view" id="view-monitoring">
+        <h1 class="view-title">Monitoring &amp; Analytics</h1>
+        <p class="view-sub">Persistent local telemetry for Pool, Solo, Bitcoin Core, and authorized ASIC fleet health. No cloud analytics and no mining credentials are stored.</p>
+
+        <article class="monitor-hero glass">
+          <div class="monitor-recorder">
+            <span class="monitor-dot" id="monitorRecorderDot"></span>
+            <div><small>LOCAL TELEMETRY RECORDER</small><strong id="monitorRecorderState">Starting</strong><span id="monitorRecorderDetail">Preparing local SQLite history.</span></div>
+          </div>
+          <div class="monitor-range-pills" id="monitorRangePills">
+            <button data-seconds="3600" class="active">1H</button>
+            <button data-seconds="21600">6H</button>
+            <button data-seconds="86400">24H</button>
+            <button data-seconds="604800">7D</button>
+            <button data-seconds="2592000">30D</button>
+          </div>
+          <div class="monitor-hero-meta">
+            <div><small>SAMPLES</small><strong id="monitorSampleCount">0</strong></div>
+            <div><small>LAST SAMPLE</small><strong id="monitorLastSample">—</strong></div>
+            <div><small>DATABASE</small><strong id="monitorDbSize">0 B</strong></div>
+          </div>
+        </article>
+
+        <section class="monitor-kpi-grid">
+          <article class="monitor-kpi glass"><small>POOL AVG HASHRATE</small><strong id="monPoolAvg">—</strong><span id="monPoolPeak">Peak —</span></article>
+          <article class="monitor-kpi glass"><small>POOL ACCEPTANCE</small><strong id="monPoolAcceptance">—</strong><span id="monPoolShares">0 accepted</span></article>
+          <article class="monitor-kpi glass"><small>SHARE LATENCY P95</small><strong id="monPoolLatency">—</strong><span id="monPoolHealth">Health —</span></article>
+          <article class="monitor-kpi glass"><small>SOLO AVG HASHRATE</small><strong id="monSoloAvg">—</strong><span id="monSoloPeak">Peak —</span></article>
+          <article class="monitor-kpi glass"><small>SOLO BEST DIFFICULTY</small><strong id="monSoloBest">—</strong><span>Historical best in range</span></article>
+          <article class="monitor-kpi glass"><small>CORE AVAILABILITY</small><strong id="monCoreAvailability">—</strong><span id="monCoreLatency">RPC p95 —</span></article>
+          <article class="monitor-kpi glass"><small>ASIC AVG HASHRATE</small><strong id="monAsicHashrate">—</strong><span id="monAsicHealth">Health —</span></article>
+          <article class="monitor-kpi glass"><small>ASIC MAX TEMP</small><strong id="monAsicTemp">—</strong><span>Across monitored fleet</span></article>
+        </section>
+
+        <section class="monitor-chart-grid">
+          <article class="panel glass monitor-chart-panel">
+            <div class="panel-head"><h2>HASHRATE HISTORY</h2><span>Pool + Solo</span></div>
+            <canvas id="monitorHashrateChart" height="235" data-css-height="235"></canvas>
+            <div class="monitor-legend"><span><i class="legend-pool"></i>Pool</span><span><i class="legend-solo"></i>Solo</span></div>
+          </article>
+          <article class="panel glass monitor-chart-panel">
+            <div class="panel-head"><h2>LATENCY &amp; HEALTH</h2><span>Pool p95 + Core RPC + Pool health</span></div>
+            <canvas id="monitorLatencyChart" height="235" data-css-height="235"></canvas>
+            <div class="monitor-legend"><span><i class="legend-share"></i>Share p95</span><span><i class="legend-core"></i>Core RPC</span><span><i class="legend-health"></i>Pool health</span></div>
+          </article>
+          <article class="panel glass monitor-chart-panel">
+            <div class="panel-head"><h2>ASIC FLEET HISTORY</h2><span>Hashrate + temperature + health</span></div>
+            <canvas id="monitorAsicChart" height="235" data-css-height="235"></canvas>
+            <div class="monitor-legend"><span><i class="legend-asic"></i>Hashrate</span><span><i class="legend-temp"></i>Max temp</span><span><i class="legend-health"></i>Health</span></div>
+          </article>
+          <article class="panel glass monitor-chart-panel">
+            <div class="panel-head"><h2>BITCOIN CORE HISTORY</h2><span>RPC latency + peers</span></div>
+            <canvas id="monitorCoreChart" height="235" data-css-height="235"></canvas>
+            <div class="monitor-legend"><span><i class="legend-core"></i>RPC latency</span><span><i class="legend-peers"></i>Peers</span></div>
+          </article>
+        </section>
+
+        <section class="monitor-bottom-grid">
+          <article class="panel glass">
+            <div class="panel-head"><h2>OPERATIONAL EVENTS</h2><span>threshold activation + recovery</span></div>
+            <div class="monitor-event-list" id="monitorEventList"></div>
+          </article>
+          <article class="panel glass">
+            <div class="panel-head"><h2>DATA CONTROLS</h2><span>local only</span></div>
+            <div class="monitor-settings-grid">
+              <div class="field"><label>RECORDING</label><select id="analyticsEnabled"><option value="on">Enabled</option><option value="off">Disabled</option></select></div>
+              <div class="field"><label>SAMPLE INTERVAL</label><select id="analyticsSampleSeconds"><option value="5">5 sec</option><option value="10">10 sec</option><option value="15">15 sec</option><option value="30">30 sec</option><option value="60">60 sec</option></select></div>
+              <div class="field"><label>RETENTION</label><select id="analyticsRetentionDays"><option value="7">7 days</option><option value="30">30 days</option><option value="90">90 days</option><option value="180">180 days</option><option value="365">365 days</option></select></div>
+            </div>
+            <p class="muted-note">Stored fields are operational counters and telemetry only. Pool passwords, RPC passwords, private keys, wallet seeds, payout secrets, and raw authorization credentials are excluded from analytics.sqlite3.</p>
+            <div class="inline-actions monitor-actions">
+              <button class="btn-3d primary" id="analyticsSave">Save Monitoring Settings</button>
+              <button class="btn-3d secondary" id="analyticsExportCsv">Export CSV</button>
+              <button class="btn-3d secondary" id="analyticsExportJson">Export JSON</button>
+              <button class="btn-3d raised" id="analyticsClear">Clear History</button>
+            </div>
+            <div class="result-box compact" id="analyticsResult">Local telemetry is stored under .bitcoin-miner-studio.</div>
+          </article>
+        </section>
+      </section>
+
+      <section class="view" id="view-diagnostics">
+        <div class="diagnostics-page-head">
+          <div>
+            <span class="assistant-eyebrow">v1.8.0 · DIAGNOSTICS &amp; SUPPORT CENTER</span>
+            <h1 class="view-title">Diagnostics &amp; Support Center</h1>
+            <p class="view-sub">Read-only system health checks, guided remediation, privacy-safe evidence collection, and local support bundles. Diagnostics never start mining, change ASICs, switch pools, modify Bitcoin Core, submit blocks, or upload data.</p>
+          </div>
+          <div class="diagnostics-head-actions">
+            <button class="ghost-btn requires-python-api" id="diagnosticsCopyReport">Copy Report</button>
+            <button class="btn-3d secondary requires-python-api" id="diagnosticsQuickRun">Quick Scan</button>
+            <button class="btn-3d primary requires-python-api" id="diagnosticsFullRun">Full Diagnostic</button>
+          </div>
+        </div>
+
+        <article class="diagnostics-hero glass holographic-border" id="diagnosticsHero">
+          <div class="diagnostics-health-mark"><span id="diagnosticsHealthIcon">◇</span></div>
+          <div class="diagnostics-hero-copy">
+            <small>OPERATIONAL HEALTH</small>
+            <h2 id="diagnosticsHealth">NOT CHECKED</h2>
+            <p id="diagnosticsHealthDetail">Run a Quick Scan or Full Diagnostic to inspect the current local environment.</p>
+            <div class="diagnostics-meta"><span id="diagnosticsMode">QUICK</span><span id="diagnosticsCheckedAt">Not checked</span><span id="diagnosticsDuration">—</span></div>
+          </div>
+          <div class="diagnostics-score-ring" id="diagnosticsScoreRing"><strong id="diagnosticsScore">—</strong><small>/100</small></div>
+        </article>
+
+        <section class="diagnostics-kpi-grid">
+          <article class="diagnostics-kpi glass"><small>CHECKS</small><strong id="diagnosticsTotal">0</strong><span>local read-only tests</span></article>
+          <article class="diagnostics-kpi glass"><small>PASS</small><strong id="diagnosticsPass">0</strong><span>healthy checks</span></article>
+          <article class="diagnostics-kpi glass"><small>WARNINGS</small><strong id="diagnosticsWarnings">0</strong><span>review recommended</span></article>
+          <article class="diagnostics-kpi glass"><small>FAILURES</small><strong id="diagnosticsFailures">0</strong><span>action required</span></article>
+          <article class="diagnostics-kpi glass"><small>INFO</small><strong id="diagnosticsInfo">0</strong><span>optional / inactive paths</span></article>
+        </section>
+
+        <article class="panel glass architecture-services-panel">
+          <div class="panel-head"><h2>v2 SERVICE ARCHITECTURE</h2><span id="architectureServiceMeta">BMS-ARCH-2</span></div>
+          <div class="architecture-service-summary">
+            <div><small>OVERALL</small><strong id="architectureServiceOverall">STARTING</strong></div>
+            <div><small>REGISTERED</small><strong id="architectureServiceCount">0</strong></div>
+            <div><small>RUNNING</small><strong id="architectureServiceRunning">0</strong></div>
+            <div><small>DEGRADED / ERROR</small><strong id="architectureServiceIssues">0</strong></div>
+          </div>
+          <div class="architecture-service-grid" id="architectureServiceGrid"><div class="empty-state">Service registry is starting.</div></div>
+        </article>
+
+        <div class="assistant-section-head diagnostics-section-head">
+          <div><h2>HEALTH BY AREA</h2><p>Current runtime, security, storage, configuration and mining-stack evidence.</p></div>
+          <span class="assistant-local-badge">READ-ONLY</span>
+        </div>
+        <section class="diagnostics-category-grid" id="diagnosticsCategories"><div class="empty-state glass">No diagnostic result yet.</div></section>
+
+        <section class="diagnostics-main-grid">
+          <article class="panel glass diagnostics-checks-panel">
+            <div class="panel-head"><h2>DIAGNOSTIC CHECKS</h2><span id="diagnosticsChecksMeta">Waiting for scan</span></div>
+            <div class="table-wrap diagnostics-table-wrap">
+              <table class="data-table diagnostics-table">
+                <thead><tr><th>STATE</th><th>AREA</th><th>CHECK</th><th>DETAIL</th></tr></thead>
+                <tbody id="diagnosticsChecksTable"><tr><td colspan="4" class="empty-state">Run diagnostics to populate the health matrix.</td></tr></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel glass diagnostics-issues-panel">
+            <div class="panel-head"><h2>ISSUES &amp; NEXT STEPS</h2><span id="diagnosticsIssueCount">0 issues</span></div>
+            <div class="diagnostics-issue-list" id="diagnosticsIssueList"><div class="empty-state">No issues have been evaluated yet.</div></div>
+          </article>
+        </section>
+
+        <section class="diagnostics-support-grid">
+          <article class="panel glass diagnostics-support-card">
+            <div class="panel-head"><h2>LOCAL SUPPORT BUNDLE</h2><span>Privacy sanitized</span></div>
+            <p class="muted-note">Create a ZIP containing the diagnostics report, system summary, Purple Dragon security summary and optional redacted settings/activity evidence. Nothing is uploaded automatically.</p>
+            <div class="diagnostics-bundle-options">
+              <label class="check-row"><input type="checkbox" id="diagnosticsIncludeSettings" checked> Include sanitized settings summary</label>
+              <label class="check-row"><input type="checkbox" id="diagnosticsIncludeActivity" checked> Include redacted recent activity log</label>
+            </div>
+            <div class="diagnostics-privacy-list">
+              <span>✓ Mining / RPC passwords excluded</span>
+              <span>✓ Publisher private keys excluded</span>
+              <span>✓ Wallet seeds / mnemonics excluded</span>
+              <span>✓ Analytics SQLite database excluded</span>
+              <span>✓ No automatic upload / phone-home</span>
+            </div>
+            <div class="inline-actions diagnostics-support-actions">
+              <button class="btn-3d primary requires-python-api" id="diagnosticsCreateBundle">Create Support Bundle</button>
+              <button class="btn-3d secondary requires-python-api" id="diagnosticsOpenFolder">Open Support Folder</button>
+            </div>
+            <div class="diagnostics-support-path"><small>LAST LOCAL BUNDLE</small><strong id="diagnosticsBundlePath">—</strong><span id="diagnosticsBundleSize">—</span></div>
+            <div class="result-box compact" id="diagnosticsResult">Diagnostics &amp; Support Center is ready.</div>
+          </article>
+
+          <article class="panel glass diagnostics-system-card">
+            <div class="panel-head"><h2>SYSTEM SNAPSHOT</h2><span>Support-safe</span></div>
+            <div class="template-details diagnostics-system-details">
+              <div class="full"><span>Version</span><strong id="diagnosticsSystemVersion">2.0.1</strong></div>
+              <div class="full"><span>Operating system</span><strong id="diagnosticsSystemPlatform">—</strong></div>
+              <div class="full"><span>Python</span><strong id="diagnosticsSystemPython">—</strong></div>
+              <div class="full"><span>Architecture</span><strong id="diagnosticsSystemArch">—</strong></div>
+              <div class="full"><span>CPU cores</span><strong id="diagnosticsSystemCpu">—</strong></div>
+              <div class="full"><span>Application data</span><strong class="mono" id="diagnosticsSystemData">—</strong></div>
+            </div>
+            <div class="diagnostics-support-policy">
+              <span>⊕</span><div><strong>Evidence, not automatic repair</strong><p>The center explains detected conditions and recommended next steps. It does not silently rewrite configuration or perform mining/network control actions.</p></div>
+            </div>
+          </article>
+        </section>
+      </section>
+
+      <section class="view" id="view-release">
+        <span class="assistant-eyebrow">v2.0.1 · UPDATE &amp; RELEASE CENTER</span>
+        <h1 class="view-title">Update &amp; Release Center</h1>
+        <p class="view-sub">Local-first update package verification, trusted staging, release-channel policy, rollback metadata, release descriptors, and Stable release readiness. Candidate packages are never executed and the running application is never replaced silently.</p>
+
+        <section class="update-release-overview">
+          <article class="panel glass update-current-card">
+            <div class="panel-head"><h2>CURRENT TRUSTED RELEASE</h2><span id="urCurrentChannel">STABLE</span></div>
+            <div class="update-current-grid">
+              <div><small>VERSION</small><strong id="urCurrentVersion">2.0.1</strong></div>
+              <div><small>BUILD ID</small><strong class="mono" id="urCurrentBuild">—</strong></div>
+              <div><small>PURPLE DRAGON</small><strong id="urCurrentTrust">CHECKING</strong></div>
+              <div><small>PROTECTED FILES</small><strong id="urCurrentProtected">—</strong></div>
+            </div>
+            <div class="update-policy-strip"><span>LOCAL-FIRST</span><span>NO AUTO DOWNLOAD</span><span>NO SILENT APPLY</span><span>TRUST REQUIRED</span></div>
+          </article>
+
+          <article class="panel glass update-channel-card">
+            <div class="panel-head"><h2>UPDATE CHANNEL</h2><span>Preference only</span></div>
+            <div class="field"><label>CHANNEL POLICY</label><select id="urChannel"><option value="stable">Stable</option><option value="preview">Preview</option></select></div>
+            <p class="muted-note">Stable accepts signed Stable packages only. Preview also permits signed Preview packages. v2.0.1 does not contact an update server automatically.</p>
+            <div class="update-safety-note"><b>Explicit offline apply</b><span>Inspection and staging never overwrite the active Bitcoin Miner Studio folder. Close the application before manually promoting a complete trusted release.</span></div>
+          </article>
+        </section>
+
+        <section class="update-release-main-grid">
+          <article class="panel glass update-package-panel">
+            <div class="panel-head"><h2>PACKAGE INSPECTOR</h2><span>.7z · .zip · extracted folder</span></div>
+            <div class="field"><label>UPDATE PACKAGE / RELEASE FOLDER</label><div class="update-path-row"><input id="urPackagePath" type="text" placeholder="Choose a signed Bitcoin Miner Studio release package or folder"><button class="ghost-btn requires-python-api" id="urChoosePackage">Choose Package</button><button class="ghost-btn requires-python-api" id="urChooseFolder">Choose Folder</button></div></div>
+            <div class="field"><label>EXPECTED SHA-256 <span>OPTIONAL</span></label><input id="urExpectedSha" type="text" maxlength="64" placeholder="Paste a published package checksum for an additional verification gate"></div>
+            <div class="inline-actions update-package-actions"><button class="btn-3d primary requires-python-api" id="urInspect">Inspect &amp; Verify</button><button class="btn-3d secondary requires-python-api" id="urStage" disabled>Stage Trusted Release</button></div>
+            <div class="update-inspection-grid">
+              <div><small>DECISION</small><strong id="urInspectionState">NOT INSPECTED</strong></div>
+              <div><small>CANDIDATE</small><strong id="urCandidateVersion">—</strong></div>
+              <div><small>RELATION</small><strong id="urCandidateRelation">—</strong></div>
+              <div><small>SIGNATURE</small><strong id="urCandidateTrust">—</strong></div>
+              <div><small>PROTECTED FILES</small><strong id="urCandidateFiles">—</strong></div>
+              <div><small>PACKAGE SHA-256</small><strong class="mono" id="urCandidateSha">—</strong></div>
+            </div>
+            <div class="result-box compact" id="urCandidateDetail">Select a complete release package or extracted release folder to inspect it without executing candidate code.</div>
+          </article>
+
+          <article class="panel glass update-staging-panel">
+            <div class="panel-head"><h2>STAGING &amp; ROLLBACK PLAN</h2><span>Local app-data only</span></div>
+            <div class="update-stage-status"><small>STAGED RELEASE</small><strong id="urStagedName">NONE</strong><span class="mono" id="urStagedPath">—</span></div>
+            <div class="update-safety-list">
+              <div><span>✓</span><p><b>Cryptographic gate</b>Only a candidate with a valid Purple Dragon publisher signature and complete protected-file hashes can be staged.</p></div>
+              <div><span>◇</span><p><b>Rollback metadata</b>Staging records the current build and target release so an explicit offline update/rollback has traceable provenance.</p></div>
+              <div><span>×</span><p><b>No in-place patching</b>The running source tree is never rewritten by Update &amp; Release Center.</p></div>
+            </div>
+            <div class="inline-actions update-stage-actions"><button class="btn-3d raised requires-python-api" id="urOpenFolder">Open Update Folder</button><button class="ghost-btn requires-python-api" id="urClearStaged">Clear Staging</button></div>
+          </article>
+        </section>
+
+        <section class="update-release-bottom-grid">
+          <article class="panel glass">
+            <div class="panel-head"><h2>RELEASE DESCRIPTOR</h2><span>Public verification metadata</span></div>
+            <p class="muted-note">Export a support-safe JSON descriptor containing the current version, build ID, release seal, publisher key ID, protected-file digest, and trust state. Private keys and credentials are never included.</p>
+            <div class="inline-actions"><button class="btn-3d secondary requires-python-api" id="urExportDescriptor">Export Descriptor</button><button class="ghost-btn requires-python-api" id="urCopyReport">Copy Update Report</button></div>
+            <div class="result-box compact" id="urResult">Update &amp; Release Center is ready.</div>
+          </article>
+          <article class="panel glass">
+            <div class="panel-head"><h2>LOCAL UPDATE HISTORY</h2><span>Most recent actions</span></div>
+            <div class="update-history" id="urHistory"><div class="empty-state">No update staging actions recorded yet.</div></div>
+          </article>
+        </section>
+
+        <div class="update-release-readiness-head"><div><span class="assistant-eyebrow">STABLE RELEASE ENGINEERING</span><h2>Release Readiness</h2><p>Existing preflight gates remain part of v2.0.1 and sit inside Update &amp; Release Center.</p></div></div>
+
+        <article class="rc-hero glass holographic-border">
+          <div class="rc-hero-status">
+            <span class="rc-orb" id="rcReadinessOrb"></span>
+            <div><small>RELEASE READINESS</small><strong id="rcReadiness">Checking</strong><span id="rcReadinessDetail">Waiting for the initial release preflight.</span></div>
+          </div>
+          <div class="rc-score-wrap">
+            <div class="rc-score-ring" id="rcScoreRing"><strong id="rcScore">0</strong><small>/100</small></div>
+          </div>
+          <div class="rc-hero-meta">
+            <div><small>CHANNEL</small><strong>STABLE</strong></div>
+            <div><small>RELEASE CHANNEL</small><strong>STABLE</strong></div>
+            <div><small>BLOCKERS</small><strong id="rcBlockers">0</strong></div>
+            <div><small>WARNINGS</small><strong id="rcWarnings">0</strong></div>
+          </div>
+        </article>
+
+        <section class="rc-kpi-grid">
+          <article class="rc-kpi glass"><small>RUNTIME</small><strong id="rcRuntimeState">—</strong><span>Python · WebView · crypto · SQLite</span></article>
+          <article class="rc-kpi glass"><small>SECURITY</small><strong id="rcSecurityState">—</strong><span>Purple Dragon + key hygiene</span></article>
+          <article class="rc-kpi glass"><small>STARTUP</small><strong id="rcStartupState">—</strong><span>spawn guard + previous shutdown</span></article>
+          <article class="rc-kpi glass"><small>CONFIGURATION</small><strong id="rcConfigState">—</strong><span>range + persistence validation</span></article>
+          <article class="rc-kpi glass"><small>STORAGE</small><strong id="rcStorageState">—</strong><span>app data + free space</span></article>
+          <article class="rc-kpi glass"><small>MONITORING</small><strong id="rcMonitoringState">—</strong><span>local recorder readiness</span></article>
+        </section>
+
+        <section class="rc-main-grid">
+          <article class="panel glass">
+            <div class="panel-head"><h2>RELEASE GATES</h2><span id="rcCheckedAt">Not checked</span></div>
+            <div class="table-wrap rc-check-table-wrap">
+              <table class="data-table rc-check-table">
+                <thead><tr><th>STATE</th><th>AREA</th><th>CHECK</th><th>DETAIL</th></tr></thead>
+                <tbody id="rcChecksTable"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel glass">
+            <div class="panel-head"><h2>RELEASE ACTIONS</h2><span>local release engineering</span></div>
+            <p class="muted-note">Preflight does not start/stop mining or modify Bitcoin Core/ASIC settings. Support bundles are created locally and are never uploaded automatically.</p>
+            <div class="rc-policy-list">
+              <div><span>◆</span><div><strong>Stable baseline</strong><small>Stable release gates remain active while feature milestones advance. v2.0.1 preserves Update & Release Center while adding the v2 architecture/workspace layer without weakening mining controls or Purple Dragon gating.</small></div><b>ACTIVE</b></div>
+              <div><span>◇</span><div><strong>Support privacy</strong><small>Passwords, seed phrases, private keys, wallet addresses, worker IDs, and the analytics database are excluded/redacted.</small></div><b>LOCAL</b></div>
+              <div><span>⌁</span><div><strong>Crash signal</strong><small>An unclean previous application session appears as a warning for investigation, not as a mining lock.</small></div><b>ON</b></div>
+              <div><span>✓</span><div><strong>Release blocking</strong><small>Missing runtime/security/startup essentials produce RELEASE BLOCKED. Optional Bitcoin Core/pool/ASIC configuration does not.</small></div><b>STRICT</b></div>
+            </div>
+
+            <div class="inline-actions rc-actions">
+              <button class="btn-3d primary" id="rcPreflight">Run Release Preflight</button>
+              <button class="btn-3d secondary" id="rcSupportBundle">Create Support Bundle</button>
+              <button class="btn-3d raised" id="rcCopyReport">Copy Release Report</button>
+            </div>
+
+            <div class="rc-support-path">
+              <small>LAST LOCAL SUPPORT BUNDLE</small>
+              <strong id="rcSupportPath">—</strong>
+            </div>
+            <div class="result-box compact" id="rcResult">Stable release readiness is initializing.</div>
+          </article>
+        </section>
+
+        <article class="panel glass rc-freeze">
+          <div class="panel-head"><h2>STABLE RELEASE POLICY</h2><span>v2.0.1 stable baseline</span></div>
+          <div class="rc-freeze-grid">
+            <div><strong>STABLE MAINTENANCE</strong><span>Bug fixes, compatibility fixes, security hardening, performance regressions, documentation, packaging, accessibility and UI polish remain supported.</span></div>
+            <div><strong>v2.0.1 FEATURE SET</strong><span>BMS-ARCH-2 runtime services, explicit API contract, persistent workspace UX, Command Palette, Update & Release Center, Diagnostics, Mining Academy, Benchmark Lab 2.0, Pool Profiles, tray monitoring and the mining/Core/ASIC toolchain are included.</span></div>
+            <div><strong>STABLE GATE</strong><span>No known blocking crashes, trusted Purple Dragon build, clean startup, stable Pool/Solo/Core/ASIC paths, Monitoring integrity and reproducible release diagnostics.</span></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="view" id="view-security">
+        <div class="foundation-security-intro">
+          <div class="foundation-security-heading glass">
+            <div class="foundation-security-logo foundation-symbol-crop">
+              <img src="assets/PurpleDragonFoundationLogo.png" alt="Purple Dragon Foundation ltd dragon mark">
+            </div>
+            <div>
+              <small>PUBLISHED BY PURPLE DRAGON FOUNDATION LTD</small>
+              <h1 class="view-title">Purple Dragon Security Center</h1>
+              <p class="view-sub">Signed release provenance, protected-file integrity, forensic build markers, and fail-safe critical-control gating.</p>
+            </div>
+          </div>
+
+          <article class="foundation-banner-card" id="foundationBrandBanner">
+            <img src="assets/PurpleDragonFoundationBanner.png" alt="Purple Dragon Foundation ltd — Software Development, Innovation, Solutions">
+          </article>
+        </div>
+
+        <article class="security-hero glass holographic-border" id="securityHero">
+          <div class="security-hero-main">
+            <span class="security-shield" id="securityShield">◆</span>
+            <div><small>PURPLE DRAGON TRUST STATE</small><h2 id="securityStatus">CHECKING</h2><p id="securityDetail">Verifying publisher signature and protected application files.</p></div>
+          </div>
+          <div class="security-hero-side"><div><small>CRITICAL CONTROLS</small><strong id="securityControls">LOCKED</strong></div><div><small>SCHEME</small><strong id="securityScheme">PD-PROVENANCE-2</strong></div></div>
+        </article>
+
+        <section class="security-stat-grid">
+          <article class="security-stat glass"><small>PUBLISHER SIGNATURE</small><strong id="securitySignature">—</strong><span>Offline RSA verification</span></article>
+          <article class="security-stat glass"><small>PROTECTED FILES</small><strong id="securityFiles">0 / 0</strong><span>SHA-256 manifest hashes</span></article>
+          <article class="security-stat glass"><small>BUILD ID</small><strong class="mono" id="securityBuildId">—</strong><span>Signed release identity</span></article>
+          <article class="security-stat glass"><small>RELEASE SEAL</small><strong class="mono" id="securityReleaseSeal">—</strong><span>Forensic Purple Dragon watermark</span></article>
+        </section>
+
+        <section class="security-grid">
+          <article class="panel glass security-seal-panel">
+            <div class="panel-head"><h2>RELEASE PROVENANCE</h2><span>Public verification data</span></div>
+            <div class="template-details security-details">
+              <div class="full"><span>Provenance tag</span><strong class="mono" id="securityProvenance">—</strong></div>
+              <div class="full"><span>Publisher / creator</span><strong id="securityPublisherName">Purple Dragon Foundation ltd</strong></div>
+              <div class="full"><span>Publisher key ID</span><strong class="mono" id="securityPublisherKey">—</strong></div>
+              <div class="full"><span>Release watermark</span><strong class="mono" id="securityWatermark">—</strong></div>
+              <div class="full"><span>Local install code</span><strong class="mono" id="securityInstallCode">—</strong></div>
+            </div>
+            <div class="inline-actions security-actions"><button class="btn-3d primary requires-python-api" id="securityVerify">Verify Build Now</button><button class="btn-3d secondary requires-python-api" id="securityCopyReport">Copy Security Report</button></div>
+            <div class="result-box compact security-result" id="securityResult">Purple Dragon verification is starting.</div>
+          </article>
+
+          <article class="panel glass security-policy-panel">
+            <div class="panel-head"><h2>PROTECTION POLICY</h2><span>Defense in depth</span></div>
+            <div class="security-policy-list">
+              <div><span>◆</span><div><strong>Critical-action gating</strong><small>Mining starts, ASIC write controls, and submitblock are disabled when build trust fails.</small></div><b id="securityPolicyGate">ON</b></div>
+              <div><span>◇</span><div><strong>Publisher private key</strong><small>The private signing key is not shipped inside Bitcoin Miner Studio.</small></div><b>NOT EMBEDDED</b></div>
+              <div><span>⌁</span><div><strong>Offline verification</strong><small>No server or Internet connection is required to verify the signed release.</small></div><b>ON</b></div>
+              <div><span>!</span><div><strong>Protection limit</strong><small>Tamper evidence makes unauthorized modifications detectable; it cannot make software impossible to copy or reverse engineer.</small></div><b>TRANSPARENT</b></div>
+            </div>
+          </article>
+        </section>
+
+        <article class="panel glass security-files-panel">
+          <div class="panel-head"><h2>PROTECTED FILES</h2><span id="securityFileSummary">Waiting for verification</span></div>
+          <div class="table-wrap security-file-wrap"><table class="data-table"><thead><tr><th>FILE</th><th>STATUS</th><th>EXPECTED</th><th>ACTUAL</th></tr></thead><tbody id="securityFileTable"><tr><td colspan="4" class="empty-state">Purple Dragon verification has not completed yet.</td></tr></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="view" id="view-logs">
+        <h1 class="view-title">Logs</h1><p class="view-sub">Live events from the miner, pool, ASIC control center, and Bitcoin Core tests.</p>
+        <article class="panel glass"><div class="panel-head"><h2>ACTIVITY LOG</h2><div class="inline-actions log-actions"><button class="ghost-btn requires-python-api" id="logsClear" title="Clear the current in-app activity log">Clear Log</button><button class="ghost-btn" id="logsRefresh">Refresh</button></div></div><div class="log-list" id="logList"></div></article>
+      </section>
+    </main>
+  </div>
+  <div class="assistant-intro-backdrop" id="assistantIntro" hidden>
+    <div class="assistant-intro glass holographic-border">
+      <div class="assistant-intro-icon">✦</div>
+      <small>NEW IN v1.1.0</small>
+      <h2>Meet Mining Assistant</h2>
+      <p>Not sure where to begin? “Can I Mine?” checks this computer, your current Miner Studio setup, Bitcoin Core, pool configuration and positively identified ASIC state — without starting anything.</p>
+      <div class="assistant-intro-points">
+        <span>✓ Beginner-friendly</span>
+        <span>✓ Local checks</span>
+        <span>✓ No automatic mining</span>
+      </div>
+      <div class="inline-actions">
+        <button class="btn-3d primary" id="assistantIntroOpen">Open Mining Assistant</button>
+        <button class="btn-3d raised" id="assistantIntroLater">Maybe Later</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="command-palette-backdrop" id="commandPalette" hidden>
+    <section class="command-palette glass" role="dialog" aria-modal="true" aria-labelledby="commandPaletteTitle">
+      <div class="command-palette-head">
+        <span>⌕</span>
+        <input id="commandPaletteInput" type="text" autocomplete="off" placeholder="Jump to a workspace or run a command..." aria-label="Command palette search">
+        <kbd>ESC</kbd>
+      </div>
+      <div class="command-palette-meta"><strong id="commandPaletteTitle">BITCOIN MINER STUDIO COMMAND PALETTE</strong><span id="commandPaletteCount">0 commands</span></div>
+      <div class="command-palette-results" id="commandPaletteResults"></div>
+      <div class="command-palette-footer"><span>↑ ↓ Navigate</span><span>Enter Run</span><span>Ctrl K Open anywhere</span></div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast">Action completed.</div>
+  <script src="script.js"></script>
+</body></html>

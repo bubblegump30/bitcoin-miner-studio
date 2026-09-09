@@ -1,0 +1,44 @@
+# Python runtime/cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Build/package output
+build/
+dist/
+*.spec
+*.exe
+*.msi
+
+# Runtime/log/support artifacts
+*.log
+*.sqlite
+*.sqlite3
+*.db
+*diagnostics*.zip
+*support*bundle*.zip
+academy_progress.json
+benchmark_history.json
+update_history.json
+rollback*.json
+
+# Secrets / publisher material — NEVER commit these
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.*
+*Private-Key*
+*Publisher-Keys*
+
+# Editor / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+release-windows/

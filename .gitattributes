@@ -1,0 +1,9 @@
+# Purple Dragon Security verifies exact file bytes.
+# Disable Git EOL normalization so checkout does not invalidate protected hashes.
+* -text
+
+# Explicit binary assets
+*.png binary
+*.ico binary
+*.7z binary
+*.zip binary

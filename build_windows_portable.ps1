@@ -18,13 +18,13 @@ if (-not [Environment]::Is64BitOperatingSystem) {
 
 function Resolve-Python {
     $candidates = @(
-        @{ Command = 'py'; Args = @('-3.13') },
+        @{ Command = 'py'; Args = @('-3.12') },
         @{ Command = 'python'; Args = @() }
     )
     foreach ($candidate in $candidates) {
         try {
             $cmd = Get-Command $candidate.Command -ErrorAction Stop
-            $probe = & $cmd.Source @($candidate.Args) -c "import sys; raise SystemExit(0 if sys.version_info >= (3,11) and sys.maxsize > 2**32 else 1)"
+            & $cmd.Source @($candidate.Args) -c "import sys; raise SystemExit(0 if sys.version_info[:2] == (3,12) and sys.maxsize > 2**32 else 1)"
             if ($LASTEXITCODE -eq 0) {
                 return @{ Exe = $cmd.Source; Prefix = @($candidate.Args) }
             }
@@ -32,7 +32,7 @@ function Resolve-Python {
             continue
         }
     }
-    throw 'Python 3.11+ x64 was not found. GitHub Actions installs Python 3.13 automatically.'
+    throw 'Python 3.12 x64 was not found. GitHub Actions installs Python 3.12 automatically.'
 }
 
 $Python = Resolve-Python
@@ -54,6 +54,11 @@ if (-not $SkipInstall) {
 }
 
 Invoke-PythonCommand -CommandArgs @('-c', "import webview, py7zr, PyInstaller; print('pywebview:', getattr(webview, '__version__', 'installed')); print('py7zr:', py7zr.__version__); print('PyInstaller:', PyInstaller.__version__)")
+
+# Preflight the exact Windows GUI runtime that pywebview uses. This catches
+# pythonnet/CLR incompatibilities before PyInstaller publishes an unusable EXE.
+Write-Host 'Preflighting pywebview WinForms/pythonnet runtime...'
+Invoke-PythonCommand -CommandArgs @('-c', "import clr; import webview.platforms.winforms; print('WinForms/pythonnet preflight: OK')")
 
 $ManifestPath = Join-Path $Root 'purple_dragon_manifest.json'
 if (-not (Test-Path $ManifestPath -PathType Leaf)) {
@@ -93,9 +98,6 @@ $PyInstallerArgs = @(
     '--hidden-import=pythonnet'
 )
 
-# Purple Dragon verifies exact protected source/UI bytes. Ship those signed files
-# beside the frozen runtime inside _internal so the existing trust model remains
-# functional in the onedir distribution.
 foreach ($Relative in $ProtectedFiles) {
     $Source = Join-Path $Root $Relative
     if (-not (Test-Path $Source -PathType Leaf)) {
@@ -124,8 +126,6 @@ if (-not (Test-Path (Join-Path $InternalRoot 'purple_dragon_manifest.json') -Pat
     throw 'Frozen package is missing the Purple Dragon manifest.'
 }
 
-# Verify the copied protected surfaces and publisher signature against the
-# frozen package before it is zipped. This does not require the private key.
 $env:BMS_FROZEN_VERIFY_ROOT = $InternalRoot
 $VerifyScript = @'
 import json, os, sys
@@ -191,6 +191,7 @@ $BuildInfo = [ordered]@{
     product = 'Bitcoin Miner Studio'
     version = $Version
     platform = 'windows-x64'
+    python = '3.12'
     packaging = 'pyinstaller-onedir'
     executable = 'BitcoinMinerStudio.exe'
     executable_sha256 = $ExeHash

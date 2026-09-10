@@ -4,48 +4,92 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
   publish-windows-release:
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     steps:
-      - name: Check out release source
+      - name: Check out release metadata
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
-      - name: Set up Python 3.12 x64 build host
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          architecture: 'x64'
-          cache: 'pip'
-
-      - name: Build direct WebView2 Windows package
+      - name: Locate validated Windows build for this commit
         shell: pwsh
-        run: .\build_windows_portable.ps1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $repo = '${{ github.repository }}'
+          $sha = '${{ github.sha }}'
+          $runs = gh api "repos/$repo/actions/runs?head_sha=$sha&status=success&per_page=50" | ConvertFrom-Json
+          $run = $runs.workflow_runs |
+            Where-Object {
+              $_.path -eq '.github/workflows/windows-portable.yml' -and
+              $_.conclusion -eq 'success'
+            } |
+            Sort-Object created_at -Descending |
+            Select-Object -First 1
 
-      - name: Finalize DPI-aware runtime and release dependencies
+          if (-not $run) {
+            throw "No successful Windows Portable Build exists for commit $sha. Wait for that workflow to pass before publishing."
+          }
+
+          Write-Host "Using validated build run $($run.id) from $($run.created_at)." -ForegroundColor Green
+          "BMS_BUILD_RUN_ID=$($run.id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Download exact validated Windows artifact
         shell: pwsh
-        run: .\finalize_windows_portable.ps1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -ItemType Directory -Force -Path release-download | Out-Null
+          gh run download $env:BMS_BUILD_RUN_ID `
+            --repo '${{ github.repository }}' `
+            --name 'BitcoinMinerStudio-Windows-x64' `
+            --dir 'release-download'
 
-      - name: Verify release assets exist
+      - name: Verify release artifact and metadata
         shell: pwsh
         run: |
-          $required = @(
-            'release-windows\BitcoinMinerStudio-v2.0.1-Windows-x64.zip',
-            'release-windows\SHA256SUMS-Windows.txt',
-            'release-windows\BitcoinMinerStudio-Windows-build.json',
-            'GITHUB_RELEASE_NOTES-v2.0.1.md'
-          )
-          foreach ($path in $required) {
+          $zipName = 'BitcoinMinerStudio-v2.0.1-Windows-x64.zip'
+          $zip = Join-Path 'release-download' $zipName
+          $sums = Join-Path 'release-download' 'SHA256SUMS-Windows.txt'
+          $infoPath = Join-Path 'release-download' 'BitcoinMinerStudio-Windows-build.json'
+
+          foreach ($path in @($zip, $sums, $infoPath, 'GITHUB_RELEASE_NOTES-v2.0.1.md')) {
             if (-not (Test-Path $path -PathType Leaf)) {
               throw "Missing release asset: $path"
             }
           }
+
+          $line = Get-Content $sums | Where-Object { $_ -match [regex]::Escape($zipName) } | Select-Object -First 1
+          if (-not $line) {
+            throw "$zipName is missing from SHA256SUMS-Windows.txt"
+          }
+          $expected = (($line -split '\s+')[0]).Trim().ToLowerInvariant()
+          $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) {
+            throw "Windows ZIP checksum mismatch. Expected $expected, got $actual."
+          }
+
+          $info = Get-Content $infoPath -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ([string]$info.version -ne '2.0.1') { throw "Unexpected build version: $($info.version)" }
+          if ([string]$info.platform -ne 'windows-x64') { throw "Unexpected platform: $($info.platform)" }
+          if ([string]$info.gui_backend -ne 'microsoft-edge-webview2-direct') { throw "Unexpected GUI backend: $($info.gui_backend)" }
+          if ([string]$info.startup_smoke -notlike 'passed*') { throw "Windows startup smoke was not passed: $($info.startup_smoke)" }
+          if ([string]$info.high_dpi_awareness -ne 'PerMonitorV2') { throw "PerMonitorV2 DPI validation is missing." }
+          if (-not [bool]$info.cryptography_runtime) { throw "Cryptography runtime validation is missing." }
+          if ([int]$info.purple_dragon_protected_files -ne 67) { throw "Unexpected Purple Dragon protected-file count: $($info.purple_dragon_protected_files)" }
+
+          Write-Host "Validated release asset: $zipName" -ForegroundColor Green
+          Write-Host "SHA-256: $actual"
+          Write-Host "Startup smoke: $($info.startup_smoke) in $($info.startup_smoke_seconds)s"
+          Write-Host "DPI: $($info.high_dpi_awareness)"
+          Write-Host "Purple Dragon protected files: $($info.purple_dragon_protected_files)"
 
       - name: Create GitHub release
         shell: pwsh
@@ -54,14 +98,17 @@ jobs:
         run: |
           $tag = 'v2.0.1'
           $title = 'Bitcoin Miner Studio v2.0.1 — Stable Windows Release'
-          gh release view $tag *> $null
+
+          gh release view $tag --repo '${{ github.repository }}' *> $null
           if ($LASTEXITCODE -eq 0) {
             throw "Release $tag already exists. Refusing to overwrite an existing release."
           }
+
           gh release create $tag `
-            'release-windows\BitcoinMinerStudio-v2.0.1-Windows-x64.zip' `
-            'release-windows\SHA256SUMS-Windows.txt' `
-            'release-windows\BitcoinMinerStudio-Windows-build.json' `
+            'release-download\BitcoinMinerStudio-v2.0.1-Windows-x64.zip' `
+            'release-download\SHA256SUMS-Windows.txt' `
+            'release-download\BitcoinMinerStudio-Windows-build.json' `
+            --repo '${{ github.repository }}' `
             --target '${{ github.sha }}' `
             --title $title `
             --notes-file 'GITHUB_RELEASE_NOTES-v2.0.1.md' `

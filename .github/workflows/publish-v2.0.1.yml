@@ -1,0 +1,68 @@
+name: Publish Bitcoin Miner Studio v2.0.1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-windows-release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12 x64 build host
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: 'x64'
+          cache: 'pip'
+
+      - name: Build direct WebView2 Windows package
+        shell: pwsh
+        run: .\build_windows_portable.ps1
+
+      - name: Finalize DPI-aware runtime and release dependencies
+        shell: pwsh
+        run: .\finalize_windows_portable.ps1
+
+      - name: Verify release assets exist
+        shell: pwsh
+        run: |
+          $required = @(
+            'release-windows\BitcoinMinerStudio-v2.0.1-Windows-x64.zip',
+            'release-windows\SHA256SUMS-Windows.txt',
+            'release-windows\BitcoinMinerStudio-Windows-build.json',
+            'GITHUB_RELEASE_NOTES-v2.0.1.md'
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path $path -PathType Leaf)) {
+              throw "Missing release asset: $path"
+            }
+          }
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'v2.0.1'
+          $title = 'Bitcoin Miner Studio v2.0.1 — Stable Windows Release'
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            throw "Release $tag already exists. Refusing to overwrite an existing release."
+          }
+          gh release create $tag `
+            'release-windows\BitcoinMinerStudio-v2.0.1-Windows-x64.zip' `
+            'release-windows\SHA256SUMS-Windows.txt' `
+            'release-windows\BitcoinMinerStudio-Windows-build.json' `
+            --target '${{ github.sha }}' `
+            --title $title `
+            --notes-file 'GITHUB_RELEASE_NOTES-v2.0.1.md' `
+            --latest

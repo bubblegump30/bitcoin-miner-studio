@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 import json
 import multiprocessing
+import os
 import queue
 import sys
 import threading
@@ -11,7 +12,13 @@ import types
 from pathlib import Path
 
 
-# The native Windows host replaces pywebview entirely.  Four existing backend
+# Advertise the public Windows runtime before importing the signed backend.
+# Release Readiness uses these markers to validate the native WebView2 package
+# instead of incorrectly requiring the legacy pywebview development runtime.
+os.environ.setdefault("BMS_NATIVE_HOST", "1")
+os.environ.setdefault("BMS_GUI_BACKEND", "microsoft-edge-webview2-direct")
+
+# The native Windows host replaces pywebview entirely. Four existing backend
 # methods import the name `webview` only to read these dialog constants, so
 # provide a tiny compatibility module instead of installing pywebview/pythonnet.
 _FAKE_WEBVIEW = types.ModuleType("webview")
@@ -43,7 +50,7 @@ class NativeWindowProxy:
     """Subset of the pywebview Window API used by the signed backend.
 
     Dialog requests cross the same private stdin/stdout channel used for normal
-    API calls.  No localhost HTTP listener, firewall rule, or browser extension
+    API calls. No localhost HTTP listener, firewall rule, or browser extension
     is involved.
     """
 
@@ -204,6 +211,7 @@ def main() -> int:
                 "api_schema": API_SCHEMA,
                 "exposed_methods": len(EXPOSED_API_METHODS),
                 "transport": "stdio-json-v1",
+                "gui_backend": os.environ["BMS_GUI_BACKEND"],
             }
         )
         tray_bridge.start_if_enabled_async()

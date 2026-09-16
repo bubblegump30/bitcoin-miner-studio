@@ -26,7 +26,7 @@ $BuildPython = (Get-Command python -ErrorAction Stop).Source
 Write-Host '== Finalizing Bitcoin Miner Studio Windows release ==' -ForegroundColor Cyan
 Write-Host 'Installing release-readiness cryptography runtime...'
 & $BuildPython -m pip install --disable-pip-version-check --no-warn-script-location --upgrade --target $SitePackages `
-    'cryptography>=43,<47'
+    'cryptography==46.0.7'
 if ($LASTEXITCODE -ne 0) {
     throw 'Failed to install the cryptography runtime into the embedded Python environment.'
 }
@@ -34,9 +34,9 @@ if ($LASTEXITCODE -ne 0) {
 $env:PYTHONHOME = $RuntimeRoot
 $env:PYTHONNOUSERSITE = '1'
 $env:PYTHONUTF8 = '1'
-& $RuntimePython -c "import cryptography; print('Cryptography runtime:', cryptography.__version__)"
+& $RuntimePython -c "import cryptography; print('Cryptography runtime:', cryptography.__version__); raise SystemExit(0 if cryptography.__version__ == '46.0.7' else 12)"
 if ($LASTEXITCODE -ne 0) {
-    throw 'The embedded Python runtime cannot import cryptography after installation.'
+    throw 'The embedded Python runtime cannot import the pinned cryptography 46.0.7 runtime after installation.'
 }
 
 Write-Host 'Embedding Per-Monitor V2 DPI awareness into BitcoinMinerStudio.exe...'
@@ -172,7 +172,7 @@ if (Test-Path $BuildInfoPath -PathType Leaf) {
 Write-Host ''
 Write-Host 'Windows finalization complete.' -ForegroundColor Green
 Write-Host 'DPI: PerMonitorV2'
-Write-Host 'Cryptography runtime: present'
+Write-Host 'Cryptography runtime: 46.0.7 pinned and verified'
 Write-Host "Portable files: $($FileStats.Count)"
 Write-Host ("Portable size: {0:N1} MiB" -f ([double]$Bytes / 1MB))
 Write-Host "ZIP SHA-256: $ZipHash"

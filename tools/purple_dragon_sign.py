@@ -30,6 +30,7 @@ PROTECTED_FILES = [
     "bootstrap.py",
     "legacy_main.py",
     "webview_app.py",
+    "windows_native_bridge.py",
     "app_runtime.py",
     "app_events.py",
     "service_registry.py",

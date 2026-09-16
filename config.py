@@ -92,11 +92,16 @@ def load_config():
     try:
         if CONFIG_FILE.exists():
             loaded = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+            if not isinstance(loaded, dict):
+                loaded = {}
             loaded.pop("pool_password", None)
             loaded.pop("rpc_password", None)
             cfg.update(loaded)
     except Exception:
-        pass
+        # A damaged/partial settings file must never prevent the application
+        # from starting. Atomic writes in save_config make this path a
+        # last-resort compatibility fallback rather than a normal occurrence.
+        loaded = {}
     if "pool_failover_policy" not in loaded:
         cfg["pool_failover_policy"] = "balanced" if bool(cfg.get("pool_failover_enabled", True)) else "manual"
     if str(cfg.get("pool_failover_policy") or "balanced").lower() not in {"manual", "conservative", "balanced", "aggressive"}:
@@ -113,7 +118,6 @@ def load_config():
         "Bitcoin Miner Studio / Purple Dragon Foundation",
     }:
         cfg["coinbase_tag"] = DEFAULT_COINBASE_TAG
-
 
     try:
         cfg["benchmark_processes"] = max(1, min(64, int(cfg.get("benchmark_processes", 2))))
@@ -133,8 +137,19 @@ def load_config():
 
 
 def save_config(cfg):
+    """Persist settings atomically so an interrupted write cannot corrupt JSON."""
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     safe = dict(cfg)
     safe.pop("pool_password", None)
     safe.pop("rpc_password", None)
-    CONFIG_FILE.write_text(json.dumps(safe, indent=2), encoding="utf-8")
+    payload = json.dumps(safe, indent=2)
+    tmp = CONFIG_FILE.with_suffix(CONFIG_FILE.suffix + ".tmp")
+    try:
+        tmp.write_text(payload, encoding="utf-8")
+        tmp.replace(CONFIG_FILE)
+    finally:
+        try:
+            if tmp.exists():
+                tmp.unlink()
+        except OSError:
+            pass

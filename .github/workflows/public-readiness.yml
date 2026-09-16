@@ -45,24 +45,34 @@ jobs:
         shell: pwsh
         run: |
           @'
+          import multiprocessing
           import selftest
 
-          tests = [
-              selftest.utility_tests,
-              selftest.bitcoin_core_setup_tests,
-              selftest.pool_powertools_tests,
-              selftest.pool_diagnostics_freshness_tests,
-              selftest.regtest_lab_tests,
-              selftest.asic_solo_bridge_tests,
-          ]
+          def main():
+              tests = [
+                  selftest.utility_tests,
+                  selftest.bitcoin_core_setup_tests,
+                  selftest.pool_powertools_tests,
+                  selftest.pool_diagnostics_freshness_tests,
+                  selftest.regtest_lab_tests,
+                  selftest.asic_solo_bridge_tests,
+              ]
 
-          for test in tests:
-              print(f'\n== {test.__name__} ==')
-              test()
+              for test in tests:
+                  print(f'\n== {test.__name__} ==')
+                  test()
 
-          print('\n[PASS] deterministic public-readiness regression set')
-          '@ | python -
-          if ($LASTEXITCODE -ne 0) { throw 'Deterministic public-readiness regressions failed.' }
+              print('\n[PASS] deterministic public-readiness regression set')
+
+          if __name__ == '__main__':
+              multiprocessing.freeze_support()
+              main()
+          '@ | Set-Content -Path .ci-public-readiness.py -Encoding UTF8
+
+          python .ci-public-readiness.py
+          $exitCode = $LASTEXITCODE
+          Remove-Item .ci-public-readiness.py -Force -ErrorAction SilentlyContinue
+          if ($exitCode -ne 0) { throw 'Deterministic public-readiness regressions failed.' }
 
       - name: Validate hardened Stratum URL parser
         shell: pwsh

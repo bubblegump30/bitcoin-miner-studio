@@ -449,18 +449,17 @@ class PoolDiagnosticsController:
             error = str(exc)
         finally:
             with self._lock:
-                if generation != self._generation:
-                    return
-                self._state["running"] = False
-                self._state["status"] = "Error" if error else "Complete"
-                self._state["detail"] = (
-                    f"Diagnostics completed for {len(results)} endpoint(s)."
-                    if not error
-                    else error
-                )
-                self._state["results"] = list(results)
-                self._state["completed_at"] = time.time()
-                self._state["error"] = error
+                if generation == self._generation:
+                    self._state["running"] = False
+                    self._state["status"] = "Error" if error else "Complete"
+                    self._state["detail"] = (
+                        f"Diagnostics completed for {len(results)} endpoint(s)."
+                        if not error
+                        else error
+                    )
+                    self._state["results"] = list(results)
+                    self._state["completed_at"] = time.time()
+                    self._state["error"] = error
 
     def invalidate(self, reason="Configured pool endpoints changed."):
         """Discard results tied to an obsolete endpoint set.

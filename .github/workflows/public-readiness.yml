@@ -16,6 +16,9 @@ jobs:
   windows-public-readiness:
     runs-on: windows-latest
     timeout-minutes: 20
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: 'utf-8'
 
     steps:
       - name: Check out exact repository bytes

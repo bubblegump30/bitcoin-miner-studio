@@ -150,6 +150,11 @@ Set-Content -Path (Join-Path $ReleaseDir 'SHA256SUMS-Windows.txt') -Encoding ASC
     "$ZipHash  $ZipName"
 )
 
+# Compute metadata from the finished portable tree, after all runtime additions
+# and manifest embedding. This keeps build.json consistent with the artifact.
+$FileStats = @(Get-ChildItem $PortableRoot -Recurse -File -Force)
+$Bytes = [int64](($FileStats | Measure-Object -Property Length -Sum).Sum)
+
 $BuildInfoPath = Join-Path $ReleaseDir 'BitcoinMinerStudio-Windows-build.json'
 if (Test-Path $BuildInfoPath -PathType Leaf) {
     $BuildInfo = Get-Content $BuildInfoPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -159,11 +164,11 @@ if (Test-Path $BuildInfoPath -PathType Leaf) {
     $BuildInfo.startup_smoke_seconds = [math]::Round(([double]$Smoke.startup_ms / 1000.0), 3)
     $BuildInfo | Add-Member -NotePropertyName high_dpi_awareness -NotePropertyValue 'PerMonitorV2' -Force
     $BuildInfo | Add-Member -NotePropertyName cryptography_runtime -NotePropertyValue $true -Force
+    $BuildInfo | Add-Member -NotePropertyName portable_files -NotePropertyValue $FileStats.Count -Force
+    $BuildInfo | Add-Member -NotePropertyName portable_uncompressed_bytes -NotePropertyValue $Bytes -Force
     $BuildInfo | ConvertTo-Json -Depth 6 | Set-Content -Path $BuildInfoPath -Encoding UTF8
 }
 
-$FileStats = @(Get-ChildItem $PortableRoot -Recurse -File -Force)
-$Bytes = ($FileStats | Measure-Object -Property Length -Sum).Sum
 Write-Host ''
 Write-Host 'Windows finalization complete.' -ForegroundColor Green
 Write-Host 'DPI: PerMonitorV2'

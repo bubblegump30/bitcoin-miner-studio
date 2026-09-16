@@ -10,6 +10,7 @@ import base64
 import hashlib
 import json
 import sys
+import time
 from pathlib import Path
 
 try:
@@ -117,15 +118,32 @@ key_path = Path(sys.argv[1]).expanduser().resolve()
 private_key = serialization.load_pem_private_key(key_path.read_bytes(), password=None)
 
 manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+release_info = json.loads((ROOT / "release_info.json").read_text(encoding="utf-8"))
+release_version = str(release_info.get("version") or "").strip()
+if not release_version:
+    raise SystemExit("release_info.json does not contain a release version.")
+
+missing = [name for name in PROTECTED_FILES if not (ROOT / name).is_file()]
+if missing:
+    raise SystemExit("Cannot sign: protected files are missing: " + ", ".join(missing))
+
 manifest["schema"] = max(2, int(manifest.get("schema") or 0))
+manifest["product"] = "Bitcoin Miner Studio"
+manifest["version"] = release_version
 manifest["security_scheme"] = SECURITY_SCHEME
+manifest["protection_profile"] = "signed-provenance+file-integrity+critical-action-gating"
 manifest["publisher_name"] = PUBLISHER_NAME
 manifest["publisher_key_id"] = publisher_key_id()
 manifest["marker_digest"] = marker_digest()
 manifest["release_watermark"] = release_watermark()
-manifest["watermark_digest"] = watermark_digest(manifest.get("version", ""))
+manifest["watermark_digest"] = watermark_digest(release_version)
 manifest["release_seal"] = "PD6-" + manifest["watermark_digest"].upper()[:20]
 manifest["files"] = {name: sha256_file(ROOT / name) for name in PROTECTED_FILES}
+files_canonical = json.dumps(manifest["files"], sort_keys=True, separators=(",", ":")).encode("utf-8")
+files_digest = hashlib.sha256(files_canonical).hexdigest()
+manifest["build_id"] = f"BMS-{release_version}-STABLE-{files_digest[:8].upper()}"
+manifest["provenance_tag"] = "PD-BMS-" + files_digest[:16].upper()
+manifest["issued_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 manifest["signature"] = ""
 
 signature = private_key.sign(

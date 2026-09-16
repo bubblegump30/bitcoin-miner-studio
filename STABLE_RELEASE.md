@@ -1,6 +1,10 @@
-# Bitcoin Miner Studio v2.0.1 — Stable
+# Bitcoin Miner Studio v2.0.2 — Stable
 
-This folder is the Bitcoin Miner Studio v2.0.1 Stable source release.
+This folder is the Bitcoin Miner Studio v2.0.2 Stable source release.
+
+## v2.0.2 public-readiness hotfix
+
+The v2.0.2 release tightens deterministic Windows testing, native WebView2 release detection, Stratum input validation, atomic settings persistence and build supply-chain verification. The native Python bridge joins the Purple Dragon protected surface, bringing the final publisher-signed manifest to 68 protected files.
 
 ## v2.0.1 hotfix
 

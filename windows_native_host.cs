@@ -44,7 +44,7 @@ internal sealed class MainForm : Form
         _runtimeRoot = Path.Combine(_root, "_runtime");
         _bridgePath = Path.Combine(_runtimeRoot, "bms_native_bridge.py");
 
-        Text = "Bitcoin Miner Studio v2.0.1";
+        Text = "Bitcoin Miner Studio v2.0.2";
         StartPosition = FormStartPosition.CenterScreen;
         Width = 1580;
         Height = 960;

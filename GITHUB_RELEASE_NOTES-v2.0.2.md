@@ -28,3 +28,7 @@ Microsoft Edge WebView2 Runtime is required and is normally present on current W
 ## Verification
 
 Use the published `SHA256SUMS-Windows.txt` and confirm the in-app Purple Dragon Security state is `TRUSTED` with a valid publisher signature and all protected files verified before enabling critical controls. Purple Dragon is tamper-evident provenance, not DRM and not a guarantee against copying or reverse engineering.
+
+The v2.0.2 Windows package does **not** claim a Microsoft Authenticode signature. Until an Authenticode certificate is added, Windows SmartScreen/reputation prompts may occur on newly downloaded builds. Verify the published SHA-256 checksum and Purple Dragon provenance before running the package.
+
+See `PRIVACY.md` and `MINING_SAFETY.md` before public distribution or first-time mining use.

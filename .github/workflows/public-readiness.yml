@@ -1,0 +1,128 @@
+name: Public Readiness Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'release/**'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  windows-public-readiness:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out exact repository bytes
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python 3.12 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: 'x64'
+
+      - name: Reject Python syntax warnings and compile failures
+        shell: pwsh
+        run: |
+          python -W error::SyntaxWarning -m compileall -q -f .
+          if ($LASTEXITCODE -ne 0) { throw 'Python compile/SyntaxWarning gate failed.' }
+
+      - name: Validate JavaScript syntax
+        shell: pwsh
+        run: |
+          node --check ui/script.js
+          if ($LASTEXITCODE -ne 0) { throw 'ui/script.js syntax validation failed.' }
+
+      - name: Run deterministic public-readiness regressions
+        shell: pwsh
+        run: |
+          @'
+          import selftest
+
+          tests = [
+              selftest.utility_tests,
+              selftest.bitcoin_core_setup_tests,
+              selftest.pool_powertools_tests,
+              selftest.pool_diagnostics_freshness_tests,
+              selftest.regtest_lab_tests,
+              selftest.asic_solo_bridge_tests,
+          ]
+
+          for test in tests:
+              print(f'\n== {test.__name__} ==')
+              test()
+
+          print('\n[PASS] deterministic public-readiness regression set')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Deterministic public-readiness regressions failed.' }
+
+      - name: Validate hardened Stratum URL parser
+        shell: pwsh
+        run: |
+          @'
+          from connections import parse_stratum_url
+
+          assert parse_stratum_url('stratum+tcp://example.com:3333') == ('example.com', 3333, False)
+          assert parse_stratum_url('stratum+ssl://example.com:443') == ('example.com', 443, True)
+
+          invalid = [
+              'http://example.com:3333',
+              'stratum+tcp://user:password@example.com:3333',
+              'stratum+tcp://example.com:3333/path',
+              'stratum+tcp://example.com:3333/?token=secret',
+              'stratum+tcp://example.com:70000',
+          ]
+          for value in invalid:
+              try:
+                  parse_stratum_url(value)
+              except ValueError:
+                  continue
+              raise AssertionError(f'unsafe/invalid Stratum URL accepted: {value}')
+
+          print('[PASS] hardened Stratum URL validation')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Stratum URL hardening regression failed.' }
+
+      - name: Check release hygiene
+        shell: pwsh
+        run: |
+          @'
+          import json
+          from pathlib import Path
+
+          root = Path('.')
+          manifest = json.loads((root / 'purple_dragon_manifest.json').read_text(encoding='utf-8'))
+          protected = set((manifest.get('files') or {}).keys())
+
+          forbidden = []
+          for candidate in root.rglob('*.pem'):
+              try:
+                  if 'PRIVATE KEY' in candidate.read_text(encoding='utf-8', errors='ignore'):
+                      forbidden.append(candidate.as_posix())
+              except OSError:
+                  pass
+          assert not forbidden, f'private key material found: {forbidden}'
+
+          assert not (root / 'startup-error.log').exists(), 'startup-error.log must not be committed'
+          assert not (root / 'native-backend.log').exists(), 'native-backend.log must not be committed'
+          assert 'windows_native_bridge.py' in protected or manifest.get('version') == '2.0.1', (
+              'v2.0.2 must protect windows_native_bridge.py before signing'
+          )
+
+          print('[PASS] repository release-hygiene checks')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Release-hygiene gate failed.' }
+
+      - name: Explain expected signing state
+        shell: pwsh
+        run: |
+          Write-Host 'Pre-signing branch gate complete.'
+          Write-Host 'Full Purple Dragon integrity validation runs only after the v2.0.2 manifest is re-signed with the offline publisher private key.'

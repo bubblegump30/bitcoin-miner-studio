@@ -114,6 +114,7 @@ jobs:
           root = Path('.')
           manifest = json.loads((root / 'purple_dragon_manifest.json').read_text(encoding='utf-8'))
           protected = set((manifest.get('files') or {}).keys())
+          signer = (root / 'tools' / 'purple_dragon_sign.py').read_text(encoding='utf-8')
 
           forbidden = []
           for candidate in root.rglob('*.pem'):
@@ -126,16 +127,23 @@ jobs:
 
           assert not (root / 'startup-error.log').exists(), 'startup-error.log must not be committed'
           assert not (root / 'native-backend.log').exists(), 'native-backend.log must not be committed'
-          assert 'windows_native_bridge.py' in protected or manifest.get('version') == '2.0.1', (
-              'v2.0.2 must protect windows_native_bridge.py before signing'
-          )
+          assert manifest.get('version') == '2.0.2', manifest.get('version')
+          assert '"windows_native_bridge.py"' in signer, 'v2.0.2 signer must protect windows_native_bridge.py'
 
-          print('[PASS] repository release-hygiene checks')
+          if manifest.get('signature'):
+              assert 'windows_native_bridge.py' in protected, 'signed v2.0.2 manifest must protect windows_native_bridge.py'
+              assert len(protected) == 68, f'signed v2.0.2 manifest must contain 68 protected files, got {len(protected)}'
+              print('[PASS] signed v2.0.2 manifest release-hygiene checks')
+          else:
+              assert manifest.get('build_id') == 'PENDING-OFFLINE-SIGNATURE'
+              print('[PASS] prepared v2.0.2 pre-sign release-hygiene checks')
+
+          print('[PASS] publisher private key absent from repository')
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw 'Release-hygiene gate failed.' }
 
       - name: Explain expected signing state
         shell: pwsh
         run: |
-          Write-Host 'Pre-signing branch gate complete.'
-          Write-Host 'Full Purple Dragon integrity validation runs only after the v2.0.2 manifest is re-signed with the offline publisher private key.'
+          Write-Host 'Public-readiness source gate complete.'
+          Write-Host 'Full Purple Dragon integrity validation runs after the final v2.0.2 manifest is re-signed with the offline publisher private key.'

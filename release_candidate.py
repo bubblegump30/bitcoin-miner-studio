@@ -311,11 +311,36 @@ class ReleaseCandidateManager:
             blocking=not py_ok,
         ))
 
-        try:
-            importlib.import_module("webview")
-            checks.append(_check("pass", "runtime.pywebview", "WebView runtime", "pywebview import succeeded.", "Runtime"))
-        except Exception as exc:
-            checks.append(_check("fail", "runtime.pywebview", "WebView runtime", f"pywebview import failed: {exc}", "Runtime", True))
+        native_host = str(os.environ.get("BMS_NATIVE_HOST") or "").strip() == "1"
+        gui_backend = str(os.environ.get("BMS_GUI_BACKEND") or "").strip().lower()
+        native_webview2 = native_host or gui_backend == "microsoft-edge-webview2-direct"
+        if native_webview2:
+            checks.append(_check(
+                "pass",
+                "runtime.webview2",
+                "WebView runtime",
+                "Native Microsoft Edge WebView2 host is active; legacy pywebview is not required.",
+                "Runtime",
+            ))
+        else:
+            try:
+                importlib.import_module("webview")
+                checks.append(_check(
+                    "pass",
+                    "runtime.pywebview",
+                    "WebView runtime",
+                    "Source/development pywebview runtime import succeeded.",
+                    "Runtime",
+                ))
+            except Exception as exc:
+                checks.append(_check(
+                    "fail",
+                    "runtime.pywebview",
+                    "WebView runtime",
+                    f"No native WebView2 host marker and pywebview import failed: {exc}",
+                    "Runtime",
+                    True,
+                ))
 
         try:
             importlib.import_module("cryptography")

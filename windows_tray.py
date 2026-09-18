@@ -319,20 +319,57 @@ class WindowsTrayManager:
             class POINT(ctypes.Structure):
                 _fields_ = [("x", wintypes.LONG),("y", wintypes.LONG)]
 
+            # ctypes defaults native function return values to 32-bit c_int.
+            # Menu/Window handles are pointer-sized on 64-bit Windows, so an
+            # untyped CreatePopupMenu() result can be truncated and produce an
+            # empty/blank tray popup. Bind the Win32 menu APIs explicitly.
+            HMENU = getattr(wintypes, "HMENU", wintypes.HANDLE)
+            user32.CreatePopupMenu.argtypes = []
+            user32.CreatePopupMenu.restype = HMENU
+            user32.AppendMenuW.argtypes = [HMENU, wintypes.UINT, ctypes.c_size_t, wintypes.LPCWSTR]
+            user32.AppendMenuW.restype = wintypes.BOOL
+            user32.TrackPopupMenu.argtypes = [HMENU, wintypes.UINT, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.HWND, ctypes.c_void_p]
+            user32.TrackPopupMenu.restype = wintypes.UINT
+            user32.DestroyMenu.argtypes = [HMENU]
+            user32.DestroyMenu.restype = wintypes.BOOL
+            user32.GetCursorPos.argtypes = [ctypes.POINTER(POINT)]
+            user32.GetCursorPos.restype = wintypes.BOOL
+            user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+            user32.SetForegroundWindow.restype = wintypes.BOOL
+
             def show_menu(hwnd):
                 menu = user32.CreatePopupMenu()
-                if not menu: return
+                if not menu:
+                    self.error = "CreatePopupMenu failed."
+                    return
                 MF_STRING, MF_SEPARATOR = 0x0000, 0x0800
-                user32.AppendMenuW(menu, MF_STRING, 1001, "Open Bitcoin Miner Studio")
-                user32.AppendMenuW(menu, MF_STRING, 1002, "Current Status")
-                user32.AppendMenuW(menu, MF_SEPARATOR, 0, None)
-                user32.AppendMenuW(menu, MF_STRING, 1003, "Hide Window")
-                user32.AppendMenuW(menu, MF_SEPARATOR, 0, None)
-                user32.AppendMenuW(menu, MF_STRING, 1099, "Exit")
-                point = POINT(); user32.GetCursorPos(ctypes.byref(point)); user32.SetForegroundWindow(hwnd)
-                TPM_RIGHTBUTTON, TPM_RETURNCMD = 0x0002, 0x0100
-                command = user32.TrackPopupMenu(menu, TPM_RIGHTBUTTON|TPM_RETURNCMD, point.x, point.y, 0, hwnd, None)
-                user32.DestroyMenu(menu)
+                entries = (
+                    (MF_STRING, 1001, "Open Bitcoin Miner Studio"),
+                    (MF_STRING, 1002, "Current Status"),
+                    (MF_SEPARATOR, 0, None),
+                    (MF_STRING, 1003, "Hide Window"),
+                    (MF_SEPARATOR, 0, None),
+                    (MF_STRING, 1099, "Exit"),
+                )
+                try:
+                    for flags, command_id, label in entries:
+                        if not user32.AppendMenuW(menu, flags, command_id, label):
+                            raise ctypes.WinError()
+                    point = POINT()
+                    if not user32.GetCursorPos(ctypes.byref(point)):
+                        raise ctypes.WinError()
+                    user32.SetForegroundWindow(hwnd)
+                    TPM_RIGHTBUTTON, TPM_RETURNCMD = 0x0002, 0x0100
+                    command = user32.TrackPopupMenu(
+                        menu, TPM_RIGHTBUTTON | TPM_RETURNCMD,
+                        point.x, point.y, 0, hwnd, None
+                    )
+                except Exception as exc:
+                    self.error = f"Tray menu failed: {exc}"
+                    command = 0
+                finally:
+                    user32.DestroyMenu(menu)
+
                 if command == 1001: self.show_window()
                 elif command == 1002:
                     status = self._status_snapshot()

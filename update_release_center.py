@@ -1,4 +1,4 @@
-"""Bitcoin Miner Studio v2.0.1 — Update & Release Center.
+"""Bitcoin Miner Studio v2.0.2 — Update & Release Center.
 
 Local-first update inspection and release engineering orchestration.
 

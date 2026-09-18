@@ -9,7 +9,7 @@
 - Excluded VCS/runtime cache metadata from staged release folders and made staged-tree cleanup resilient to Windows read-only file attributes.
 - Corrected finalized Windows package file-count/size metadata so it describes the exact shipped tree.
 - Pinned the official CPython 3.12.10 embedded runtime by SHA-256 before extraction.
-- Added `windows_native_bridge.py` to Purple Dragon protection; the final signed v2.0.2 manifest contains 69 protected files, including the native bridge and release-preparation tooling.
+- Added `windows_native_bridge.py` to Purple Dragon protection; the final signed v2.0.2 manifest contains 73 protected files, including the native bridge, native C# host, and Windows release/signing tooling.
 - Added a Windows Public Readiness CI gate covering strict Python compilation, JavaScript syntax, deterministic Core/pool/Regtest/ASIC regressions, Stratum URL hardening and release hygiene.
 - Preserved the v2.0.1 direct WebView2 + embedded CPython architecture; no PyInstaller, Qt/PySide6, pywebview or pythonnet runtime was reintroduced.
 

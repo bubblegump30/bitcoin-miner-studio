@@ -194,7 +194,7 @@ function setView(name,{persist=true}={}){
   $$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
   $('.sidebar')?.classList.remove('open');
   const current=$('#workspaceCurrent');if(current)current.textContent=viewLabel(name);
-  document.title=`${viewLabel(name)} — Bitcoin Miner Studio v2.0.1`;
+  document.title=`${viewLabel(name)} — Bitcoin Miner Studio v2.0.2`;
   if(workspaceState){
     const recent=[name,...(workspaceState.recent_views||[]).filter(x=>x!==name)].slice(0,8);
     workspaceState={...workspaceState,last_view:name,recent_views:recent};
@@ -948,7 +948,7 @@ async function refreshReleaseCandidate(){
 function renderUpdateReleaseCenter(state,security){
   state=state||{};security=security||lastState?.security||{};
   const current=state.current||{},inspection=state.inspection||{},trust=inspection.trust||{},staged=state.staged||{};
-  if($('#urCurrentVersion'))$('#urCurrentVersion').textContent=current.version||state.version||'2.0.1';
+  if($('#urCurrentVersion'))$('#urCurrentVersion').textContent=current.version||state.version||'2.0.2';
   if($('#urCurrentBuild'))$('#urCurrentBuild').textContent=current.build_id||'—';
   if($('#urCurrentChannel'))$('#urCurrentChannel').textContent=String(current.channel||'Stable').toUpperCase();
   if($('#urCurrentProtected'))$('#urCurrentProtected').textContent=current.protected_files?String(current.protected_files):'—';
@@ -1041,7 +1041,7 @@ function renderDiagnosticsCenter(d){
   if($('#diagnosticsBundlePath'))$('#diagnosticsBundlePath').textContent=d.last_bundle||'—';
   if($('#diagnosticsBundleSize'))$('#diagnosticsBundleSize').textContent=d.last_bundle_size||'—';
   const sys=d.system||{};
-  if($('#diagnosticsSystemVersion'))$('#diagnosticsSystemVersion').textContent=sys.version||'2.0.1';
+  if($('#diagnosticsSystemVersion'))$('#diagnosticsSystemVersion').textContent=sys.version||'2.0.2';
   if($('#diagnosticsSystemPlatform'))$('#diagnosticsSystemPlatform').textContent=sys.platform||'—';
   if($('#diagnosticsSystemPython'))$('#diagnosticsSystemPython').textContent=sys.python?`${sys.python_implementation||'Python'} ${sys.python}`:'—';
   if($('#diagnosticsSystemArch'))$('#diagnosticsSystemArch').textContent=[sys.architecture,sys.machine].filter(Boolean).join(' · ')||'—';

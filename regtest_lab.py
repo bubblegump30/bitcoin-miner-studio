@@ -562,7 +562,7 @@ class RegtestLab:
             with self._lock:
                 self._state = state
             self._emit("Regtest Lab stopped.")
-            return state
+        return state
 
     def reset_chain(self):
         self.stop_node(timeout=10.0)

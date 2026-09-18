@@ -1,8 +1,12 @@
-# Bitcoin Miner Studio v2.0.1 — Stable
+# Bitcoin Miner Studio v2.0.2 — Stable
 
 **Publisher:** Purple Dragon Foundation ltd  
 **Created by:** Purple Dragon Foundation ltd
 
+
+## v2.0.2 — Public Readiness & Reliability Hotfix
+
+v2.0.2 hardens the stable Windows release for broader distribution: deterministic Bitcoin Core tests no longer depend on the host machine, Stratum endpoint validation is stricter, settings writes are atomic, Release Readiness understands the direct WebView2 architecture, and the embedded CPython runtime is checksum-pinned before packaging. The final offline-signed release expands Purple Dragon protection to 73 files, including the native Python bridge, native C# host, and Windows release/signing tooling.
 
 ## v2.0.1 — Diagnostics / RPC Reliability Hotfix
 

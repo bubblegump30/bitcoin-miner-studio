@@ -1,0 +1,167 @@
+name: Validate Signed v2.0.2 Windows Release Candidate
+
+on:
+  push:
+    branches:
+      - release/v2.0.2-public-readiness
+    paths:
+      - purple_dragon_manifest.json
+      - .github/workflows/signed-v2.0.2-rc.yml
+
+permissions:
+  contents: read
+
+jobs:
+  signed-windows-release-candidate:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: 'utf-8'
+
+    steps:
+      - name: Check out exact signed repository bytes
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Detect final offline signature
+        id: manifest
+        shell: pwsh
+        run: |
+          $manifest = Get-Content .\purple_dragon_manifest.json -Raw -Encoding UTF8 | ConvertFrom-Json
+          $signed = -not [string]::IsNullOrWhiteSpace([string]$manifest.signature)
+          "signed=$($signed.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          if ($signed) {
+            Write-Host 'Final offline signature detected; running signed RC validation.'
+          } else {
+            Write-Host 'Prepared unsigned manifest detected; signed RC validation will wait for the offline publisher signature.'
+          }
+
+      - name: Prepared manifest — signed RC validation pending
+        if: steps.manifest.outputs.signed != 'true'
+        shell: pwsh
+        run: |
+          Write-Host 'No failure: this branch is intentionally in pre-sign state.'
+
+      - name: Set up Python 3.12 x64 test host
+        if: steps.manifest.outputs.signed == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: 'x64'
+          cache: 'pip'
+
+      - name: Install regression-test dependencies
+        if: steps.manifest.outputs.signed == 'true'
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements.txt 'cryptography==46.0.7' pillow
+          if ($LASTEXITCODE -ne 0) { throw 'Could not install signed-release regression dependencies.' }
+
+      - name: Verify final Purple Dragon signature and protected surface
+        if: steps.manifest.outputs.signed == 'true'
+        shell: pwsh
+        run: |
+          @'
+          import json
+          from purple_dragon_security import verify_integrity
+
+          state = verify_integrity()
+          summary = {
+              'trust_level': state.get('trust_level'),
+              'signature_valid': state.get('signature_valid'),
+              'version': state.get('release_version'),
+              'build_id': state.get('build_id'),
+              'provenance_tag': state.get('provenance_tag'),
+              'release_seal': state.get('release_seal'),
+              'files_verified': state.get('verified_file_count'),
+              'files_total': state.get('protected_file_count'),
+              'critical_controls_enabled': state.get('critical_actions_allowed'),
+          }
+          print(json.dumps(summary, indent=2))
+          assert state.get('trust_level') == 'TRUSTED', state
+          assert state.get('signature_valid') is True, state
+          assert state.get('release_version') == '2.0.2', state
+          assert state.get('verified_file_count') == 73, state
+          assert state.get('protected_file_count') == 73, state
+          assert state.get('critical_actions_allowed') is True, state
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Final Purple Dragon signature/integrity validation failed.' }
+
+      - name: Run full Python regression suite
+        if: steps.manifest.outputs.signed == 'true'
+        shell: pwsh
+        run: |
+          python -W error::SyntaxWarning selftest.py
+          if ($LASTEXITCODE -ne 0) { throw 'Full signed v2.0.2 regression suite failed.' }
+
+      - name: Validate JavaScript syntax
+        if: steps.manifest.outputs.signed == 'true'
+        shell: pwsh
+        run: |
+          node --check ui/script.js
+          if ($LASTEXITCODE -ne 0) { throw 'ui/script.js syntax validation failed.' }
+
+      - name: Build and verify direct WebView2 Windows package
+        if: steps.manifest.outputs.signed == 'true'
+        shell: pwsh
+        run: |
+          $built = $false
+          for ($attempt = 1; $attempt -le 2; $attempt++) {
+            try {
+              Write-Host "Signed v2.0.2 Windows build attempt $attempt of 2..." -ForegroundColor Cyan
+              .\build_windows_portable.ps1
+              $built = $true
+              break
+            }
+            catch {
+              if ($attempt -ge 2) { throw }
+              Write-Warning "First native WebView2 build/smoke attempt failed: $($_.Exception.Message)"
+              Write-Host 'Retrying once on a clean build tree for hosted-runner WebView2 startup variance.'
+              Start-Sleep -Seconds 5
+            }
+          }
+          if (-not $built) { throw 'Signed Windows portable build did not complete.' }
+
+      - name: Finalize DPI-aware runtime and cryptography
+        if: steps.manifest.outputs.signed == 'true'
+        shell: pwsh
+        run: .\finalize_windows_portable.ps1
+
+      - name: Validate exact final release metadata
+        if: steps.manifest.outputs.signed == 'true'
+        shell: pwsh
+        run: |
+          @'
+          import json
+          from pathlib import Path
+
+          path = Path('release-windows/BitcoinMinerStudio-Windows-build.json')
+          data = json.loads(path.read_text(encoding='utf-8-sig'))
+          print(json.dumps(data, indent=2))
+          assert data.get('version') == '2.0.2', data
+          assert data.get('platform') == 'windows-x64', data
+          assert data.get('gui_backend') == 'microsoft-edge-webview2-direct', data
+          assert data.get('bridge_transport') == 'stdio-json-v1', data
+          assert data.get('pywebview_in_runtime') is False, data
+          assert data.get('pythonnet_in_runtime') is False, data
+          assert data.get('qt_in_runtime') is False, data
+          assert data.get('pyinstaller_in_runtime') is False, data
+          assert data.get('high_dpi_awareness') == 'PerMonitorV2', data
+          assert data.get('cryptography_runtime') is True, data
+          assert str(data.get('startup_smoke', '')).startswith('passed'), data
+          assert data.get('purple_dragon_protected_files') == 73, data
+          assert data.get('archive_sha256'), data
+          assert data.get('executable_sha256'), data
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Final Windows release metadata validation failed.' }
+
+      - name: Upload exact signed v2.0.2 release-candidate assets
+        if: steps.manifest.outputs.signed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: BitcoinMinerStudio-v2.0.2-Windows-x64-RC
+          path: release-windows/*
+          if-no-files-found: error
+          retention-days: 30

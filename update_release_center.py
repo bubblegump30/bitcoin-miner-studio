@@ -1,4 +1,4 @@
-"""Bitcoin Miner Studio v2.0.1 — Update & Release Center.
+"""Bitcoin Miner Studio v2.0.2 — Update & Release Center.
 
 Local-first update inspection and release engineering orchestration.
 
@@ -18,6 +18,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import tempfile
 import time
 import zipfile
@@ -60,6 +61,36 @@ def _sha256_file(path: Path) -> str:
         for block in iter(lambda: f.read(1024 * 1024), b""):
             h.update(block)
     return h.hexdigest()
+
+
+_STAGE_IGNORED_NAMES = {
+    ".git",
+    ".hg",
+    ".svn",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+}
+
+
+def _stage_copy_ignore(_directory: str, names: list[str]) -> set[str]:
+    """Exclude VCS/runtime cache metadata from a staged release folder."""
+    return {name for name in names if name in _STAGE_IGNORED_NAMES}
+
+
+def _remove_tree(path: Path) -> None:
+    """Remove a staged tree even when Windows copied read-only metadata/files."""
+    path = Path(path)
+
+    def _onerror(func, name, _exc_info):
+        try:
+            os.chmod(name, stat.S_IWRITE)
+            func(name)
+        except Exception:
+            raise
+
+    shutil.rmtree(path, onerror=_onerror)
 
 
 def _canonical_manifest(manifest: dict[str, Any]) -> bytes:
@@ -479,7 +510,7 @@ class UpdateReleaseCenter:
                 raise IOError("Staged package checksum changed during copy.")
         else:
             target = self.staging_dir / f"BMS-v{safe_version}-{stamp}"
-            shutil.copytree(source, target)
+            shutil.copytree(source, target, ignore=_stage_copy_ignore)
             staged_sha = ""
 
         rollback = {
@@ -512,7 +543,7 @@ class UpdateReleaseCenter:
         if self.staging_dir.exists():
             for child in self.staging_dir.iterdir():
                 if child.is_dir():
-                    shutil.rmtree(child)
+                    _remove_tree(child)
                 else:
                     child.unlink(missing_ok=True)
         if self.rollback_file.exists():

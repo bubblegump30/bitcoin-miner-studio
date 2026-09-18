@@ -1,6 +1,6 @@
 {
   "product": "Bitcoin Miner Studio",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "channel": "Stable",
   "stability": "Stable",
   "feature_freeze": false,
@@ -12,7 +12,7 @@
   "portable_source_release": true,
   "minimum_python": "3.11",
   "windows_primary_target": "Windows 11 / Windows 10 64-bit",
-  "notes": "Reliability hotfix for the v2 architecture baseline: prevents Diagnostics from recursively classifying its own zero-failure summaries as application errors and preserves last-known-good Bitcoin Core/block-template state across isolated background RPC timeouts while retaining explicit manual error reporting and stale-work safety.",
+  "notes": "Public-readiness and reliability hotfix: isolates Bitcoin Core self-tests from real host process/registry state, removes exception-suppressing finally-return warnings, recognizes the native direct-WebView2 Windows runtime, hardens Stratum endpoint parsing/TLS cleanup, makes settings writes atomic, corrects finalized package metadata, pins the embedded CPython runtime by SHA-256, and expands Purple Dragon protection to the native Python bridge.",
   "publisher": "Purple Dragon Foundation ltd",
   "created_by": "Purple Dragon Foundation ltd",
   "company_name": "Purple Dragon Foundation ltd",

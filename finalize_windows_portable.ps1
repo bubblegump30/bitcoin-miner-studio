@@ -26,7 +26,7 @@ $BuildPython = (Get-Command python -ErrorAction Stop).Source
 Write-Host '== Finalizing Bitcoin Miner Studio Windows release ==' -ForegroundColor Cyan
 Write-Host 'Installing release-readiness cryptography runtime...'
 & $BuildPython -m pip install --disable-pip-version-check --no-warn-script-location --upgrade --target $SitePackages `
-    'cryptography>=43,<47'
+    'cryptography==46.0.7'
 if ($LASTEXITCODE -ne 0) {
     throw 'Failed to install the cryptography runtime into the embedded Python environment.'
 }
@@ -34,9 +34,9 @@ if ($LASTEXITCODE -ne 0) {
 $env:PYTHONHOME = $RuntimeRoot
 $env:PYTHONNOUSERSITE = '1'
 $env:PYTHONUTF8 = '1'
-& $RuntimePython -c "import cryptography; print('Cryptography runtime:', cryptography.__version__)"
+& $RuntimePython -c "import cryptography; print('Cryptography runtime:', cryptography.__version__); raise SystemExit(0 if cryptography.__version__ == '46.0.7' else 12)"
 if ($LASTEXITCODE -ne 0) {
-    throw 'The embedded Python runtime cannot import cryptography after installation.'
+    throw 'The embedded Python runtime cannot import the pinned cryptography 46.0.7 runtime after installation.'
 }
 
 Write-Host 'Embedding Per-Monitor V2 DPI awareness into BitcoinMinerStudio.exe...'
@@ -150,6 +150,11 @@ Set-Content -Path (Join-Path $ReleaseDir 'SHA256SUMS-Windows.txt') -Encoding ASC
     "$ZipHash  $ZipName"
 )
 
+# Compute metadata from the finished portable tree, after all runtime additions
+# and manifest embedding. This keeps build.json consistent with the artifact.
+$FileStats = @(Get-ChildItem $PortableRoot -Recurse -File -Force)
+$Bytes = [int64](($FileStats | Measure-Object -Property Length -Sum).Sum)
+
 $BuildInfoPath = Join-Path $ReleaseDir 'BitcoinMinerStudio-Windows-build.json'
 if (Test-Path $BuildInfoPath -PathType Leaf) {
     $BuildInfo = Get-Content $BuildInfoPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -159,15 +164,15 @@ if (Test-Path $BuildInfoPath -PathType Leaf) {
     $BuildInfo.startup_smoke_seconds = [math]::Round(([double]$Smoke.startup_ms / 1000.0), 3)
     $BuildInfo | Add-Member -NotePropertyName high_dpi_awareness -NotePropertyValue 'PerMonitorV2' -Force
     $BuildInfo | Add-Member -NotePropertyName cryptography_runtime -NotePropertyValue $true -Force
+    $BuildInfo | Add-Member -NotePropertyName portable_files -NotePropertyValue $FileStats.Count -Force
+    $BuildInfo | Add-Member -NotePropertyName portable_uncompressed_bytes -NotePropertyValue $Bytes -Force
     $BuildInfo | ConvertTo-Json -Depth 6 | Set-Content -Path $BuildInfoPath -Encoding UTF8
 }
 
-$FileStats = @(Get-ChildItem $PortableRoot -Recurse -File -Force)
-$Bytes = ($FileStats | Measure-Object -Property Length -Sum).Sum
 Write-Host ''
 Write-Host 'Windows finalization complete.' -ForegroundColor Green
 Write-Host 'DPI: PerMonitorV2'
-Write-Host 'Cryptography runtime: present'
+Write-Host 'Cryptography runtime: 46.0.7 pinned and verified'
 Write-Host "Portable files: $($FileStats.Count)"
 Write-Host ("Portable size: {0:N1} MiB" -f ([double]$Bytes / 1MB))
 Write-Host "ZIP SHA-256: $ZipHash"

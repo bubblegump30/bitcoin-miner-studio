@@ -1,0 +1,81 @@
+name: Prepare v2.0.2 Release Metadata
+
+on:
+  push:
+    branches:
+      - release/v2.0.2-public-readiness
+    paths:
+      - tools/prepare_v2_0_2.py
+      - .github/workflows/prepare-v2.0.2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: 'utf-8'
+
+    steps:
+      - name: Check out release branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: release/v2.0.2-public-readiness
+
+      - name: Set up Python 3.12 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: 'x64'
+
+      - name: Prepare v2.0.2 source and release metadata
+        shell: pwsh
+        run: |
+          python tools/prepare_v2_0_2.py
+          if ($LASTEXITCODE -ne 0) { throw 'v2.0.2 release preparation failed.' }
+
+      - name: Validate prepared source syntax
+        shell: pwsh
+        run: |
+          python -W error::SyntaxWarning -m compileall -q -f .
+          if ($LASTEXITCODE -ne 0) { throw 'Prepared Python source failed compile/SyntaxWarning validation.' }
+          node --check ui/script.js
+          if ($LASTEXITCODE -ne 0) { throw 'Prepared ui/script.js failed syntax validation.' }
+
+      - name: Validate release version consistency
+        shell: pwsh
+        run: |
+          @'
+          import json
+          from pathlib import Path
+
+          root = Path('.')
+          info = json.loads((root / 'release_info.json').read_text(encoding='utf-8'))
+          manifest = json.loads((root / 'purple_dragon_manifest.json').read_text(encoding='utf-8'))
+          assert info['version'] == '2.0.2', info
+          assert manifest['version'] == '2.0.2', manifest['version']
+          assert manifest.get('signature') == '', 'pre-sign manifest must not retain the v2.0.1 signature'
+          assert 'VERSION = "2.0.2"' in (root / 'webview_app.py').read_text(encoding='utf-8')
+          assert 'Bitcoin Miner Studio v2.0.2' in (root / 'windows_native_host.cs').read_text(encoding='utf-8')
+          assert '4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3' in (root / 'build_windows_portable.ps1').read_text(encoding='utf-8')
+          assert 'windows_native_bridge.py' in (root / 'tools' / 'purple_dragon_sign.py').read_text(encoding='utf-8')
+          print('[PASS] v2.0.2 release version and pre-sign state are consistent')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'v2.0.2 version consistency validation failed.' }
+
+      - name: Commit prepared release source
+        shell: pwsh
+        run: |
+          if (-not (git status --porcelain)) {
+            Write-Host 'No release-preparation changes are required.'
+            exit 0
+          }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add --all
+          git commit -m 'Prepare v2.0.2 public-readiness release metadata'
+          git push origin HEAD:release/v2.0.2-public-readiness

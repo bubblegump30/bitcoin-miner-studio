@@ -62,8 +62,15 @@ Write-Host 'pywebview/pythonnet/Qt/PyInstaller: NOT USED'
 $EmbeddedPythonVersion = '3.12.10'
 $EmbeddedZip = Join-Path $BuildDir "python-$EmbeddedPythonVersion-embed-amd64.zip"
 $EmbeddedUrl = "https://www.python.org/ftp/python/$EmbeddedPythonVersion/python-$EmbeddedPythonVersion-embed-amd64.zip"
+$EmbeddedExpectedSha256 = '4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3'
 Write-Host "Downloading official CPython $EmbeddedPythonVersion embedded runtime..."
 Invoke-WebRequest -Uri $EmbeddedUrl -OutFile $EmbeddedZip -UseBasicParsing
+$EmbeddedActualSha256 = (Get-FileHash $EmbeddedZip -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($EmbeddedActualSha256 -ne $EmbeddedExpectedSha256) {
+    Remove-Item $EmbeddedZip -Force -ErrorAction SilentlyContinue
+    throw "Embedded CPython SHA-256 mismatch. Expected $EmbeddedExpectedSha256, got $EmbeddedActualSha256."
+}
+Write-Host "Embedded CPython SHA-256 verified: $EmbeddedActualSha256" -ForegroundColor Green
 Expand-Archive -LiteralPath $EmbeddedZip -DestinationPath $RuntimeRoot -Force
 
 $PthPath = Join-Path $RuntimeRoot 'python312._pth'

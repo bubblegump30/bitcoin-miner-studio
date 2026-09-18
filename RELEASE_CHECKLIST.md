@@ -1,13 +1,17 @@
-# Bitcoin Miner Studio v2.0.1 — Stable Release Checklist
+# Bitcoin Miner Studio v2.0.2 — Public Release Checklist
 
 ## Automated gates
 
-- [x] Full Python regression suite after v2.0.1 publisher signing
+- [x] Public Readiness Gate passes on Windows (strict Python compile, JavaScript syntax, deterministic Core/pool/Regtest/ASIC regressions)
+- [x] Bitcoin Core setup self-test isolated from host process/registry/PATH state
+- [x] Hardened Stratum URL parser rejects unsupported schemes, credentials, paths/query strings and invalid ports
+- [x] Official CPython 3.12.10 embedded ZIP pinned by SHA-256 before extraction
+- [ ] Full Python regression suite after final v2.0.2 publisher signing
 - [x] JavaScript syntax validation
 - [x] WebView DOM contract validation
 - [ ] Clean isolated Release Readiness preflight on the final Windows target
-- [x] Purple Dragon publisher signature validation — TRUSTED / VALID
-- [x] v2.0.1 protected-file hash map refreshed and publisher-signed
+- [ ] Final Purple Dragon publisher signature validation — TRUSTED / VALID
+- [ ] v2.0.2 protected-file hash map refreshed and publisher-signed (73 protected files)
 - [x] Publisher private key excluded from release
 - [x] Self-tests isolated from production user data
 - [x] Local support bundle privacy tests

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,6 +21,11 @@ using Microsoft.Web.WebView2.WinForms;
 
 internal sealed class MainForm : Form
 {
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int valueSize);
+
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE_OLD = 19;
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
     private readonly string _root;
     private readonly string _runtimeRoot;
     private readonly string _bridgePath;
@@ -34,6 +40,11 @@ internal sealed class MainForm : Form
     private bool _minimizeToTray = true;
     private bool _closeToTray;
     private bool _navigationReady;
+    private NotifyIcon _trayIcon;
+    private ContextMenuStrip _trayMenu;
+    private Icon _trayOwnedIcon;
+    private string _trayStatusSummary = "Status unavailable.";
+    private string _trayStatusDetail = "";
 
     public int ExitCode { get; private set; }
 
@@ -44,7 +55,7 @@ internal sealed class MainForm : Form
         _runtimeRoot = Path.Combine(_root, "_runtime");
         _bridgePath = Path.Combine(_runtimeRoot, "bms_native_bridge.py");
 
-        Text = "Bitcoin Miner Studio v2.0.1";
+        Text = "Bitcoin Miner Studio v2.0.2";
         StartPosition = FormStartPosition.CenterScreen;
         Width = 1580;
         Height = 960;
@@ -56,6 +67,8 @@ internal sealed class MainForm : Form
             Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         }
         catch { }
+
+        InitializeNativeTray();
 
         _startupLabel = new Label
         {
@@ -80,6 +93,31 @@ internal sealed class MainForm : Form
         Shown += async (sender, args) => await InitializeAsync();
         Resize += HandleResize;
         FormClosing += HandleFormClosing;
+    }
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        ApplyDarkTitleBar();
+    }
+
+    private void ApplyDarkTitleBar()
+    {
+        if (!Environment.OSVersion.Platform.Equals(PlatformID.Win32NT))
+            return;
+
+        try
+        {
+            int enabled = 1;
+            int size = Marshal.SizeOf(typeof(int));
+            int result = DwmSetWindowAttribute(Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref enabled, size);
+            if (result != 0)
+                DwmSetWindowAttribute(Handle, DWMWA_USE_IMMERSIVE_DARK_MODE_OLD, ref enabled, size);
+        }
+        catch
+        {
+            // Dark caption is cosmetic only; never block application startup.
+        }
     }
 
     private static string Sha256File(string path)
@@ -113,7 +151,9 @@ internal sealed class MainForm : Form
             WindowStyle = ProcessWindowStyle.Hidden,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
-            RedirectStandardError = true
+            RedirectStandardError = true,
+            StandardOutputEncoding = new UTF8Encoding(false),
+            StandardErrorEncoding = new UTF8Encoding(false)
         };
         psi.EnvironmentVariables["PYTHONHOME"] = _runtimeRoot;
         psi.EnvironmentVariables["PYTHONNOUSERSITE"] = "1";
@@ -126,7 +166,7 @@ internal sealed class MainForm : Form
         if (!_backend.Start())
             throw new InvalidOperationException("Could not start the Bitcoin Miner Studio backend.");
 
-        _backendInput = _backend.StandardInput;
+        _backendInput = new StreamWriter(_backend.StandardInput.BaseStream, new UTF8Encoding(false));
         _backendInput.AutoFlush = true;
         _backend.BeginOutputReadLine();
         _backend.BeginErrorReadLine();
@@ -488,14 +528,168 @@ internal sealed class MainForm : Form
         return string.Join("|", filters.ToArray());
     }
 
+    private void InitializeNativeTray()
+    {
+        _trayMenu = new ContextMenuStrip
+        {
+            RenderMode = ToolStripRenderMode.System,
+            ShowImageMargin = false,
+            ShowCheckMargin = false,
+            BackColor = SystemColors.Menu,
+            ForeColor = SystemColors.MenuText
+        };
+
+        var openItem = new ToolStripMenuItem("Open Bitcoin Miner Studio");
+        var statusItem = new ToolStripMenuItem("Current Status");
+        var hideItem = new ToolStripMenuItem("Hide Window");
+        var exitItem = new ToolStripMenuItem("Exit");
+
+        openItem.Click += (sender, args) => ShowMainWindow();
+        statusItem.Click += (sender, args) => ShowNativeTrayStatus();
+        hideItem.Click += (sender, args) => Hide();
+        exitItem.Click += (sender, args) =>
+        {
+            _forceExit = true;
+            Close();
+        };
+
+        _trayMenu.Items.Add(openItem);
+        _trayMenu.Items.Add(statusItem);
+        _trayMenu.Items.Add(new ToolStripSeparator());
+        _trayMenu.Items.Add(hideItem);
+        _trayMenu.Items.Add(new ToolStripSeparator());
+        _trayMenu.Items.Add(exitItem);
+        _trayMenu.Opening += (sender, args) =>
+        {
+            _trayMenu.BackColor = SystemColors.Menu;
+            _trayMenu.ForeColor = SystemColors.MenuText;
+            foreach (ToolStripItem item in _trayMenu.Items)
+            {
+                if (!(item is ToolStripSeparator))
+                    item.ForeColor = SystemColors.MenuText;
+            }
+        };
+
+        try
+        {
+            _trayOwnedIcon = Icon != null ? (Icon)Icon.Clone() : (Icon)SystemIcons.Application.Clone();
+        }
+        catch
+        {
+            _trayOwnedIcon = (Icon)SystemIcons.Application.Clone();
+        }
+
+        _trayIcon = new NotifyIcon
+        {
+            Text = "Bitcoin Miner Studio",
+            Icon = _trayOwnedIcon,
+            ContextMenuStrip = _trayMenu,
+            Visible = false
+        };
+        _trayIcon.DoubleClick += (sender, args) => ShowMainWindow();
+    }
+
+    private void ShowMainWindow()
+    {
+        Show();
+        WindowState = FormWindowState.Normal;
+        Activate();
+        BringToFront();
+    }
+
+    private void ShowNativeTrayStatus()
+    {
+        string body = _trayStatusSummary;
+        if (!string.IsNullOrWhiteSpace(_trayStatusDetail))
+            body += Environment.NewLine + Environment.NewLine + _trayStatusDetail;
+        MessageBox.Show(this, body, "Bitcoin Miner Studio — Current Status", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    private void UpdateNativeTrayState(Dictionary<string, object> tray)
+    {
+        if (tray == null) return;
+
+        var settings = tray.ContainsKey("settings") ? tray["settings"] as Dictionary<string, object> : null;
+        if (settings != null)
+        {
+            if (settings.ContainsKey("tray_minimize_to_tray"))
+                _minimizeToTray = Convert.ToBoolean(settings["tray_minimize_to_tray"]);
+            if (settings.ContainsKey("tray_close_to_tray"))
+                _closeToTray = Convert.ToBoolean(settings["tray_close_to_tray"]);
+        }
+
+        var status = tray.ContainsKey("status") ? tray["status"] as Dictionary<string, object> : null;
+        if (status != null)
+        {
+            if (status.ContainsKey("summary"))
+                _trayStatusSummary = Convert.ToString(status["summary"]) ?? "Status unavailable.";
+            if (status.ContainsKey("detail"))
+                _trayStatusDetail = Convert.ToString(status["detail"]) ?? "";
+        }
+
+        bool supported = !tray.ContainsKey("supported") || Convert.ToBoolean(tray["supported"]);
+        bool enabled = settings != null && settings.ContainsKey("tray_enabled") && Convert.ToBoolean(settings["tray_enabled"]);
+        if (_trayIcon != null)
+            _trayIcon.Visible = !_smokeTest && supported && enabled;
+    }
+
+    private void ShowNativeTrayNotification(Dictionary<string, object> message)
+    {
+        if (_trayIcon == null || !_trayIcon.Visible) return;
+
+        string title = message.ContainsKey("title") ? Convert.ToString(message["title"]) : "Bitcoin Miner Studio";
+        string body = message.ContainsKey("message") ? Convert.ToString(message["message"]) : "";
+        string severity = message.ContainsKey("severity") ? Convert.ToString(message["severity"]) : "info";
+
+        _trayIcon.BalloonTipTitle = string.IsNullOrWhiteSpace(title) ? "Bitcoin Miner Studio" : title;
+        _trayIcon.BalloonTipText = body ?? "";
+        _trayIcon.BalloonTipIcon =
+            string.Equals(severity, "critical", StringComparison.OrdinalIgnoreCase) ? ToolTipIcon.Error :
+            string.Equals(severity, "warning", StringComparison.OrdinalIgnoreCase) ? ToolTipIcon.Warning :
+            ToolTipIcon.Info;
+        _trayIcon.ShowBalloonTip(5000);
+    }
+
+    private void DisposeNativeTray()
+    {
+        try
+        {
+            if (_trayIcon != null)
+            {
+                _trayIcon.Visible = false;
+                _trayIcon.Dispose();
+                _trayIcon = null;
+            }
+        }
+        catch { }
+
+        try
+        {
+            if (_trayMenu != null)
+            {
+                _trayMenu.Dispose();
+                _trayMenu = null;
+            }
+        }
+        catch { }
+
+        try
+        {
+            if (_trayOwnedIcon != null)
+            {
+                _trayOwnedIcon.Dispose();
+                _trayOwnedIcon = null;
+            }
+        }
+        catch { }
+    }
+
     private void HandleHostEvent(Dictionary<string, object> message)
     {
         string action = message.ContainsKey("action") ? Convert.ToString(message["action"]) : "";
         if (action == "show_window")
         {
-            Show();
-            WindowState = FormWindowState.Normal;
-            Activate();
+            ShowMainWindow();
             return;
         }
         if (action == "hide_window")
@@ -511,14 +705,13 @@ internal sealed class MainForm : Form
         }
         if (action == "tray_state" && message.ContainsKey("tray"))
         {
-            var tray = message["tray"] as Dictionary<string, object>;
-            if (tray == null) return;
-            var settings = tray.ContainsKey("settings") ? tray["settings"] as Dictionary<string, object> : null;
-            if (settings == null) return;
-            if (settings.ContainsKey("tray_minimize_to_tray"))
-                _minimizeToTray = Convert.ToBoolean(settings["tray_minimize_to_tray"]);
-            if (settings.ContainsKey("tray_close_to_tray"))
-                _closeToTray = Convert.ToBoolean(settings["tray_close_to_tray"]);
+            UpdateNativeTrayState(message["tray"] as Dictionary<string, object>);
+            return;
+        }
+        if (action == "tray_notification")
+        {
+            ShowNativeTrayNotification(message);
+            return;
         }
     }
 
@@ -537,6 +730,7 @@ internal sealed class MainForm : Form
             return;
         }
         _forceExit = true;
+        DisposeNativeTray();
         ShutdownBackend();
     }
 

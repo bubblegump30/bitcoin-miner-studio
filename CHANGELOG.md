@@ -1,3 +1,18 @@
+## v2.0.2 — Public Readiness & Reliability Hotfix
+
+- Isolated Bitcoin Core setup self-tests from real Windows process, registry, PATH and user-profile state so tests are deterministic on machines that already run Bitcoin Core.
+- Removed two `return`-from-`finally` paths that could suppress exceptions and now fail the CI compile gate on any Python `SyntaxWarning`.
+- Made Release Readiness architecture-aware for the native Microsoft Edge WebView2 host used by the public Windows package.
+- Hardened Stratum endpoint parsing: only supported Stratum schemes are accepted; embedded credentials, paths/query strings and invalid ports are rejected.
+- Tightened Stratum transport cleanup and oversized-response handling.
+- Made settings persistence atomic to reduce corruption risk during interrupted writes.
+- Excluded VCS/runtime cache metadata from staged release folders and made staged-tree cleanup resilient to Windows read-only file attributes.
+- Corrected finalized Windows package file-count/size metadata so it describes the exact shipped tree.
+- Pinned the official CPython 3.12.10 embedded runtime by SHA-256 before extraction.
+- Added `windows_native_bridge.py` to Purple Dragon protection; the final signed v2.0.2 manifest contains 73 protected files, including the native bridge, native C# host, and Windows release/signing tooling.
+- Added a Windows Public Readiness CI gate covering strict Python compilation, JavaScript syntax, deterministic Core/pool/Regtest/ASIC regressions, Stratum URL hardening and release hygiene.
+- Preserved the v2.0.1 direct WebView2 + embedded CPython architecture; no PyInstaller, Qt/PySide6, pywebview or pythonnet runtime was reintroduced.
+
 ## v2.0.1 — Diagnostics / RPC Reliability Hotfix
 
 - Fixed Diagnostics self-recursion where its own `0 failure(s)` activity summaries were incorrectly counted as recent application failures.

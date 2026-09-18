@@ -1556,6 +1556,13 @@ def monitoring_analytics_tests():
         assert store.dashboard(3600)["summary"]["sample_count"] == 0
         store.stop()
 
+        # Windows must be able to delete the SQLite database immediately after
+        # analytics operations. sqlite3.Connection's context manager does not
+        # close the handle by itself, so this catches leaked connections that
+        # otherwise break TemporaryDirectory cleanup with WinError 32.
+        db.unlink()
+        assert not db.exists()
+
     root = Path(__file__).resolve().parent
     html = (root / "ui" / "index.html").read_text(encoding="utf-8")
     js = (root / "ui" / "script.js").read_text(encoding="utf-8")
@@ -1720,7 +1727,7 @@ def release_candidate_hardening_tests():
         assert token in js or token in (root / "webview_app.py").read_text(encoding="utf-8"), token
 
     info = json.loads((root / "release_info.json").read_text(encoding="utf-8"))
-    assert info["version"] == "2.0.1"
+    assert info["version"] == "2.0.2"
     assert info["channel"] == "Stable"
     assert info["feature_freeze"] is False
     assert info["cloud_telemetry"] is False
@@ -1823,7 +1830,7 @@ def rc_preflight_cleanup_hotfix_tests():
         assert active_state["blockers"] == 0, active_state
 
         html = (Path(__file__).resolve().parent / "ui" / "index.html").read_text(encoding="utf-8")
-        assert "v2.0.1 · UPDATE &amp; RELEASE CENTER" in html
+        assert "v2.0.2 · UPDATE &amp; RELEASE CENTER" in html
 
         print("[PASS] RC stale Local Test Pool cleanup — inactive ephemeral metadata removed before scoring")
         print("[PASS] RC active Local Test Pool handling — expected live marker preserved but excluded from scoring")
@@ -2011,12 +2018,12 @@ def stable_release_promotion_tests():
     from release_candidate import RELEASE_CHANNEL, ReleaseCandidateManager
 
     root = Path(__file__).resolve().parent
-    assert appmod.VERSION == "2.0.1"
+    assert appmod.VERSION == "2.0.2"
     assert RELEASE_CHANNEL == "Stable"
     assert DEFAULTS["release_channel"] == "Stable"
 
     info = json.loads((root / "release_info.json").read_text(encoding="utf-8"))
-    assert info["version"] == "2.0.1"
+    assert info["version"] == "2.0.2"
     assert info["channel"] == "Stable"
     assert info["stability"] == "Stable"
     assert info["cloud_telemetry"] is False
@@ -2033,7 +2040,7 @@ def stable_release_promotion_tests():
         assert (root / name).is_file(), name
 
     html = (root / "ui" / "index.html").read_text(encoding="utf-8")
-    assert "v2.0.1 · UPDATE &amp; RELEASE CENTER" in html
+    assert "v2.0.2 · UPDATE &amp; RELEASE CENTER" in html
     assert ">Release Readiness<" in html
     assert "STABLE" in html
 
@@ -2077,7 +2084,7 @@ def stable_release_promotion_tests():
     assert "--windowed" in pyinstaller
     assert "code-sign" in pyinstaller.lower()
 
-    print("[PASS] Stable feature baseline — v2.0.1 / Stable channel / STABLE READY semantics")
+    print("[PASS] Stable feature baseline — v2.0.2 / Stable channel / STABLE READY semantics")
     print("[PASS] Stable release metadata — no cloud telemetry, auto-upload or silent update")
     print("[PASS] Windows packaging helpers — portable ZIP + opt-in PyInstaller build path")
     print("[PASS] Stable documentation — changelog, release guide and release checklist")
@@ -3175,6 +3182,8 @@ def windows_tray_background_monitoring_tests():
     js=(root/"ui"/"script.js").read_text(encoding="utf-8")
     css=(root/"ui"/"styles.css").read_text(encoding="utf-8")
     module=(root/"windows_tray.py").read_text(encoding="utf-8")
+    native_host=(root/"windows_native_host.cs").read_text(encoding="utf-8")
+    native_bridge=(root/"windows_native_bridge.py").read_text(encoding="utf-8")
     signer=(root/"tools"/"purple_dragon_sign.py").read_text(encoding="utf-8")
 
     assert 'data-view="tray"' in html and 'id="view-tray"' in html
@@ -3182,7 +3191,19 @@ def windows_tray_background_monitoring_tests():
         assert f'id="{element_id}"' in html,element_id
     assert "renderTrayState" in js and "save_tray_settings" in js
     assert ".tray-hero" in css
+    # Legacy Python tray remains available to the development runtime, but the
+    # signed native Windows release must use exactly one WinForms tray UI.
     assert "Shell_NotifyIconW" in module and "CreatePopupMenu" in module
+    assert "new NotifyIcon" in native_host
+    assert "new ContextMenuStrip" in native_host
+    assert "ToolStripRenderMode.System" in native_host
+    assert "ContextMenuStrip = _trayMenu" in native_host
+    assert 'action == "tray_notification"' in native_host
+    assert "class NativeHostTrayManager" in native_bridge
+    assert "tray_notification" in native_bridge
+    assert "WindowsTrayManager(" not in native_bridge
+    for label in ("Open Bitcoin Miner Studio", "Current Status", "Hide Window", "Exit"):
+        assert label in native_host, label
     assert "window.events.closing" in (root/"webview_app.py").read_text(encoding="utf-8")
     assert "window.events.minimized" in (root/"webview_app.py").read_text(encoding="utf-8")
     assert '"windows_tray.py"' in signer
@@ -3313,8 +3334,8 @@ def diagnostics_support_center_tests():
     })
     security={
         "checked":True,"verified":True,"signature_valid":True,
-        "critical_actions_allowed":True,"protected_file_count":67,
-        "verified_file_count":67,"build_id":"BMS-2.0.1-TEST",
+        "critical_actions_allowed":True,"protected_file_count":73,
+        "verified_file_count":73,"build_id":"BMS-2.0.2-TEST",
         "release_seal":"PD6-TEST","publisher_key_id":"PDK-TEST",
     }
     snapshot={
@@ -3344,7 +3365,7 @@ def diagnostics_support_center_tests():
         sys.modules["cryptography"]=types.ModuleType("cryptography")
     try:
         with tempfile.TemporaryDirectory() as td:
-            center=dc.DiagnosticsSupportCenter(root,"2.0.1",app_data_dir=Path(td)/"appdata")
+            center=dc.DiagnosticsSupportCenter(root,"2.0.2",app_data_dir=Path(td)/"appdata")
             state=center.run(snapshot,"quick")
             assert state["checked"] is True
             assert state["mode"] == "quick"
@@ -3468,6 +3489,8 @@ def v201_transient_rpc_reliability_tests():
 
 def update_release_center_tests():
     import json
+    import os
+    import stat
     import tempfile
     import zipfile
     from pathlib import Path
@@ -3482,8 +3505,8 @@ def update_release_center_tests():
     trust = urc.verify_release_folder(root)
     assert trust["trusted"] is True, trust
     assert trust["signature_valid"] is True, trust
-    assert trust["version"] == "2.0.1", trust
-    assert trust["files_total"] >= 67, trust
+    assert trust["version"] == "2.0.2", trust
+    assert trust["files_total"] >= 73, trust
     assert trust["files_verified"] == trust["files_total"], trust
     assert urc.compare_versions("2.1.0", "2.0.0") == 1
     assert urc.compare_versions("2.0.0", "2.0.0") == 0
@@ -3491,7 +3514,7 @@ def update_release_center_tests():
 
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
-        center = urc.UpdateReleaseCenter(root, "2.0.1", app_data_dir=td / "appdata")
+        center = urc.UpdateReleaseCenter(root, "2.0.2", app_data_dir=td / "appdata")
         state = center.set_channel("stable")
         assert state["channel"] == "stable"
         assert state["policy"]["automatic_download"] is False
@@ -3510,9 +3533,11 @@ def update_release_center_tests():
         staged_path = Path(staged["path"])
         assert staged_path.is_dir()
         assert root not in staged_path.parents
+        assert not (staged_path / ".git").exists(), "VCS metadata must not be staged"
+        assert not (staged_path / "__pycache__").exists(), "runtime caches must not be staged"
         rollback = json.loads(Path(staged["rollback_plan"]).read_text(encoding="utf-8"))
-        assert rollback["from_version"] == "2.0.1"
-        assert rollback["to_version"] == "2.0.1"
+        assert rollback["from_version"] == "2.0.2"
+        assert rollback["to_version"] == "2.0.2"
         assert rollback["apply_policy"] == "offline-explicit-only"
 
         # A protected-file change in the staged copy must invalidate trust.
@@ -3531,6 +3556,11 @@ def update_release_center_tests():
         descriptor_text = json.dumps(descriptor["descriptor"]).lower()
         for forbidden in ("private key", "private_key", "password", "seed phrase", "mnemonic"):
             assert forbidden not in descriptor_text, forbidden
+
+        # Windows cleanup must tolerate read-only files in a staged release.
+        readonly = staged_path / "read-only-cleanup-test.txt"
+        readonly.write_text("cleanup", encoding="utf-8")
+        os.chmod(readonly, stat.S_IREAD)
 
         cleared = center.clear_staged()
         assert cleared["ok"] is True
@@ -3576,7 +3606,7 @@ def update_release_center_tests():
     assert "renderUpdateReleaseCenter" in js and "inspect_update_package" in js and "stage_update_package" in js
     assert "/* v1.9.0 — Update & Release Center */" in css
     assert '"update_release_center.py"' in signer
-    assert info["version"] == "2.0.1"
+    assert info["version"] == "2.0.2"
     assert info["automatic_update_download"] is False
     assert info["silent_auto_update"] is False
     assert info["trusted_package_staging"] is True
@@ -3603,7 +3633,7 @@ def architecture_ux_v2_tests():
     import webview_app as appmod
 
     root = Path(__file__).resolve().parent
-    assert appmod.VERSION == "2.0.1"
+    assert appmod.VERSION == "2.0.2"
     assert API_SCHEMA == 2
     assert len(EXPOSED_API_METHODS) >= 120
     assert len(EXPOSED_API_METHODS) == len(set(EXPOSED_API_METHODS))
@@ -3611,7 +3641,7 @@ def architecture_ux_v2_tests():
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
         runtime = RuntimeContext.create(
-            root=root, version="2.0.1", product="Bitcoin Miner Studio",
+            root=root, version="2.0.2", product="Bitcoin Miner Studio",
             publisher="Purple Dragon Foundation ltd", channel="Stable",
             app_data=td / "appdata",
         )
@@ -3681,7 +3711,7 @@ def architecture_ux_v2_tests():
     assert len(re.findall(r"\bfunction\s+renderTrayState\s*\(", js)) == 1
     for name in ("app_runtime.py", "app_events.py", "service_registry.py", "workspace_manager.py", "api_contract.py"):
         assert f'"{name}"' in signer, name
-    assert info["version"] == "2.0.1"
+    assert info["version"] == "2.0.2"
     assert info["architecture_schema"] == 2
     assert info["bridge_api_schema"] == 2
     assert info["workspace_schema"] == 2
@@ -3743,4 +3773,4 @@ if __name__ == "__main__":
     v201_transient_rpc_reliability_tests()
     update_release_center_tests()
     architecture_ux_v2_tests()
-    print("\nAll Bitcoin Miner Studio v2.0.1 Stable self-tests passed.")
+    print("\nAll Bitcoin Miner Studio v2.0.2 Stable self-tests passed.")

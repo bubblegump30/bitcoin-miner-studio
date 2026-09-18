@@ -167,7 +167,14 @@ def _socket_listening(host, port, timeout=0.12):
         return False
 
 
-def _known_executables(env=None, platform_name=None, configured=None, home=None):
+def _known_executables(env=None, platform_name=None, configured=None, home=None, *, include_host_discovery=True):
+    """Locate Bitcoin Core executables.
+
+    ``include_host_discovery=False`` keeps discovery deterministic for callers
+    that supply a synthetic environment/home/socket checker (the self-test
+    path). In that mode we still inspect paths derived from the supplied
+    environment, but never consult the real host PATH or Windows registry.
+    """
     env = dict(os.environ if env is None else env)
     platform_name = platform_name or sys.platform
     found = []
@@ -181,10 +188,11 @@ def _known_executables(env=None, platform_name=None, configured=None, home=None)
         except OSError:
             pass
 
-    for name in ("bitcoin-qt", "bitcoind", "bitcoin-cli"):
-        path = shutil.which(name)
-        if path:
-            found.append(Path(path))
+    if include_host_discovery:
+        for name in ("bitcoin-qt", "bitcoind", "bitcoin-cli"):
+            path = shutil.which(name)
+            if path:
+                found.append(Path(path))
     if platform_name.startswith("win"):
         roots = [env.get("ProgramFiles"), env.get("ProgramFiles(x86)"), env.get("LOCALAPPDATA")]
         candidates = []
@@ -201,7 +209,8 @@ def _known_executables(env=None, platform_name=None, configured=None, home=None)
             ]
         found.extend(p for p in candidates if p.exists())
     if platform_name.startswith("win"):
-        found.extend(_registry_executables(platform_name=platform_name))
+        if include_host_discovery:
+            found.extend(_registry_executables(platform_name=platform_name))
         system_drive = env.get("SystemDrive") or "C:"
         user_home = Path(home or Path.home())
         portable = [
@@ -597,7 +606,17 @@ def launch_bitcoin_core(executable, data_dir=""):
 
 
 def detect_bitcoin_core(cfg=None, *, env=None, platform_name=None, home=None, socket_checker=None):
+    """Detect Bitcoin Core without leaking host state into injected test environments.
+
+    Passing any of ``env``, ``platform_name``, ``home`` or ``socket_checker``
+    opts into deterministic discovery. This preserves the existing public test
+    hooks while preventing a real Windows registry entry/process/PATH entry
+    from overriding a synthetic test profile.
+    """
     cfg = dict(cfg or {})
+    isolated_discovery = any(
+        value is not None for value in (env, platform_name, home, socket_checker)
+    )
     env = dict(os.environ if env is None else env)
     platform_name = platform_name or sys.platform
     socket_checker = socket_checker or _socket_listening
@@ -606,8 +625,12 @@ def detect_bitcoin_core(cfg=None, *, env=None, platform_name=None, home=None, so
     defaults = default_data_dirs(env=env, platform_name=platform_name, home=home)
     expected_default = defaults[0] if defaults else Path(home or Path.home()) / ".bitcoin"
 
-    running_processes = _windows_running_core_processes() if platform_name.startswith("win") else []
-    registry_dirs = _registry_data_dirs(platform_name=platform_name) if platform_name.startswith("win") else []
+    if platform_name.startswith("win") and not isolated_discovery:
+        running_processes = _windows_running_core_processes()
+        registry_dirs = _registry_data_dirs(platform_name=platform_name)
+    else:
+        running_processes = []
+        registry_dirs = []
 
     candidates = []
     if configured_dir:
@@ -691,6 +714,7 @@ def detect_bitcoin_core(cfg=None, *, env=None, platform_name=None, home=None, so
         platform_name=platform_name,
         configured=cfg.get("core_executable", ""),
         home=home,
+        include_host_discovery=not isolated_discovery,
     )
     for item in running_processes:
         exe = str(item.get("executable") or "").strip()
@@ -710,7 +734,9 @@ def detect_bitcoin_core(cfg=None, *, env=None, platform_name=None, home=None, so
             exe_out.append(exe)
     executables = exe_out
     server_value = _truthy(effective.get("server"))
-    process_running = bool(running_processes) or _process_running(platform_name=platform_name)
+    process_running = bool(running_processes)
+    if not isolated_discovery:
+        process_running = process_running or _process_running(platform_name=platform_name)
 
     # Pin launch identity to an explicitly configured directory when present.
     # Otherwise use the verified detected directory. Never silently replace an
@@ -882,4 +908,3 @@ def detection_report(d):
     if remediation:
         lines += ["", "RECOMMENDED NEXT STEPS"] + [f"- {x}" for x in remediation]
     return "\n".join(lines)
-

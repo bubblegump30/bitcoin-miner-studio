@@ -3475,6 +3475,8 @@ def v201_transient_rpc_reliability_tests():
 
 def update_release_center_tests():
     import json
+    import os
+    import stat
     import tempfile
     import zipfile
     from pathlib import Path
@@ -3517,6 +3519,8 @@ def update_release_center_tests():
         staged_path = Path(staged["path"])
         assert staged_path.is_dir()
         assert root not in staged_path.parents
+        assert not (staged_path / ".git").exists(), "VCS metadata must not be staged"
+        assert not (staged_path / "__pycache__").exists(), "runtime caches must not be staged"
         rollback = json.loads(Path(staged["rollback_plan"]).read_text(encoding="utf-8"))
         assert rollback["from_version"] == "2.0.2"
         assert rollback["to_version"] == "2.0.2"
@@ -3538,6 +3542,11 @@ def update_release_center_tests():
         descriptor_text = json.dumps(descriptor["descriptor"]).lower()
         for forbidden in ("private key", "private_key", "password", "seed phrase", "mnemonic"):
             assert forbidden not in descriptor_text, forbidden
+
+        # Windows cleanup must tolerate read-only files in a staged release.
+        readonly = staged_path / "read-only-cleanup-test.txt"
+        readonly.write_text("cleanup", encoding="utf-8")
+        os.chmod(readonly, stat.S_IREAD)
 
         cleared = center.clear_staged()
         assert cleared["ok"] is True

@@ -511,7 +511,7 @@ class DiagnosticsSupportCenter:
             checks.append(_check(
                 "fail", "architecture.version", "Application architecture",
                 f"Unexpected architecture identifier: {arch_id or 'missing'}.", "Application",
-                "Verify this release with Purple Dragon Security and reinstall the complete trusted v2.0.1 package if required.",
+                "Verify this release with Purple Dragon Security and reinstall the complete trusted v2.0.2 package if required.",
                 critical=True,
             ))
         elif critical or errors:

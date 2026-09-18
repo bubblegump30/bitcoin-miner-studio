@@ -127,7 +127,7 @@ def launch_windowed() -> None:
 
 
 def diagnostics(launch_console: bool = False) -> int:
-    print("=== Bitcoin Miner Studio v2.0.1 Stable diagnostics ===")
+    print("=== Bitcoin Miner Studio v2.0.2 Stable diagnostics ===")
     print()
     print("Chosen interpreter:")
     print(sys.executable)

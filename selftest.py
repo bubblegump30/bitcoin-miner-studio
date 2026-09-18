@@ -1556,6 +1556,13 @@ def monitoring_analytics_tests():
         assert store.dashboard(3600)["summary"]["sample_count"] == 0
         store.stop()
 
+        # Windows must be able to delete the SQLite database immediately after
+        # analytics operations. sqlite3.Connection's context manager does not
+        # close the handle by itself, so this catches leaked connections that
+        # otherwise break TemporaryDirectory cleanup with WinError 32.
+        db.unlink()
+        assert not db.exists()
+
     root = Path(__file__).resolve().parent
     html = (root / "ui" / "index.html").read_text(encoding="utf-8")
     js = (root / "ui" / "script.js").read_text(encoding="utf-8")

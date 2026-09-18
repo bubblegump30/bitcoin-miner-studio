@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,6 +21,11 @@ using Microsoft.Web.WebView2.WinForms;
 
 internal sealed class MainForm : Form
 {
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int valueSize);
+
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE_OLD = 19;
+    private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
     private readonly string _root;
     private readonly string _runtimeRoot;
     private readonly string _bridgePath;
@@ -80,6 +86,31 @@ internal sealed class MainForm : Form
         Shown += async (sender, args) => await InitializeAsync();
         Resize += HandleResize;
         FormClosing += HandleFormClosing;
+    }
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        ApplyDarkTitleBar();
+    }
+
+    private void ApplyDarkTitleBar()
+    {
+        if (!Environment.OSVersion.Platform.Equals(PlatformID.Win32NT))
+            return;
+
+        try
+        {
+            int enabled = 1;
+            int size = Marshal.SizeOf(typeof(int));
+            int result = DwmSetWindowAttribute(Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref enabled, size);
+            if (result != 0)
+                DwmSetWindowAttribute(Handle, DWMWA_USE_IMMERSIVE_DARK_MODE_OLD, ref enabled, size);
+        }
+        catch
+        {
+            // Dark caption is cosmetic only; never block application startup.
+        }
     }
 
     private static string Sha256File(string path)

@@ -6,6 +6,7 @@ on:
       - release/v2.0.2-public-readiness
     paths:
       - purple_dragon_manifest.json
+      - .github/workflows/signed-v2.0.2-rc.yml
 
 permissions:
   contents: read
@@ -40,7 +41,8 @@ jobs:
       - name: Prepared manifest — signed RC validation pending
         if: steps.manifest.outputs.signed != 'true'
         shell: pwsh
-        run: Write-Host 'No failure: this branch is intentionally in pre-sign state.'
+        run: |
+          Write-Host 'No failure: this branch is intentionally in pre-sign state.'
 
       - name: Set up Python 3.12 x64 test host
         if: steps.manifest.outputs.signed == 'true'

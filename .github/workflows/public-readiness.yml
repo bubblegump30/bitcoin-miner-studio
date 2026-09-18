@@ -128,13 +128,44 @@ jobs:
           assert not (root / 'startup-error.log').exists(), 'startup-error.log must not be committed'
           assert not (root / 'native-backend.log').exists(), 'native-backend.log must not be committed'
           assert manifest.get('version') == '2.0.2', manifest.get('version')
-          assert '"windows_native_bridge.py"' in signer, 'v2.0.2 signer must protect windows_native_bridge.py'
-          assert '"tools/prepare_v2_0_2.py"' in signer, 'v2.0.2 signer must protect release-preparation tooling'
+          required_signer_inputs = {
+              'windows_native_bridge.py',
+              'windows_native_host.cs',
+              'tools/prepare_v2_0_2.py',
+              'build_windows_portable.ps1',
+              'finalize_windows_portable.ps1',
+              'sign_v2_0_2_release.ps1',
+          }
+          for required in required_signer_inputs:
+              assert f'"{required}"' in signer, f'v2.0.2 signer must protect {required}'
+
+          code_like = {
+              p.relative_to(root).as_posix()
+              for p in root.rglob('*')
+              if p.is_file()
+              and not p.is_symlink()
+              and p.suffix.lower() in {'.py', '.pyw', '.js', '.html', '.css', '.bat', '.cs', '.ps1'}
+              and '__pycache__' not in p.parts
+              and '.git' not in p.parts
+          }
+          signer_protected = set()
+          in_list = False
+          for raw in signer.splitlines():
+              line = raw.strip()
+              if line.startswith('PROTECTED_FILES') and '[' in line:
+                  in_list = True
+                  continue
+              if in_list and line == ']':
+                  break
+              if in_list and line.startswith('"') and line.endswith('",'):
+                  signer_protected.add(line[1:-2])
+          unsigned_code = sorted(code_like - signer_protected)
+          assert not unsigned_code, f'unsigned executable/build code surface: {unsigned_code}'
 
           if manifest.get('signature'):
-              assert 'windows_native_bridge.py' in protected, 'signed v2.0.2 manifest must protect windows_native_bridge.py'
-              assert 'tools/prepare_v2_0_2.py' in protected, 'signed v2.0.2 manifest must protect release-preparation tooling'
-              assert len(protected) == 69, f'signed v2.0.2 manifest must contain 69 protected files, got {len(protected)}'
+              for required in required_signer_inputs:
+                  assert required in protected, f'signed v2.0.2 manifest must protect {required}'
+              assert len(protected) == 73, f'signed v2.0.2 manifest must contain 73 protected files, got {len(protected)}'
               print('[PASS] signed v2.0.2 manifest release-hygiene checks')
           else:
               assert manifest.get('build_id') == 'PENDING-OFFLINE-SIGNATURE'

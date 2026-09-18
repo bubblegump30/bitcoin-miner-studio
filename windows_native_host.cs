@@ -144,7 +144,9 @@ internal sealed class MainForm : Form
             WindowStyle = ProcessWindowStyle.Hidden,
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
-            RedirectStandardError = true
+            RedirectStandardError = true,
+            StandardOutputEncoding = new UTF8Encoding(false),
+            StandardErrorEncoding = new UTF8Encoding(false)
         };
         psi.EnvironmentVariables["PYTHONHOME"] = _runtimeRoot;
         psi.EnvironmentVariables["PYTHONNOUSERSITE"] = "1";
@@ -157,7 +159,7 @@ internal sealed class MainForm : Form
         if (!_backend.Start())
             throw new InvalidOperationException("Could not start the Bitcoin Miner Studio backend.");
 
-        _backendInput = _backend.StandardInput;
+        _backendInput = new StreamWriter(_backend.StandardInput.BaseStream, new UTF8Encoding(false));
         _backendInput.AutoFlush = true;
         _backend.BeginOutputReadLine();
         _backend.BeginErrorReadLine();

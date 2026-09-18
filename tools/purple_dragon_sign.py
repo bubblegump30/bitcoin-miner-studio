@@ -73,6 +73,7 @@ PROTECTED_FILES = [
     "verify_build_integrity.bat",
     "selftest.bat",
     "tools/purple_dragon_sign.py",
+    "tools/prepare_v2_0_2.py",
     "selftest.py",
     "credentials.py",
     "connections.py",

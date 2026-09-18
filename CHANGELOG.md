@@ -6,6 +6,7 @@
 - Hardened Stratum endpoint parsing: only supported Stratum schemes are accepted; embedded credentials, paths/query strings and invalid ports are rejected.
 - Tightened Stratum transport cleanup and oversized-response handling.
 - Made settings persistence atomic to reduce corruption risk during interrupted writes.
+- Excluded VCS/runtime cache metadata from staged release folders and made staged-tree cleanup resilient to Windows read-only file attributes.
 - Corrected finalized Windows package file-count/size metadata so it describes the exact shipped tree.
 - Pinned the official CPython 3.12.10 embedded runtime by SHA-256 before extraction.
 - Added `windows_native_bridge.py` to Purple Dragon protection; the final signed v2.0.2 manifest contains 69 protected files, including the native bridge and release-preparation tooling.

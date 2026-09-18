@@ -306,6 +306,7 @@ class WindowsTrayManager:
             user32 = ctypes.windll.user32
             shell32 = ctypes.windll.shell32
             kernel32 = ctypes.windll.kernel32
+            gdi32 = ctypes.windll.gdi32
             self._user32, self._shell32 = user32, shell32
             LRESULT = ctypes.c_ssize_t
             WNDPROC = ctypes.WINFUNCTYPE(LRESULT, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
@@ -318,6 +319,40 @@ class WindowsTrayManager:
 
             class POINT(ctypes.Structure):
                 _fields_ = [("x", wintypes.LONG),("y", wintypes.LONG)]
+
+            class MEASUREITEMSTRUCT(ctypes.Structure):
+                _fields_ = [
+                    ("CtlType", wintypes.UINT),
+                    ("CtlID", wintypes.UINT),
+                    ("itemID", wintypes.UINT),
+                    ("itemWidth", wintypes.UINT),
+                    ("itemHeight", wintypes.UINT),
+                    ("itemData", ctypes.c_size_t),
+                ]
+
+            class DRAWITEMSTRUCT(ctypes.Structure):
+                _fields_ = [
+                    ("CtlType", wintypes.UINT),
+                    ("CtlID", wintypes.UINT),
+                    ("itemID", wintypes.UINT),
+                    ("itemAction", wintypes.UINT),
+                    ("itemState", wintypes.UINT),
+                    ("hwndItem", wintypes.HWND),
+                    ("hDC", wintypes.HDC),
+                    ("rcItem", wintypes.RECT),
+                    ("itemData", ctypes.c_size_t),
+                ]
+
+            class MENUINFO(ctypes.Structure):
+                _fields_ = [
+                    ("cbSize", wintypes.DWORD),
+                    ("fMask", wintypes.DWORD),
+                    ("dwStyle", wintypes.DWORD),
+                    ("cyMax", wintypes.UINT),
+                    ("hbrBack", wintypes.HBRUSH),
+                    ("dwContextHelpID", wintypes.DWORD),
+                    ("dwMenuData", ctypes.c_size_t),
+                ]
 
             # ctypes defaults native function return values to 32-bit c_int.
             # Menu/Window handles are pointer-sized on 64-bit Windows, so an
@@ -336,24 +371,116 @@ class WindowsTrayManager:
             user32.GetCursorPos.restype = wintypes.BOOL
             user32.SetForegroundWindow.argtypes = [wintypes.HWND]
             user32.SetForegroundWindow.restype = wintypes.BOOL
+            user32.SetMenuInfo.argtypes = [HMENU, ctypes.POINTER(MENUINFO)]
+            user32.SetMenuInfo.restype = wintypes.BOOL
+            user32.FillRect.argtypes = [wintypes.HDC, ctypes.POINTER(wintypes.RECT), wintypes.HBRUSH]
+            user32.FillRect.restype = ctypes.c_int
+            user32.DrawTextW.argtypes = [wintypes.HDC, wintypes.LPCWSTR, ctypes.c_int, ctypes.POINTER(wintypes.RECT), wintypes.UINT]
+            user32.DrawTextW.restype = ctypes.c_int
+            gdi32.CreateSolidBrush.argtypes = [wintypes.DWORD]
+            gdi32.CreateSolidBrush.restype = wintypes.HBRUSH
+            gdi32.DeleteObject.argtypes = [wintypes.HANDLE]
+            gdi32.DeleteObject.restype = wintypes.BOOL
+            gdi32.SetBkMode.argtypes = [wintypes.HDC, ctypes.c_int]
+            gdi32.SetBkMode.restype = ctypes.c_int
+            gdi32.SetTextColor.argtypes = [wintypes.HDC, wintypes.DWORD]
+            gdi32.SetTextColor.restype = wintypes.DWORD
+
+            def rgb(red, green, blue):
+                return int(red) | (int(green) << 8) | (int(blue) << 16)
+
+            WM_DRAWITEM = 0x002B
+            WM_MEASUREITEM = 0x002C
+            ODT_MENU = 1
+            ODS_SELECTED = 0x0001
+            ODS_DISABLED = 0x0004
+            DT_LEFT = 0x0000
+            DT_VCENTER = 0x0004
+            DT_SINGLELINE = 0x0020
+            DT_NOPREFIX = 0x0800
+            TRANSPARENT = 1
+
+            menu_labels = {
+                1001: "Open Bitcoin Miner Studio",
+                1002: "Current Status",
+                1003: "Hide Window",
+                1099: "Exit",
+            }
+            menu_separators = {1901, 1902}
+            menu_item_ids = set(menu_labels) | menu_separators
+
+            def fill_rect(hdc, rect, color):
+                brush = gdi32.CreateSolidBrush(color)
+                if brush:
+                    try:
+                        user32.FillRect(hdc, ctypes.byref(rect), brush)
+                    finally:
+                        gdi32.DeleteObject(brush)
+
+            def draw_owner_menu_item(draw):
+                item_id = int(draw.itemID)
+                rect = wintypes.RECT(
+                    draw.rcItem.left,
+                    draw.rcItem.top,
+                    draw.rcItem.right,
+                    draw.rcItem.bottom,
+                )
+                selected = bool(int(draw.itemState) & ODS_SELECTED)
+                disabled = bool(int(draw.itemState) & ODS_DISABLED)
+
+                background = rgb(66, 43, 96) if selected else rgb(29, 24, 42)
+                fill_rect(draw.hDC, rect, background)
+
+                if item_id in menu_separators:
+                    middle = int((rect.top + rect.bottom) / 2)
+                    line = wintypes.RECT(rect.left + 12, middle, max(rect.left + 13, rect.right - 12), middle + 1)
+                    fill_rect(draw.hDC, line, rgb(78, 62, 108))
+                    return
+
+                label = menu_labels.get(item_id, "")
+                if not label:
+                    return
+                gdi32.SetBkMode(draw.hDC, TRANSPARENT)
+                text_color = rgb(150, 140, 165) if disabled else rgb(242, 237, 250)
+                gdi32.SetTextColor(draw.hDC, text_color)
+                text_rect = wintypes.RECT(rect.left + 14, rect.top, rect.right - 12, rect.bottom)
+                user32.DrawTextW(
+                    draw.hDC,
+                    label,
+                    -1,
+                    ctypes.byref(text_rect),
+                    DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX,
+                )
 
             def show_menu(hwnd):
                 menu = user32.CreatePopupMenu()
                 if not menu:
                     self.error = "CreatePopupMenu failed."
                     return
-                MF_STRING, MF_SEPARATOR = 0x0000, 0x0800
+
+                MF_OWNERDRAW = 0x0100
+                MF_DISABLED = 0x0002
+                MF_GRAYED = 0x0001
+                MIM_BACKGROUND = 0x00000002
                 entries = (
-                    (MF_STRING, 1001, "Open Bitcoin Miner Studio"),
-                    (MF_STRING, 1002, "Current Status"),
-                    (MF_SEPARATOR, 0, None),
-                    (MF_STRING, 1003, "Hide Window"),
-                    (MF_SEPARATOR, 0, None),
-                    (MF_STRING, 1099, "Exit"),
+                    (MF_OWNERDRAW, 1001),
+                    (MF_OWNERDRAW, 1002),
+                    (MF_OWNERDRAW | MF_DISABLED | MF_GRAYED, 1901),
+                    (MF_OWNERDRAW, 1003),
+                    (MF_OWNERDRAW | MF_DISABLED | MF_GRAYED, 1902),
+                    (MF_OWNERDRAW, 1099),
                 )
+                menu_brush = gdi32.CreateSolidBrush(rgb(29, 24, 42))
                 try:
-                    for flags, command_id, label in entries:
-                        if not user32.AppendMenuW(menu, flags, command_id, label):
+                    if menu_brush:
+                        info = MENUINFO()
+                        info.cbSize = ctypes.sizeof(MENUINFO)
+                        info.fMask = MIM_BACKGROUND
+                        info.hbrBack = menu_brush
+                        user32.SetMenuInfo(menu, ctypes.byref(info))
+
+                    for flags, command_id in entries:
+                        if not user32.AppendMenuW(menu, flags, command_id, None):
                             raise ctypes.WinError()
                     point = POINT()
                     if not user32.GetCursorPos(ctypes.byref(point)):
@@ -369,6 +496,8 @@ class WindowsTrayManager:
                     command = 0
                 finally:
                     user32.DestroyMenu(menu)
+                    if menu_brush:
+                        gdi32.DeleteObject(menu_brush)
 
                 if command == 1001: self.show_window()
                 elif command == 1002:
@@ -379,6 +508,17 @@ class WindowsTrayManager:
 
             @WNDPROC
             def wndproc(hwnd, msg, wparam, lparam):
+                if msg == WM_MEASUREITEM and lparam:
+                    measure = ctypes.cast(lparam, ctypes.POINTER(MEASUREITEMSTRUCT)).contents
+                    if int(measure.CtlType) == ODT_MENU and int(measure.itemID) in menu_item_ids:
+                        measure.itemWidth = 248
+                        measure.itemHeight = 10 if int(measure.itemID) in menu_separators else 32
+                        return 1
+                if msg == WM_DRAWITEM and lparam:
+                    draw = ctypes.cast(lparam, ctypes.POINTER(DRAWITEMSTRUCT)).contents
+                    if int(draw.CtlType) == ODT_MENU and int(draw.itemID) in menu_item_ids:
+                        draw_owner_menu_item(draw)
+                        return 1
                 if msg == self.WM_TRAY:
                     event = int(lparam) & 0xFFFF
                     if event == self.WM_LBUTTONDBLCLK: self.show_window(); return 0

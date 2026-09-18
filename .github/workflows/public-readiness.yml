@@ -129,10 +129,12 @@ jobs:
           assert not (root / 'native-backend.log').exists(), 'native-backend.log must not be committed'
           assert manifest.get('version') == '2.0.2', manifest.get('version')
           assert '"windows_native_bridge.py"' in signer, 'v2.0.2 signer must protect windows_native_bridge.py'
+          assert '"tools/prepare_v2_0_2.py"' in signer, 'v2.0.2 signer must protect release-preparation tooling'
 
           if manifest.get('signature'):
               assert 'windows_native_bridge.py' in protected, 'signed v2.0.2 manifest must protect windows_native_bridge.py'
-              assert len(protected) == 68, f'signed v2.0.2 manifest must contain 68 protected files, got {len(protected)}'
+              assert 'tools/prepare_v2_0_2.py' in protected, 'signed v2.0.2 manifest must protect release-preparation tooling'
+              assert len(protected) == 69, f'signed v2.0.2 manifest must contain 69 protected files, got {len(protected)}'
               print('[PASS] signed v2.0.2 manifest release-hygiene checks')
           else:
               assert manifest.get('build_id') == 'PENDING-OFFLINE-SIGNATURE'

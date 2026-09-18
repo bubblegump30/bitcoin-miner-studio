@@ -29,11 +29,19 @@ if (-not (Test-Path -LiteralPath $Key -PathType Leaf)) {
 Write-Host '== Bitcoin Miner Studio v2.0.2 offline publisher signing ==' -ForegroundColor Cyan
 Write-Host 'The private key remains local and is never added to Git.'
 
-& py -c "import cryptography" 2>$null
+# Windows PowerShell can promote native stderr from a failed import probe into a
+# terminating NativeCommandError when ErrorActionPreference is Stop. Avoid that
+# fragile probe: pip install is idempotent and safely reports "Requirement
+# already satisfied" when the dependency is present.
+Write-Host 'Ensuring local developer signing dependency: cryptography'
+& py -m pip install --disable-pip-version-check 'cryptography>=43,<47'
 if ($LASTEXITCODE -ne 0) {
-    Write-Host 'Installing local developer signing dependency: cryptography'
-    & py -m pip install --disable-pip-version-check cryptography
-    if ($LASTEXITCODE -ne 0) { throw 'Could not install the cryptography signing dependency.' }
+    throw 'Could not install or verify the cryptography signing dependency.'
+}
+
+& py -c "import cryptography; print('cryptography', cryptography.__version__)"
+if ($LASTEXITCODE -ne 0) {
+    throw 'The Python launcher cannot import cryptography after installation.'
 }
 
 & py tools\purple_dragon_sign.py $Key

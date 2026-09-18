@@ -3182,6 +3182,8 @@ def windows_tray_background_monitoring_tests():
     js=(root/"ui"/"script.js").read_text(encoding="utf-8")
     css=(root/"ui"/"styles.css").read_text(encoding="utf-8")
     module=(root/"windows_tray.py").read_text(encoding="utf-8")
+    native_host=(root/"windows_native_host.cs").read_text(encoding="utf-8")
+    native_bridge=(root/"windows_native_bridge.py").read_text(encoding="utf-8")
     signer=(root/"tools"/"purple_dragon_sign.py").read_text(encoding="utf-8")
 
     assert 'data-view="tray"' in html and 'id="view-tray"' in html
@@ -3189,13 +3191,19 @@ def windows_tray_background_monitoring_tests():
         assert f'id="{element_id}"' in html,element_id
     assert "renderTrayState" in js and "save_tray_settings" in js
     assert ".tray-hero" in css
+    # Legacy Python tray remains available to the development runtime, but the
+    # signed native Windows release must use exactly one WinForms tray UI.
     assert "Shell_NotifyIconW" in module and "CreatePopupMenu" in module
-    assert "MF_STRING" in module and "MF_SEPARATOR" in module
-    assert "AppendMenuW(menu, flags, command_id, label)" in module
-    assert "TrackPopupMenu" in module and "TPM_RETURNCMD" in module
-    assert "PostMessageW(hwnd, 0x0000, 0, 0)" in module
+    assert "new NotifyIcon" in native_host
+    assert "new ContextMenuStrip" in native_host
+    assert "ToolStripRenderMode.System" in native_host
+    assert "ContextMenuStrip = _trayMenu" in native_host
+    assert 'action == "tray_notification"' in native_host
+    assert "class NativeHostTrayManager" in native_bridge
+    assert "tray_notification" in native_bridge
+    assert "WindowsTrayManager(" not in native_bridge
     for label in ("Open Bitcoin Miner Studio", "Current Status", "Hide Window", "Exit"):
-        assert label in module, label
+        assert label in native_host, label
     assert "window.events.closing" in (root/"webview_app.py").read_text(encoding="utf-8")
     assert "window.events.minimized" in (root/"webview_app.py").read_text(encoding="utf-8")
     assert '"windows_tray.py"' in signer

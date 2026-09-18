@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import json
+from contextlib import contextmanager
 import math
 import sqlite3
 import threading
@@ -122,8 +123,24 @@ class AnalyticsStore:
         conn.execute("PRAGMA busy_timeout=5000")
         return conn
 
+    @contextmanager
+    def _connection(self):
+        """Commit/rollback and always close a SQLite connection.
+
+        sqlite3.Connection's built-in context manager manages transactions but
+        does not close the connection. Explicit closure is required on Windows
+        so analytics.sqlite3 is not left locked after a test, shutdown, export,
+        or clear operation.
+        """
+        conn = self._connect()
+        try:
+            with conn:
+                yield conn
+        finally:
+            conn.close()
+
     def _initialize(self):
-        with self._lock, self._connect() as conn:
+        with self._lock, self._connection() as conn:
             conn.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
             conn.execute("""CREATE TABLE IF NOT EXISTS samples (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -223,7 +240,7 @@ class AnalyticsStore:
     def record(self, snapshot):
         row = sanitized_snapshot(snapshot)
         placeholders = ",".join("?" for _ in SAMPLE_COLUMNS)
-        with self._lock, self._connect() as conn:
+        with self._lock, self._connection() as conn:
             conn.execute(
                 f"INSERT INTO samples ({','.join(SAMPLE_COLUMNS)}) VALUES ({placeholders})",
                 [row[key] for key in SAMPLE_COLUMNS],
@@ -281,7 +298,7 @@ class AnalyticsStore:
                         "ASIC temperatures recovered below 80 °C.")
 
     def _rows(self, since, max_points=MAX_POINTS):
-        with self._connect() as conn:
+        with self._connection() as conn:
             rows = [
                 dict(row) for row in conn.execute(
                     "SELECT * FROM samples WHERE ts>=? ORDER BY ts ASC", (float(since),)
@@ -298,7 +315,7 @@ class AnalyticsStore:
         range_seconds = max(300, min(365 * 86400, int(range_seconds)))
         since = now - range_seconds
         rows = self._rows(since, max_points=max_points)
-        with self._connect() as conn:
+        with self._connection() as conn:
             count = conn.execute("SELECT COUNT(*) FROM samples").fetchone()[0]
             first = conn.execute("SELECT MIN(ts) FROM samples").fetchone()[0]
             events = [
@@ -372,7 +389,7 @@ class AnalyticsStore:
             }
 
     def clear(self):
-        with self._lock, self._connect() as conn:
+        with self._lock, self._connection() as conn:
             conn.execute("DELETE FROM samples")
             conn.execute("DELETE FROM events")
             conn.commit()

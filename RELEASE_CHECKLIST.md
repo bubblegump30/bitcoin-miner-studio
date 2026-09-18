@@ -11,7 +11,7 @@
 - [x] WebView DOM contract validation
 - [ ] Clean isolated Release Readiness preflight on the final Windows target
 - [ ] Final Purple Dragon publisher signature validation — TRUSTED / VALID
-- [ ] v2.0.2 protected-file hash map refreshed and publisher-signed (68 protected files)
+- [ ] v2.0.2 protected-file hash map refreshed and publisher-signed (69 protected files)
 - [x] Publisher private key excluded from release
 - [x] Self-tests isolated from production user data
 - [x] Local support bundle privacy tests

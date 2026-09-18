@@ -9,6 +9,7 @@ Bitcoin Miner Studio v2.0.2 hardens the v2.0.1 stable Windows architecture for b
 - direct Microsoft Edge WebView2-aware Release Readiness checks;
 - hardened Stratum endpoint parsing and response-buffer handling;
 - atomic settings persistence;
+- Update Center staging now excludes VCS/runtime cache metadata and reliably clears Windows read-only staged files;
 - corrected post-finalization package metadata;
 - SHA-256 verification of the official embedded CPython 3.12.10 archive before extraction;
 - Purple Dragon protected surface expanded to 69 files, including `windows_native_bridge.py` and the v2.0.2 release-preparation tooling;

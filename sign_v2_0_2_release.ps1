@@ -69,8 +69,8 @@ ok = (
     state.get("trust_level") == "TRUSTED"
     and state.get("signature_valid") is True
     and state.get("release_version") == "2.0.2"
-    and state.get("verified_file_count") == 69
-    and state.get("protected_file_count") == 69
+    and state.get("verified_file_count") == 73
+    and state.get("protected_file_count") == 73
     and state.get("critical_actions_allowed") is True
 )
 raise SystemExit(0 if ok else 9)

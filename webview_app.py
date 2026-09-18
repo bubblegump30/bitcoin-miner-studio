@@ -1703,7 +1703,7 @@ class WebBackend:
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
 
-    # v2.0.1 — Update & Release Center retained inside Architecture/UX milestone
+    # v2.0.2 — Update & Release Center retained inside Architecture/UX milestone
     def get_update_release_state(self):
         try:
             return {"ok": True, "update_release": self.update_release_center.state()}

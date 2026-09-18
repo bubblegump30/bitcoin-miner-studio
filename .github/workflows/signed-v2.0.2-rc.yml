@@ -60,8 +60,8 @@ jobs:
           assert state.get('trust_level') == 'TRUSTED', state
           assert state.get('signature_valid') is True, state
           assert state.get('release_version') == '2.0.2', state
-          assert state.get('verified_file_count') == 68, state
-          assert state.get('protected_file_count') == 68, state
+          assert state.get('verified_file_count') == 69, state
+          assert state.get('protected_file_count') == 69, state
           assert state.get('critical_actions_allowed') is True, state
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw 'Final Purple Dragon signature/integrity validation failed.' }
@@ -123,7 +123,7 @@ jobs:
           assert data.get('high_dpi_awareness') == 'PerMonitorV2', data
           assert data.get('cryptography_runtime') is True, data
           assert str(data.get('startup_smoke', '')).startswith('passed'), data
-          assert data.get('purple_dragon_protected_files') == 68, data
+          assert data.get('purple_dragon_protected_files') == 69, data
           assert data.get('archive_sha256'), data
           assert data.get('executable_sha256'), data
           '@ | python -

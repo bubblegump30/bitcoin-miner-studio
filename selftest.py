@@ -3190,6 +3190,10 @@ def windows_tray_background_monitoring_tests():
     assert "renderTrayState" in js and "save_tray_settings" in js
     assert ".tray-hero" in css
     assert "Shell_NotifyIconW" in module and "CreatePopupMenu" in module
+    assert "MF_OWNERDRAW" in module and "WM_DRAWITEM" in module and "WM_MEASUREITEM" in module
+    assert "DrawTextW" in module and "SetMenuInfo" in module
+    for label in ("Open Bitcoin Miner Studio", "Current Status", "Hide Window", "Exit"):
+        assert label in module, label
     assert "window.events.closing" in (root/"webview_app.py").read_text(encoding="utf-8")
     assert "window.events.minimized" in (root/"webview_app.py").read_text(encoding="utf-8")
     assert '"windows_tray.py"' in signer

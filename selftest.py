@@ -3320,8 +3320,8 @@ def diagnostics_support_center_tests():
     })
     security={
         "checked":True,"verified":True,"signature_valid":True,
-        "critical_actions_allowed":True,"protected_file_count":69,
-        "verified_file_count":69,"build_id":"BMS-2.0.2-TEST",
+        "critical_actions_allowed":True,"protected_file_count":73,
+        "verified_file_count":73,"build_id":"BMS-2.0.2-TEST",
         "release_seal":"PD6-TEST","publisher_key_id":"PDK-TEST",
     }
     snapshot={
@@ -3492,7 +3492,7 @@ def update_release_center_tests():
     assert trust["trusted"] is True, trust
     assert trust["signature_valid"] is True, trust
     assert trust["version"] == "2.0.2", trust
-    assert trust["files_total"] >= 69, trust
+    assert trust["files_total"] >= 73, trust
     assert trust["files_verified"] == trust["files_total"], trust
     assert urc.compare_versions("2.1.0", "2.0.0") == 1
     assert urc.compare_versions("2.0.0", "2.0.0") == 0

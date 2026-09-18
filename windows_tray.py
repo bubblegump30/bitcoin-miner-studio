@@ -458,29 +458,24 @@ class WindowsTrayManager:
                     self.error = "CreatePopupMenu failed."
                     return
 
-                MF_OWNERDRAW = 0x0100
-                MF_DISABLED = 0x0002
-                MF_GRAYED = 0x0001
-                MIM_BACKGROUND = 0x00000002
+                # Use the native Windows text renderer for the tray popup.
+                # The previous owner-draw path could create a correctly sized
+                # popup whose labels were invisible on some Windows 11 systems.
+                # Keeping real Unicode strings in the HMENU lets USER32 handle
+                # fonts, DPI, contrast, accessibility and theme compatibility.
+                MF_STRING = 0x0000
+                MF_SEPARATOR = 0x0800
                 entries = (
-                    (MF_OWNERDRAW, 1001),
-                    (MF_OWNERDRAW, 1002),
-                    (MF_OWNERDRAW | MF_DISABLED | MF_GRAYED, 1901),
-                    (MF_OWNERDRAW, 1003),
-                    (MF_OWNERDRAW | MF_DISABLED | MF_GRAYED, 1902),
-                    (MF_OWNERDRAW, 1099),
+                    (MF_STRING, 1001, "Open Bitcoin Miner Studio"),
+                    (MF_STRING, 1002, "Current Status"),
+                    (MF_SEPARATOR, 0, None),
+                    (MF_STRING, 1003, "Hide Window"),
+                    (MF_SEPARATOR, 0, None),
+                    (MF_STRING, 1099, "Exit"),
                 )
-                menu_brush = gdi32.CreateSolidBrush(rgb(29, 24, 42))
                 try:
-                    if menu_brush:
-                        info = MENUINFO()
-                        info.cbSize = ctypes.sizeof(MENUINFO)
-                        info.fMask = MIM_BACKGROUND
-                        info.hbrBack = menu_brush
-                        user32.SetMenuInfo(menu, ctypes.byref(info))
-
-                    for flags, command_id in entries:
-                        if not user32.AppendMenuW(menu, flags, command_id, None):
+                    for flags, command_id, label in entries:
+                        if not user32.AppendMenuW(menu, flags, command_id, label):
                             raise ctypes.WinError()
                     point = POINT()
                     if not user32.GetCursorPos(ctypes.byref(point)):
@@ -491,13 +486,14 @@ class WindowsTrayManager:
                         menu, TPM_RIGHTBUTTON | TPM_RETURNCMD,
                         point.x, point.y, 0, hwnd, None
                     )
+                    # Standard notification-area menu pattern: return the hidden
+                    # owner window to a neutral message state after dismissal.
+                    user32.PostMessageW(hwnd, 0x0000, 0, 0)  # WM_NULL
                 except Exception as exc:
                     self.error = f"Tray menu failed: {exc}"
                     command = 0
                 finally:
                     user32.DestroyMenu(menu)
-                    if menu_brush:
-                        gdi32.DeleteObject(menu_brush)
 
                 if command == 1001: self.show_window()
                 elif command == 1002:

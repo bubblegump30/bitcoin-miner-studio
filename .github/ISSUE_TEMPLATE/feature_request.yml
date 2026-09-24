@@ -1,0 +1,75 @@
+name: Feature request
+description: Suggest an improvement or new capability for Bitcoin Miner Studio
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Explain the user problem first, then the proposed solution. Features must preserve mining safety, explicit payout control, and release-integrity safeguards.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What problem would this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior, workflow, or UI you would like.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Related area
+      multiple: true
+      options:
+        - Dashboard / UI
+        - CPU mining
+        - ASIC management
+        - Bitcoin Core / RPC
+        - Stratum / pool connectivity
+        - Solo mining
+        - Benchmarking
+        - Monitoring / telemetry
+        - Update & Release Center
+        - Security / provenance
+        - Windows packaging
+        - Settings / profiles
+        - Mining education
+        - Other
+
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety and trust considerations
+      description: Explain any effect on payout control, credentials, mining behavior, system resources, release integrity, or publisher provenance.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Describe any workaround or alternative design you considered.
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Optional. Add screenshots, mockups, or technical notes.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched existing issues for similar requests.
+          required: true
+        - label: This request does not depend on hidden mining, silent payout redirection, or weakening release/security safeguards.
+          required: true

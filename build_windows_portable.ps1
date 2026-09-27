@@ -12,7 +12,7 @@ if ($env:OS -ne 'Windows_NT' -or -not [Environment]::Is64BitOperatingSystem) {
 }
 
 $BuildPython = (Get-Command python -ErrorAction Stop).Source
-& $BuildPython -c "import sys; raise SystemExit(0 if sys.version_info[:2] == (3,12) and sys.maxsize > 2**32 else 1)"
+& $BuildPython -E -c "import sys; raise SystemExit(0 if sys.version_info[:2] == (3,12) and sys.maxsize > 2**32 else 1)"
 if ($LASTEXITCODE -ne 0) {
     throw 'The build host must provide Python 3.12 x64.'
 }
@@ -35,6 +35,12 @@ if ($ProtectedFiles.Count -lt 1) {
     throw 'Purple Dragon protected-file list is empty.'
 }
 $Version = [string]$Manifest.version
+
+# Fail before downloads or deleting output trees when protected source bytes changed.
+& $BuildPython -E -c "from purple_dragon_security import verify_integrity; s=verify_integrity(); print('Source integrity:', s.get('trust_level'), str(s.get('verified_file_count')) + '/' + str(s.get('protected_file_count')), s.get('error', '')); raise SystemExit(0 if s.get('trust_level') == 'TRUSTED' and s.get('signature_valid') is True and s.get('critical_actions_allowed') is True else 9)"
+if ($LASTEXITCODE -ne 0) {
+    throw 'Source integrity verification failed. Refresh protected-file hashes and publisher-sign the final source manifest with the offline key before packaging. Retrying cannot repair a stale signature.'
+}
 
 $BuildDir = Join-Path $Root 'build-windows-native'
 $DistDir = Join-Path $Root 'dist'
@@ -83,7 +89,7 @@ $PthPath = Join-Path $RuntimeRoot 'python312._pth'
 ) | Set-Content -Path $PthPath -Encoding ASCII
 
 Write-Host 'Installing minimal non-GUI Python runtime dependencies...'
-& $BuildPython -m pip install --disable-pip-version-check --no-warn-script-location --upgrade --target $SitePackages `
+& $BuildPython -E -m pip install --disable-pip-version-check --no-warn-script-location --upgrade --target $SitePackages `
     'py7zr==0.22.0'
 if ($LASTEXITCODE -ne 0) {
     throw 'Failed to install the embedded Python runtime dependencies.'
@@ -178,20 +184,19 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path $ExePath -PathType Leaf)) {
     throw 'Failed to compile the direct WebView2 BitcoinMinerStudio.exe host.'
 }
 
+# The embedded python312._pth isolates its paths; never mutate the caller's PYTHON* environment.
 $RuntimePython = Join-Path $RuntimeRoot 'python.exe'
-$env:PYTHONHOME = $RuntimeRoot
-$env:PYTHONNOUSERSITE = '1'
-$env:PYTHONUTF8 = '1'
+
 
 Write-Host 'Checking that banned GUI/runtime stacks are absent...'
 Push-Location $PortableRoot
 try {
-    & $RuntimePython -c "import importlib.util, sys; banned=['webview','pythonnet','clr_loader','PySide6','PyInstaller']; present=[x for x in banned if importlib.util.find_spec(x) is not None]; print('Embedded Python:', sys.version); print('Banned runtime modules present:', present); raise SystemExit(11 if present else 0)"
+    & $RuntimePython -X utf8 -c "import importlib.util, sys; banned=['webview','pythonnet','clr_loader','PySide6','PyInstaller']; present=[x for x in banned if importlib.util.find_spec(x) is not None]; print('Embedded Python:', sys.version); print('Banned runtime modules present:', present); raise SystemExit(11 if present else 0)"
     if ($LASTEXITCODE -ne 0) {
         throw 'A banned pywebview/pythonnet/Qt/PyInstaller runtime module leaked into the public EXE package.'
     }
 
-    & $RuntimePython -c "import py7zr; from webview_app import WebBackend; b=WebBackend(); print('Backend construction: OK'); b.close()"
+    & $RuntimePython -X utf8 -c "import py7zr; from webview_app import WebBackend; b=WebBackend(); print('Backend construction: OK'); b.close()"
     if ($LASTEXITCODE -ne 0) {
         throw 'The embedded backend construction preflight failed.'
     }
@@ -217,7 +222,7 @@ ok = (
 )
 raise SystemExit(0 if ok else 9)
 '@
-    $VerifyScript | & $RuntimePython -
+    $VerifyScript | & $RuntimePython -X utf8 -
     if ($LASTEXITCODE -ne 0) {
         throw 'Purple Dragon verification failed in the direct WebView2 release tree.'
     }
@@ -323,9 +328,7 @@ $BuildInfo = [ordered]@{
 }
 $BuildInfo | ConvertTo-Json -Depth 6 | Set-Content -Path (Join-Path $ReleaseDir 'BitcoinMinerStudio-Windows-build.json') -Encoding UTF8
 
-Remove-Item Env:PYTHONHOME -ErrorAction SilentlyContinue
-Remove-Item Env:PYTHONNOUSERSITE -ErrorAction SilentlyContinue
-Remove-Item Env:PYTHONUTF8 -ErrorAction SilentlyContinue
+
 
 Write-Host ''
 Write-Host 'DIRECT WebView2 Windows portable release created successfully.' -ForegroundColor Green

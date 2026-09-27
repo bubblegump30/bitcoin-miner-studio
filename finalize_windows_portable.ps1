@@ -13,6 +13,7 @@ $SitePackages = Join-Path $RuntimeRoot 'Lib\site-packages'
 $ReleaseDir = Join-Path $Root 'release-windows'
 $ExePath = Join-Path $PortableRoot 'BitcoinMinerStudio.exe'
 $DpiManifest = Join-Path $Root 'windows_highdpi.manifest'
+# The embedded python312._pth isolates its paths; never mutate the caller's PYTHON* environment.
 $RuntimePython = Join-Path $RuntimeRoot 'python.exe'
 
 foreach ($Required in @($PortableRoot, $RuntimeRoot, $SitePackages, $ReleaseDir, $ExePath, $DpiManifest, $RuntimePython)) {
@@ -25,16 +26,14 @@ $BuildPython = (Get-Command python -ErrorAction Stop).Source
 
 Write-Host '== Finalizing Bitcoin Miner Studio Windows release ==' -ForegroundColor Cyan
 Write-Host 'Installing release-readiness cryptography runtime...'
-& $BuildPython -m pip install --disable-pip-version-check --no-warn-script-location --upgrade --target $SitePackages `
+& $BuildPython -E -m pip install --disable-pip-version-check --no-warn-script-location --upgrade --target $SitePackages `
     'cryptography==46.0.7'
 if ($LASTEXITCODE -ne 0) {
     throw 'Failed to install the cryptography runtime into the embedded Python environment.'
 }
 
-$env:PYTHONHOME = $RuntimeRoot
-$env:PYTHONNOUSERSITE = '1'
-$env:PYTHONUTF8 = '1'
-& $RuntimePython -c "import cryptography; print('Cryptography runtime:', cryptography.__version__); raise SystemExit(0 if cryptography.__version__ == '46.0.7' else 12)"
+
+& $RuntimePython -X utf8 -c "import cryptography; print('Cryptography runtime:', cryptography.__version__); raise SystemExit(0 if cryptography.__version__ == '46.0.7' else 12)"
 if ($LASTEXITCODE -ne 0) {
     throw 'The embedded Python runtime cannot import the pinned cryptography 46.0.7 runtime after installation.'
 }
@@ -99,7 +98,7 @@ ok = (
 )
 raise SystemExit(0 if ok else 9)
 '@
-    $VerifyScript | & $RuntimePython -
+    $VerifyScript | & $RuntimePython -X utf8 -
     if ($LASTEXITCODE -ne 0) {
         throw 'Purple Dragon verification failed after Windows runtime finalization.'
     }
@@ -176,7 +175,3 @@ Write-Host 'Cryptography runtime: 46.0.7 pinned and verified'
 Write-Host "Portable files: $($FileStats.Count)"
 Write-Host ("Portable size: {0:N1} MiB" -f ([double]$Bytes / 1MB))
 Write-Host "ZIP SHA-256: $ZipHash"
-
-Remove-Item Env:PYTHONHOME -ErrorAction SilentlyContinue
-Remove-Item Env:PYTHONNOUSERSITE -ErrorAction SilentlyContinue
-Remove-Item Env:PYTHONUTF8 -ErrorAction SilentlyContinue

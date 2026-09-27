@@ -803,6 +803,7 @@ async function callApi(method,...args){
   return await api[method](...args);
 }
 function applyPoolConfigToForm(c,passwordValue){
+  resetPoolPreset();
   c=c||{};
   const backups=Array.isArray(c.pool_backup_urls)?c.pool_backup_urls:[];
   if(c.pool_url!==undefined)$('#poolUrl').value=c.pool_url||'';
@@ -1454,6 +1455,63 @@ function syncFailoverPolicyUi(useDefault=false){
   if($('#poolPrimaryRecovery'))$('#poolPrimaryRecovery').disabled=policy==='manual';
   if($('#poolFailoverPolicyDetail'))$('#poolFailoverPolicyDetail').textContent=FAILOVER_POLICY_TEXT[policy]||FAILOVER_POLICY_TEXT.balanced;
 }
+// BEGIN OPTIONAL POOL PRESETS
+// Local catalog covered by the existing signed ui/script.js manifest entry.
+// Inclusion criteria and source-review records: docs/POOL_PRESETS.md.
+const POOL_PRESETS=Object.freeze([
+  Object.freeze({id:'braiins',name:'Braiins Pool',model:'FPPS',
+    url:'stratum+tcp://stratum.braiins.com:3333',fee:2.5,
+    worker:'Your Braiins account name.worker name (account required)',
+    password:'Unused by this pool; any value or empty. Enter it yourself if needed.',
+    detail:'Share-based FPPS rewards. Published standard fee; account discounts and payout fees may differ. Provider supports ASIC mining; CPU/GPU are unsupported.',
+    sources:['https://academy.braiins.com/braiins-pool/btc-mining-setup','https://academy.braiins.com/braiins-pool/rewards-and-payouts'],reviewed:'2026-09-27'}),
+  Object.freeze({id:'ckpool-solo',name:'CKPool Solo',model:'Solo',
+    url:'stratum+tcp://stratum.ckpool.org:3333',fee:2,
+    worker:'Your own Bitcoin address, optionally followed by .worker name',
+    password:'Ignored by this pool; x is a public example. Enter it yourself if needed.',
+    detail:'Rewards depend on finding a Bitcoin block; ordinary shares do not earn regular payouts.',
+    sources:['https://solo.ckpool.org/'],reviewed:'2026-09-27'})
+]);
+function selectedPoolPreset(){
+  return POOL_PRESETS.find(p=>p.id===$('#poolPresetSelect')?.value);
+}
+function previewPoolPreset(){
+  const preset=selectedPoolPreset();
+  const reviewed=$('#poolPresetReviewed');
+  reviewed.checked=false;reviewed.disabled=!preset;
+  $('#poolPresetApply').disabled=true;
+  $('#poolPresetPreview').textContent=preset?
+    `${preset.name} · ${preset.model}\nPrimary endpoint: ${$('#poolUrl').value} → ${preset.url}\nFee assumption: ${$('#poolProfileFee').value}% → ${preset.fee}% (editable)\nTransport: Stratum V1 over TCP (unencrypted).\nWorker format: ${preset.worker}\nPassword guidance: ${preset.password}\n${preset.detail}\nOnly endpoint and fee will change. Wallet/worker, passwords, backups and failover stay as entered. Nothing is saved or connected.\nDocumentation reviewed ${preset.reviewed}: ${preset.sources.join(' | ')}`:
+    'Choose a preset to preview its endpoint and fee assumption.';
+}
+function resetPoolPreset(){
+  if(!$('#poolPresetSelect'))return;
+  $('#poolPresetSelect').value='';previewPoolPreset();
+}
+function applyPoolPreset(){
+  const preset=selectedPoolPreset();
+  if(!preset||!$('#poolPresetReviewed').checked)return;
+  // Deliberately avoid applyPoolConfigToForm: it also writes backups and policies.
+  $('#poolUrl').value=preset.url;
+  $('#poolProfileFee').value=String(preset.fee);
+  previewPoolPreset();
+  $('#poolProfileResult').textContent='Preset applied to the editor only. Review worker/wallet, password and existing backups, then use Save Profile. Test and Activate remain separate actions.';
+}
+function initPoolPresets(){
+  const select=$('#poolPresetSelect');if(!select)return;
+  for(const preset of POOL_PRESETS){
+    const option=document.createElement('option');option.value=preset.id;
+    option.textContent=`${preset.name} — ${preset.model}`;select.appendChild(option);
+  }
+  select.addEventListener('change',previewPoolPreset);
+  $('#poolPresetReviewed').addEventListener('change',()=>{
+    $('#poolPresetApply').disabled=!selectedPoolPreset()||!$('#poolPresetReviewed').checked;
+  });
+  $('#poolPresetApply').addEventListener('click',applyPoolPreset);
+  // Editing either target invalidates the preview acknowledgement.
+  for(const id of ['#poolUrl','#poolProfileFee'])$(id).addEventListener('input',previewPoolPreset);
+}
+// END OPTIONAL POOL PRESETS
 function profilePayload(){
   const base=poolPayload();
   return {...base,
@@ -1468,6 +1526,7 @@ function profilePayload(){
   };
 }
 function clearPoolProfileEditor(){
+  resetPoolPreset();
   if($('#poolProfileSelect'))$('#poolProfileSelect').value='';
   if($('#poolProfileName'))$('#poolProfileName').value='';
   if($('#poolProfileNotes'))$('#poolProfileNotes').value='';
@@ -1479,6 +1538,7 @@ function clearPoolProfileEditor(){
 }
 function loadProfileIntoEditor(profile){
   if(!profile)return;
+  resetPoolPreset();
   if($('#poolProfileSelect'))$('#poolProfileSelect').value=profile.id||'';
   if($('#poolProfileName'))$('#poolProfileName').value=profile.name||'';
   if($('#poolProfileFee'))$('#poolProfileFee').value=Number(profile.pool_fee_percent??1);
@@ -2462,6 +2522,7 @@ $('#logsClear').addEventListener('click',async()=>{
 });
 $('#enginePrimary').addEventListener('click',async()=>{if(lastState?.miner_running)await handleResult(callApi('stop_mining'),'Mining stopped');else await handleResult(callApi('start_mining',poolPayload()),'Mining started');await refreshState()});
 $('#quickMining').addEventListener('click',()=>$('#enginePrimary').click());
+initPoolPresets();
 if($('#poolFailoverPolicy'))$('#poolFailoverPolicy').addEventListener('change',()=>syncFailoverPolicyUi(true));
 if($('#poolFailoverEnabled'))$('#poolFailoverEnabled').addEventListener('change',()=>{
   if(!$('#poolFailoverEnabled').checked){$('#poolFailoverPolicy').value='manual'}else if($('#poolFailoverPolicy').value==='manual'){$('#poolFailoverPolicy').value='balanced'}
@@ -2616,5 +2677,3 @@ $('#hashHuntClaim').addEventListener('click',claimHashHuntBlock);
 $('#hashHuntReset').addEventListener('click',resetHashHunt);
 $('#hashHuntDifficulty').addEventListener('change',e=>changeHashHuntDifficulty(e.target.value));
 renderHashHunt();
-
-

@@ -474,6 +474,16 @@
 
           <div class="pool-profile-layout">
             <div class="pool-profile-editor">
+              <div class="field">
+                <label for="poolPresetSelect">OPTIONAL POOL PRESET</label>
+                <select id="poolPresetSelect"><option value="">Custom / no preset</option></select>
+              </div>
+              <p class="muted-note">Presets are editable starting points, not endorsements. Review your worker identity and backups before saving or starting.</p>
+              <div class="result-box compact" id="poolPresetPreview" aria-live="polite">Choose a preset to preview its endpoint and fee assumption.</div>
+              <label class="check-row"><input id="poolPresetReviewed" type="checkbox" disabled> Replace the editor endpoint and fee with these values</label>
+              <div class="inline-actions">
+                <button type="button" class="btn-3d secondary" id="poolPresetApply" disabled>Apply to editor</button>
+              </div>
               <div class="form-grid">
                 <div class="field"><label>PROFILE</label><select id="poolProfileSelect"><option value="">New profile…</option></select></div>
                 <div class="field"><label>PROFILE NAME</label><input id="poolProfileName" maxlength="60" placeholder="Example: Primary BTC Pool"></div>

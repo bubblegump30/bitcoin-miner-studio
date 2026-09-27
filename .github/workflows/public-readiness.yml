@@ -44,6 +44,12 @@ jobs:
           node --check ui/script.js
           if ($LASTEXITCODE -ne 0) { throw 'ui/script.js syntax validation failed.' }
 
+      - name: Validate optional pool preset boundaries
+        shell: pwsh
+        run: |
+          node --test tests/pool_presets.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Pool preset boundary regressions failed.' }
+
       - name: Run deterministic public-readiness regressions
         shell: pwsh
         run: |
@@ -57,6 +63,8 @@ jobs:
                   selftest.bitcoin_core_setup_tests,
                   selftest.pool_powertools_tests,
                   selftest.pool_diagnostics_freshness_tests,
+                  selftest.pool_profiles_smart_failover_tests,
+                  selftest.webview_startup_dom_contract_tests,
                   selftest.regtest_lab_tests,
                   selftest.asic_solo_bridge_tests,
               ]

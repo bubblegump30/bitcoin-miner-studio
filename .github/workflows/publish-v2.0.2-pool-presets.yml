@@ -47,7 +47,7 @@ jobs:
           assert info['version'] == '2.0.2'
           assert info['archive'] == name and info['archive_sha256'].lower() == actual
           assert info['purple_dragon_protected_files'] == 73
-          assert info['startup_smoke'] == 'passed'
+          assert info['startup_smoke'] == 'passed-after-finalization'
           with zipfile.ZipFile(archive) as package:
               packaged = package.read('purple_dragon_manifest.json')
           source = pathlib.Path('purple_dragon_manifest.json').read_bytes()

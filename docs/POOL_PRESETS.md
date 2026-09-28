@@ -1,8 +1,8 @@
 # Optional pool presets
 
 Implements the editor-only portion of issue #2. Choosing a preset previews it;
-checking the replacement acknowledgement and clicking Apply to editor writes only
-the primary URL and editable fee assumption. No save, activation, connection,
+checking the replacement acknowledgement and clicking Apply to editor writes
+the primary URL and, for conventional fee models, the editable fee assumption. No save, activation, connection,
 mining start, credential write, or failover update occurs. Custom remains the
 default. All existing manual controls remain available.
 
@@ -24,19 +24,27 @@ preview after its fields are populated.
 | Entry | Endpoint | Model / fee assumption | Official sources |
 | --- | --- | --- | --- |
 | Braiins Pool | `stratum+tcp://stratum.braiins.com:3333` | FPPS / standard 2.5%; account discounts and payout fees may differ | https://academy.braiins.com/braiins-pool/btc-mining-setup and https://academy.braiins.com/braiins-pool/rewards-and-payouts |
+| BTC PoW Lab | `stratum+tcp://stratum.btcpowlab-pool.com:3333` | Hybrid Solo / no ordinary fee assumption applied; 85% finder, 10% eligible Community, 5% infrastructure | https://btcpowlab-pool.com/start, https://btcpowlab-pool.com/community and https://btcpowlab-pool.com/terms |
 | CKPool Solo | `stratum+tcp://stratum.ckpool.org:3333` | Solo / 2%; ordinary shares do not generate regular payouts | https://solo.ckpool.org/ |
 
-Both entries use the documented Stratum V1 TCP endpoint, without encryption.
+All entries use the documented Stratum V1 TCP endpoint, without encryption.
 Documentation review is not a live compatibility, availability, or payout audit.
 Braiins documents ASIC support and excludes CPU/GPU support. No user account,
 wallet address, or real password was used to verify these entries.
 
-BTC PoW Lab is deferred, not rejected. The issue supplies an endpoint and discloses
-that Carlos Monzon / Power CM Software operates the service, with no paid-placement
-or referral arrangement claimed. Before inclusion, require official documentation
-of protocol/transport, endpoint, authentication/worker format, fees, and exact
-hybrid-solo reward allocation. Do not infer those values from the proposal or give
-the service preferred placement. The feature does not depend on its inclusion.
+BTC PoW Lab is operated by Carlos Monzon / Power CM Software, who proposed the
+entry and disclosed no paid-placement or referral arrangement. Its public guide
+documents address.worker identity and public `x` password example; neither is
+filled into user fields. The published 85/10/5 hybrid allocation is not a 5%
+conventional pool fee. Applying this preset changes only the primary endpoint,
+leaving the generic fee field as entered; the app's generic profitability estimate
+cannot model hybrid finder and Community rewards. The operator reports no block
+payout history as of this review. Its published terms say automatic Community
+payout broadcasting is disabled; amounts enter payout processing after 100-block
+maturity and are subject to the 546-sat minimum and terms. Users should consult
+current pool terms before making decisions. No live Stratum compatibility probe
+was possible from this workspace because external DNS was unavailable; do not
+claim connection or payout verification from documentation alone.
 
 ## Maintenance and release
 

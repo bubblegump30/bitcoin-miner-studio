@@ -10,8 +10,8 @@ function fixture(){
   const element=()=>({value:'',checked:false,disabled:false,textContent:'',children:[],events:{},attributes:{},
     appendChild(child){this.children.push(child)},addEventListener(name,fn){this.events[name]=fn},
     setAttribute(name,value){this.attributes[name]=value},focus(){this.focused=true}});
-  for(const id of ['poolPresetSelect','poolPresetReviewed','poolPresetApply','poolPresetPreview',
-    'poolUrl','poolProfileFee','poolProfileResult','poolWorker','poolPassword','poolBackup1',
+  for(const id of ['poolPresetSelect','poolPresetReviewed','poolPresetReviewedLabel','poolPresetApply','poolPresetPreview',
+    'poolUrl','poolProfileFee','poolFeeHelp','poolProfileResult','poolWorker','poolPassword','poolBackup1',
     'poolBackup2','poolBackup3','poolFailoverPolicy','poolPrimaryRecovery','poolFailoverEnabled','poolProfileValidation',
     'poolProfileSelect','poolProfileName','poolProfileNotes','coinbaseAddress'])elements[id]=element();
   elements.poolUrl.value='stratum+tcp://old.example:3333';elements.poolProfileFee.value='7';
@@ -37,7 +37,7 @@ test('each preset changes only URL and fee; preserves identities, credentials, b
   for(const [id,url,fee] of [['braiins','stratum+tcp://stratum.braiins.com:3333','2.5'],
     ['ckpool-solo','stratum+tcp://stratum.ckpool.org:3333','2']]){
     const {elements:e,context:c}=fixture();
-    const protectedIds=Object.keys(e).filter(k=>!k.startsWith('poolPreset')&&!['poolUrl','poolProfileFee','poolProfileResult'].includes(k));
+    const protectedIds=Object.keys(e).filter(k=>!k.startsWith('poolPreset')&&!['poolUrl','poolProfileFee','poolFeeHelp','poolProfileResult'].includes(k));
     const before=protectedIds.map(k=>JSON.stringify(e[k]));
     e.poolPresetSelect.value=id;c.previewPoolPreset();e.poolPresetReviewed.checked=true;c.applyPoolPreset();
     assert.equal(e.poolUrl.value,url);assert.equal(e.poolProfileFee.value,fee);
@@ -56,12 +56,28 @@ test('manual edits and profile resets invalidate consent; unknown entries cannot
 });
 test('catalog has no default identity or credential fields and only documented entries',()=>{
   const {elements:e,context:c}=fixture();
-  assert.deepEqual(e.poolPresetSelect.children.map(x=>x.value),['braiins','ckpool-solo']);
+  assert.deepEqual(e.poolPresetSelect.children.map(x=>x.value),['braiins','btc-pow-lab','ckpool-solo']);
   const rows=JSON.parse(vm.runInContext('JSON.stringify(POOL_PRESETS)',c));
   for(const row of rows){
-    assert.ok(row.sources.every(s=>s.startsWith('https://')));assert.equal(row.reviewed,'2026-09-27');
+    assert.ok(row.sources.every(s=>s.startsWith('https://')));assert.match(row.reviewed,/^2026-09-2[78]$/);
     assert.ok(!('pool_worker' in row));assert.ok(!('pool_password' in row));
   }
+});
+test('hybrid solo preset changes only endpoint and leaves generic fee estimate untouched',()=>{
+  const {elements:e,context:c}=fixture();
+  const protectedIds=Object.keys(e).filter(k=>!k.startsWith('poolPreset')&&!['poolUrl','poolFeeHelp','poolProfileResult'].includes(k));
+  const before=protectedIds.map(k=>JSON.stringify(e[k]));
+  e.poolPresetSelect.value='btc-pow-lab';c.previewPoolPreset();
+  assert.match(e.poolPresetPreview.textContent,/unchanged.*cannot represent hybrid payouts/);
+  assert.match(e.poolPresetPreview.textContent,/Automatic Community payout broadcasting is currently disabled/);
+  assert.match(e.poolPresetReviewedLabel.textContent,/only the primary endpoint/);
+  assert.equal(e.poolUrl.value,'stratum+tcp://old.example:3333');
+  e.poolPresetReviewed.checked=true;c.applyPoolPreset();
+  assert.equal(e.poolUrl.value,'stratum+tcp://stratum.btcpowlab-pool.com:3333');
+  assert.equal(e.poolProfileFee.value,'7');
+  assert.match(e.poolFeeHelp.textContent,/does not model finder or Community rewards/);
+  assert.deepEqual(protectedIds.map(k=>JSON.stringify(e[k])),before);
+  assert.equal(e.poolPresetApply.disabled,true);assert.equal(e.poolPresetReviewed.checked,false);
 });
 test('Custom selection preserves applied and manually edited values',()=>{
   const {elements:e,context:c}=fixture();

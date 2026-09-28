@@ -1,5 +1,6 @@
 ## v2.0.3 — Setup & Profile QoL (release candidate, unsigned)
 
+- Added a documented BTC PoW Lab Hybrid Solo preset that fills only the public primary endpoint. Its preview explains the 85/10/5 reward allocation, missing block payout history, and current Community payout broadcasting limit; it leaves the ordinary fee assumption unchanged.
 - Added pool profile field examples and guidance for endpoints, worker identity, passwords, and fee assumptions.
 - Preset preview now lists the exact two editor fields it changes and explicitly explains Custom keeps current edits.
 - Added field-specific checks and focus before saving pool profiles; validation messages do not repeat user-entered credentials.

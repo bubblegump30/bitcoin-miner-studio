@@ -1465,6 +1465,12 @@ const POOL_PRESETS=Object.freeze([
     password:'Unused by this pool; any value or empty. Enter it yourself if needed.',
     detail:'Share-based FPPS rewards. Published standard fee; account discounts and payout fees may differ. Provider supports ASIC mining; CPU/GPU are unsupported.',
     sources:['https://academy.braiins.com/braiins-pool/btc-mining-setup','https://academy.braiins.com/braiins-pool/rewards-and-payouts'],reviewed:'2026-09-27'}),
+  Object.freeze({id:'btc-pow-lab',name:'BTC PoW Lab',model:'Hybrid Solo',
+    url:'stratum+tcp://stratum.btcpowlab-pool.com:3333',fee:null,
+    worker:'Your Bitcoin mainnet address.worker (worker suffix: letters, numbers, underscore or hyphen)',
+    password:'x is the public Stratum example; enter it yourself if needed. Never enter a private key.',
+    detail:'85% of a found block to the finder, 10% Community allocation to eligible nonfinders, 5% to infrastructure. Community eligibility uses accepted work over a rolling seven days. The operator reports no block payout history. Automatic Community payout broadcasting is currently disabled; recorded amounts enter the payout process after maturity, subject to the published terms and 546-sat minimum. The ordinary pool-fee percentage cannot model these hybrid rewards; review estimates separately.',
+    sources:['https://btcpowlab-pool.com/start','https://btcpowlab-pool.com/community','https://btcpowlab-pool.com/terms'],reviewed:'2026-09-28'}),
   Object.freeze({id:'ckpool-solo',name:'CKPool Solo',model:'Solo',
     url:'stratum+tcp://stratum.ckpool.org:3333',fee:2,
     worker:'Your own Bitcoin address, optionally followed by .worker name',
@@ -1475,13 +1481,22 @@ const POOL_PRESETS=Object.freeze([
 function selectedPoolPreset(){
   return POOL_PRESETS.find(p=>p.id===$('#poolPresetSelect')?.value);
 }
+function refreshPoolFeeGuidance(){
+  const help=$('#poolFeeHelp');if(!help)return;
+  const hybrid=POOL_PRESETS.some(p=>p.fee===null&&p.url===$('#poolUrl').value.trim());
+  help.textContent=hybrid?
+    'Hybrid Solo: this generic fee assumption does not model finder or Community rewards. Check the pool terms; profitability estimates may be misleading.':
+    "Used for estimates; confirm your account's actual fee.";
+}
 function previewPoolPreset(){
+  refreshPoolFeeGuidance();
   const preset=selectedPoolPreset();
   const reviewed=$('#poolPresetReviewed');
   reviewed.checked=false;reviewed.disabled=!preset;
   $('#poolPresetApply').disabled=true;
+  $('#poolPresetReviewedLabel').textContent=preset?.fee===null?' Replace only the primary endpoint; keep the current fee assumption':' Replace the editor endpoint and fee with these values';
   $('#poolPresetPreview').textContent=preset?
-    `${preset.name} · ${preset.model}\nChanges on Apply:\nPrimary endpoint: ${$('#poolUrl').value.trim()||'(empty)'} → ${preset.url}\nFee assumption: ${$('#poolProfileFee').value||'(empty)'}% → ${preset.fee}% (editable)\nTransport: Stratum V1 over TCP (unencrypted).\nWorker format: ${preset.worker}\nPassword guidance: ${preset.password}\n${preset.detail}\nUnchanged: worker/wallet, password, backup endpoints, failover policy and settings. Apply does not save, test, activate or connect.\nDocumentation reviewed ${preset.reviewed}: ${preset.sources.join(' | ')}`:
+    `${preset.name} · ${preset.model}\nChanges on Apply:\nPrimary endpoint: ${$('#poolUrl').value.trim()||'(empty)'} → ${preset.url}\nFee assumption: ${preset.fee===null?`${$('#poolProfileFee').value||'(empty)'}% → unchanged. This generic estimate cannot represent hybrid payouts.`:`${$('#poolProfileFee').value||'(empty)'}% → ${preset.fee}% (editable)`}\nTransport: Stratum V1 over TCP (unencrypted).\nWorker format: ${preset.worker}\nPassword guidance: ${preset.password}\n${preset.detail}\nUnchanged: worker/wallet, password, backup endpoints, failover policy and settings. Apply does not save, test, activate or connect.\nDocumentation reviewed ${preset.reviewed}: ${preset.sources.join(' | ')}`:
     'Custom selected. Current endpoint, fee and all other edits are kept. Choose a preset to preview its endpoint and fee assumption.';
 }
 function resetPoolPreset(){
@@ -1493,9 +1508,11 @@ function applyPoolPreset(){
   if(!preset||!$('#poolPresetReviewed').checked)return;
   // Deliberately avoid applyPoolConfigToForm: it also writes backups and policies.
   $('#poolUrl').value=preset.url;
-  $('#poolProfileFee').value=String(preset.fee);
+  if(preset.fee!==null)$('#poolProfileFee').value=String(preset.fee);
   previewPoolPreset();
-  $('#poolProfileResult').textContent='Preset applied to the editor only. Review worker/wallet, password and existing backups, then use Save Profile. Test and Activate remain separate actions.';
+  $('#poolProfileResult').textContent=preset.fee===null?
+    'Endpoint applied to the editor only. The fee assumption is unchanged and cannot represent hybrid rewards. Review the pool terms, worker/wallet, password and backups before saving; Test and Activate remain separate actions.':
+    'Preset applied to the editor only. Review worker/wallet, password and existing backups, then use Save Profile. Test and Activate remain separate actions.';
 }
 function initPoolPresets(){
   const select=$('#poolPresetSelect');if(!select)return;

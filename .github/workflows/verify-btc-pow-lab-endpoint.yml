@@ -1,0 +1,37 @@
+name: Verify BTC PoW Lab Public Stratum Endpoint
+
+on:
+  push:
+    branches:
+      - release/v2.0.3-setup-profile-qol
+    paths:
+      - .github/workflows/verify-btc-pow-lab-endpoint.yml
+
+permissions:
+  contents: read
+
+jobs:
+  public-stratum-subscribe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Probe public Stratum V1 subscribe without a wallet or worker
+        run: |
+          python3 - <<'PY'
+          import json
+          import socket
+
+          host, port = 'stratum.btcpowlab-pool.com', 3333
+          with socket.create_connection((host, port), timeout=8) as sock:
+              sock.settimeout(8)
+              sock.sendall(b'{"id":1,"method":"mining.subscribe","params":["BitcoinMinerStudio-preset-review"]}\n')
+              with sock.makefile('rb') as stream:
+                  for _ in range(10):
+                      reply = json.loads(stream.readline(8192))
+                      if reply.get('id') == 1:
+                          assert reply.get('result') and not reply.get('error'), reply
+                          print('Public Stratum V1 subscribe succeeded on documented host:port.')
+                          break
+                  else:
+                      raise AssertionError('No mining.subscribe response was received.')
+          PY

@@ -5,13 +5,13 @@
   "security_scheme": "PD-PROVENANCE-2",
   "protection_profile": "signed-provenance+file-integrity+critical-action-gating",
   "publisher_key_id": "PDK-808EE470A2FF419A3A827956",
-  "build_id": "BMS-2.0.3-STABLE-6F309681",
-  "provenance_tag": "PD-BMS-6F3096812BDA126C",
-  "issued_utc": "2026-09-28T03:07:51Z",
+  "build_id": "PENDING-OFFLINE-SIGNATURE",
+  "provenance_tag": "PENDING-OFFLINE-SIGNATURE",
+  "issued_utc": "",
   "marker_digest": "f671a093bfbb7b2c9eaf0152057e3896a420e50421c83894fa722cdd6c63172c",
   "release_watermark": "PD203-50940E8D455B16A940265B65",
-  "watermark_digest": "bb4ec5bbff8bb2c95a098776e23308287883c52c360fd5d326f319280cff796b",
-  "release_seal": "PD6-BB4EC5BBFF8BB2C95A09",
+  "watermark_digest": "",
+  "release_seal": "",
   "files": {
     "main.py": "c97a0a4cfbcb0fe0b2e33e09bcfa9059f48ff17a123c06a243053bad4d518e9f",
     "launch.pyw": "87ca878173ecfc8f87464d6e317cae90cdb943e9f8d2df629ce911dd7fe2b30a",
@@ -88,6 +88,6 @@
     "ui/styles.css": "95c0eeeedeafb3fe2d95044483b8a6e25d9f61e1de5b48623dc2ca2f3fad07d2",
     "ui/script.js": "319e4e3e7b106cb57347bec6956490bd6070669b2aeab52db90ed1158b6615ae"
   },
-  "signature": "edaDERCwBClefAudxJkBgkkZIvyLDdDwMc5NhAENPrcpTzWNUp1Ubck+P+hDaJsMJJunbJhfJVA/I+QIbcHIIFFUGkZ6l/O73P9FroDAeCH0/z1dxJ+DdIlB/ElhhbKyu6jyipPBF5tJPFd64PyPPjngt8oNaHc0rvF/NGOWAADTxydi2LKJL5upX0dOhdnz9IvHWSjeK3FdU6dnIjGK1gtDAOhnDVz8zODtM8CFp8xGAWD5e8qczbb4sEa14pDbUI12dCQDyWjtXiU1/sVcyMEY3t7vFgTDIBBjR8+DqSG59HvQkyaWeVGfm8U5tk0sunwLOlind/gqica79ueqhf2jVIX/PRsdidVtoMN9K84F5bpkcfCVgoReIDug9k+oMIxM/iuH/PFjJgHrvTU43sl3k6FfJjpA9tGdCa/rfXO76DGr9ZplxnXdeROTnxx4cpIiFbbIDv3NlNLLrQS9cMxB3wpnL+Uo92iWmP1Y4JWWXFevA8nkppQ8V5aj9ywI",
+  "signature": "",
   "publisher_name": "Purple Dragon Foundation ltd"
 }

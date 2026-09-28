@@ -5,9 +5,9 @@
   "security_scheme": "PD-PROVENANCE-2",
   "protection_profile": "signed-provenance+file-integrity+critical-action-gating",
   "publisher_key_id": "PDK-808EE470A2FF419A3A827956",
-  "build_id": "BMS-2.0.2-STABLE-12199AD0",
-  "provenance_tag": "PD-BMS-12199AD02319B4E8",
-  "issued_utc": "2026-09-18T12:49:55Z",
+  "build_id": "BMS-2.0.2-STABLE-B1CCD64D",
+  "provenance_tag": "PD-BMS-B1CCD64DAE5000C7",
+  "issued_utc": "2026-09-28T02:02:20Z",
   "marker_digest": "f671a093bfbb7b2c9eaf0152057e3896a420e50421c83894fa722cdd6c63172c",
   "release_watermark": "PD202-01511F75E57F2792E17E9194",
   "watermark_digest": "9d3f083cfa26de47aa7046754a656a9f58a866dbc862e778d38e4f0bb8108401",
@@ -62,8 +62,8 @@
     "selftest.bat": "fe29c02851f150105988004d89e0e45da63afcf78e3f9008e91b97b3165115ea",
     "tools/purple_dragon_sign.py": "d4a3b9aebff281297070b64df965e4b2f9cc046c3b856fc6f2d35dc53ddcc171",
     "tools/prepare_v2_0_2.py": "853e2db6b329d97d3b7b64beb8df375beea90a819fa5ba8a843f5638603d0166",
-    "build_windows_portable.ps1": "ff00ca8c06d1d37523feb38b8afcb5a3a3d6da7f82df12082da004c451d82849",
-    "finalize_windows_portable.ps1": "4d6d77f455d84463e4498145256174295609aa24ac6c2cda6f59077fe792d20c",
+    "build_windows_portable.ps1": "2c406452442ccd9eb1a5e58811ae7ac4ed923f70a05e6585a892a03bffaf4efd",
+    "finalize_windows_portable.ps1": "004f0ccfbeef081ad3adc445124444b942a38bec72b2865704256b5d2609edbe",
     "sign_v2_0_2_release.ps1": "946a9083d9c6f6a98b12ca8ed5f8e5701046dcb20f9f4df3f3d439da20cafe9c",
     "selftest.py": "b9aa6710fb7bbf592b553b54f591d0bd020c0ab42850ab39004199d3ff787254",
     "credentials.py": "e1893eff2f9c4157ab3cd7b0ebaa5cd4e039df47892f077bed4af161cc6d3b42",
@@ -83,10 +83,10 @@
     "asic_manager.py": "0f79e0e0fd7219d3bdbd90e016249b376933b67673d23cc378d84576ac7c48d9",
     "asic_solo_bridge.py": "1ea3db12eb4ef64a02432659b49123325c2ee3bbf930b2bdc58fd34132d1fe1b",
     "fleet_monitor.py": "d9c5888fe47be3885cd3c0ae8175bf19a9d8d81343d53375c1906dcab8eca96e",
-    "ui/index.html": "ee8839cd7f7a57cb43ec6131350aa34623a3673f95f75f4f0aebdd3b81f3cb99",
+    "ui/index.html": "ce69d467e140d88956165b25830c2c780ba95ad20fb25b031561ce2e157f5641",
     "ui/styles.css": "2f1e133e4acd2a530792d8d4dec685e604c71998222e6415aa29a6c0234ad677",
-    "ui/script.js": "82c08338d568fbec56465088199abb01683a360937ab06dfe0b0063ce2835135"
+    "ui/script.js": "aea6abc6a82d3e104576829a430e159d7e2128bbb32ed424c829c43376053b2f"
   },
-  "signature": "Ac6GvCOxfTBAPfJr1ktQz9ghNpQV9r/t7Nom9T9BlEggwLE8cbg/Oy6VeGfWflsvb1RMDuomsIjpDDjOVXoggh0o1hb468gUdsY6uJAnJ+oBquULPpO+r0k2PSdsGBUh+AEjB3vorHRgM2e6xRfwE9FIGIq39kW1NRniqj4XQQV0Q6mYMgWAHWjQ3PRkKiXyQkNZ9mFOWA+pwZFzvAONArIU0VoX0zEJI+7pPBNtqwIlM00jgI0Q1l1C1s2jCsj6IB+eTx+UUOX+l7yW/BP+MiBuYAxVPxKxT1a0czdeZSsT3uFGEntlJ0i4B/ksm7tEuNEkHJ6HdWE/+THZoRlTlnn8ZknDndntqRDEvD/LASH2HWXzMujCEszeirpKkM27BAwm2nyWExJp+DPPg5xZaZ2gGrpe4A2TZ4wi3hRsutEmNGgDBvjUldleT8MaaJ4uTm3a7iKWbm3W89MkMwrNjTtwOcPUCzPNTPiXWy9tBlpUqYm3l0kdw4HwmtXfogm3",
+  "signature": "alxaZHfke+P+O9Rstf51w92QgKqR8WLXnKBHFZjcqrijx1SMS4KittmwHwgbId/6R+UbKfgD+c1QutUIvlF0aG+b5Y4Nhw9UsAPsICDz+hLfoKxd5qk3Ragrx/5NoX4cjAuvQok1UE3SpVjK1p53VwcVhp5neCUFWTQ1107qaKrHky/gb1PJX3ucxEtfV1afBMdIlGKTaP0UV5uQ6dO62nXcsRWNzqmNbxFnoi5JlO/2xqS/hJYzk45l4+PVv5slV9rw6d5TZU8njeea1kLMm8DISGhTuozTtus2ZgCO6Qv9aB0F5CVcSBWNYHshAOm5q6mT6FYAfSqpP64bwE74CxdSTkkqtGGW05N5wqTXiYFWkx+t3eceuFKld8CK+oh4PnQrR1QFcV1fvzaUFA8zxhqJnbLgGEAT8D4IhzlJtOK0c2w5rz8HIVcSkJD4rFAzvldEoGtDi6gBf++E+1NCvf5qkW+r7HsvUg+DS+jhH0hjRWfZySWivuKffNFun3PQ",
   "publisher_name": "Purple Dragon Foundation ltd"
 }

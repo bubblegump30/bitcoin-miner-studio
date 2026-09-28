@@ -3,10 +3,20 @@
 **Publisher:** Purple Dragon Foundation ltd  
 **Created by:** Purple Dragon Foundation ltd
 
+## Download the current Windows build
+
+[Download Bitcoin Miner Studio v2.0.2 for Windows x64](https://github.com/bubblegump30/bitcoin-miner-studio/releases/download/v2.0.2/BitcoinMinerStudio-v2.0.2-Windows-x64.zip) · [SHA-256 checksums](https://github.com/bubblegump30/bitcoin-miner-studio/releases/download/v2.0.2/SHA256SUMS-Windows.txt) · [All releases](https://github.com/bubblegump30/bitcoin-miner-studio/releases)
+
+Extract the ZIP to a new folder and run `BitcoinMinerStudio.exe`. Python is included; Microsoft Edge WebView2 Runtime is required on Windows 10/11. Verify the ZIP checksum before running it, and check that Purple Dragon Security reports **TRUSTED · 73/73 protected files** after extraction. The EXE does not have a Microsoft Authenticode signature.
+
+The v2.0.2 release page has one current Windows ZIP and its checksum file. Older versions remain under [Releases](https://github.com/bubblegump30/bitcoin-miner-studio/releases).
+
 
 ## v2.0.2 — Public Readiness & Reliability Hotfix
 
 v2.0.2 hardens the stable Windows release for broader distribution: deterministic Bitcoin Core tests no longer depend on the host machine, Stratum endpoint validation is stricter, settings writes are atomic, Release Readiness understands the direct WebView2 architecture, and the embedded CPython runtime is checksum-pinned before packaging. The final offline-signed release expands Purple Dragon protection to 73 files, including the native Python bridge, native C# host, and Windows release/signing tooling.
+
+The current build adds **optional pool presets** in the profile editor for Braiins Pool (FPPS) and CKPool Solo. Choose one to preview its public endpoint and fee assumption, then explicitly apply those editable values. Wallet/worker identity, credentials, backups and failover settings remain under your control; saving, testing, activation and mining start are separate actions. BTC PoW Lab is deferred pending documentation of its authentication, fees and hybrid-solo payout rules. See [pool preset sources and maintenance notes](docs/POOL_PRESETS.md). Windows packaging now isolates build-host Python and reports a stale signed manifest before packaging.
 
 ## v2.0.1 — Diagnostics / RPC Reliability Hotfix
 

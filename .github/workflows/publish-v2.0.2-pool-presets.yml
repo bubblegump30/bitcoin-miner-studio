@@ -1,0 +1,95 @@
+name: Publish signed v2.0.2 pool preset build
+
+# One-time promotion of the previously verified build into the existing release.
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/publish-v2.0.2-pool-presets.yml]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out signed source
+        uses: actions/checkout@v4
+
+      - name: Download exact successful main build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run=36368411750
+          state=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.conclusion + " " + .head_sha')
+          test "$state" = 'success aecc2ea1a94ea916839bc7ba94e9834670bf1098'
+          mkdir release-download
+          gh run download "$run" --repo "$GITHUB_REPOSITORY" --name BitcoinMinerStudio-Windows-x64 --dir release-download
+
+      - name: Verify package, checksum, manifest and build metadata
+        run: |
+          python - <<'PY'
+          import hashlib, json, pathlib, zipfile
+
+          root = pathlib.Path('release-download')
+          name = 'BitcoinMinerStudio-v2.0.2-Windows-x64.zip'
+          archive = root / name
+          sums = root / 'SHA256SUMS-Windows.txt'
+          metadata = root / 'BitcoinMinerStudio-Windows-build.json'
+          assert all(p.is_file() for p in (archive, sums, metadata))
+          actual = hashlib.sha256(archive.read_bytes()).hexdigest()
+          entries = dict((line.split()[1], line.split()[0]) for line in sums.read_text().splitlines())
+          assert entries[name].lower() == actual
+          info = json.loads(metadata.read_text(encoding='utf-8-sig'))
+          assert info['version'] == '2.0.2'
+          assert info['archive'] == name and info['archive_sha256'].lower() == actual
+          assert info['purple_dragon_protected_files'] == 73
+          assert info['startup_smoke'] == 'passed'
+          with zipfile.ZipFile(archive) as package:
+              packaged = package.read('purple_dragon_manifest.json')
+          source = pathlib.Path('purple_dragon_manifest.json').read_bytes()
+          assert packaged == source, 'packaged signature does not match main'
+          manifest = json.loads(source)
+          assert manifest['version'] == '2.0.2' and manifest['signature']
+          assert len(manifest['files']) == 73
+          print('Verified signed main build:', actual)
+          PY
+
+      - name: Upload distinct assets and update existing release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag=v2.0.2
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
+          if ! grep -q '## September 27 pool preset update' notes.md; then
+            cat >> notes.md <<'EOF'
+
+          ## September 27 pool preset update
+
+          **Current Windows download:** `BitcoinMinerStudio-v2.0.2-Windows-x64.zip`.
+          This build is from the signed source at commit
+          [`aecc2ea`](https://github.com/bubblegump30/bitcoin-miner-studio/commit/aecc2ea1a94ea916839bc7ba94e9834670bf1098).
+          The original `RC-FINAL-NATIVE-TRAY.zip` remains available for historical comparison.
+
+          Pool Profiles now offer optional, editable Braiins Pool and CKPool Solo
+          starting points. Applying a preset changes only the primary endpoint and
+          fee assumption; saving, testing and activation stay explicit. BTC PoW Lab
+          is deferred until its terms are independently documented. The Windows
+          build also fixes the packaging retry environment leak and now reports
+          stale publisher signatures directly.
+
+          Verify the new ZIP against `SHA256SUMS-Windows.txt` and check that the
+          extracted application's Purple Dragon Security state is TRUSTED (73/73).
+          The ZIP does not claim Microsoft Authenticode signing.
+          EOF
+          fi
+          gh release upload "$tag" \
+            release-download/BitcoinMinerStudio-v2.0.2-Windows-x64.zip \
+            release-download/SHA256SUMS-Windows.txt \
+            release-download/BitcoinMinerStudio-Windows-build.json \
+            --repo "$GITHUB_REPOSITORY" --clobber
+          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --notes-file notes.md

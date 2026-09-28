@@ -76,6 +76,22 @@ jobs:
           node --test tests/pool_presets.test.cjs
           if ($LASTEXITCODE -ne 0) { throw 'Pool preset boundary regressions failed.' }
 
+      - name: Validate v2.0.3 release version alignment
+        shell: pwsh
+        run: |
+          @'
+          import json
+          from pathlib import Path
+          info = json.loads(Path('release_info.json').read_text(encoding='utf-8'))
+          manifest = json.loads(Path('purple_dragon_manifest.json').read_text(encoding='utf-8'))
+          version = info['version']
+          assert version == manifest['version']
+          assert f'VERSION = "{version}"' in Path('webview_app.py').read_text(encoding='utf-8')
+          assert f'Bitcoin Miner Studio v{version}' in Path('windows_native_host.cs').read_text(encoding='utf-8')
+          assert f'v{version} · UPDATE &amp; RELEASE CENTER' in Path('ui/index.html').read_text(encoding='utf-8')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Release version labels are inconsistent.' }
+
       - name: Run deterministic public-readiness regressions
         shell: pwsh
         run: |

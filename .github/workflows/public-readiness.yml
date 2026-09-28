@@ -44,6 +44,32 @@ jobs:
           node --check ui/script.js
           if ($LASTEXITCODE -ne 0) { throw 'ui/script.js syntax validation failed.' }
 
+      - name: Validate portable Python isolation
+        shell: pwsh
+        run: |
+          foreach ($file in @('build_windows_portable.ps1', 'finalize_windows_portable.ps1')) {
+            $tokens = $null
+            $errors = $null
+            $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD $file), [ref]$tokens, [ref]$errors)
+            if ($errors.Count) { throw "$file has PowerShell parse errors: $errors" }
+            $writes = $ast.FindAll({ param($node)
+              $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+              $node.Left.Extent.Text -match '^\$env:PYTHON'
+            }, $true)
+            if ($writes.Count) { throw "$file must not mutate the caller's Python environment" }
+          }
+          $savedHome = $env:PYTHONHOME
+          $savedPath = $env:PYTHONPATH
+          try {
+            $env:PYTHONHOME = Join-Path $env:RUNNER_TEMP 'nonexistent-portable-runtime'
+            $env:PYTHONPATH = $env:PYTHONHOME
+            python -E -c "import encodings, sys; assert sys.version_info[:2] == (3, 12); print('Build-host Python ignores inherited runtime paths')"
+            if ($LASTEXITCODE -ne 0) { throw 'Build-host Python isolation regression' }
+          } finally {
+            $env:PYTHONHOME = $savedHome
+            $env:PYTHONPATH = $savedPath
+          }
+
       - name: Validate optional pool preset boundaries
         shell: pwsh
         run: |

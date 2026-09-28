@@ -3,6 +3,8 @@
 **Publisher:** Purple Dragon Foundation ltd  
 **Created by:** Purple Dragon Foundation ltd
 
+> **v2.0.3 in preparation:** Setup & Profile QoL improves pool profile guidance, preset review, and validation. The current downloadable signed release remains v2.0.2 until v2.0.3 passes publisher signing and Windows validation.
+
 ## Download the current Windows build
 
 [Download Bitcoin Miner Studio v2.0.2 for Windows x64](https://github.com/bubblegump30/bitcoin-miner-studio/releases/download/v2.0.2/BitcoinMinerStudio-v2.0.2-Windows-x64.zip) · [SHA-256 checksums](https://github.com/bubblegump30/bitcoin-miner-studio/releases/download/v2.0.2/SHA256SUMS-Windows.txt) · [All releases](https://github.com/bubblegump30/bitcoin-miner-studio/releases)

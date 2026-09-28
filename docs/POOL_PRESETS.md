@@ -13,6 +13,12 @@ the identity they intend to use with the new primary endpoint. The editor shares
 its fields with explicit mining actions, so review before Start Mining as well as
 before Save Profile. Test Profile operates on the saved profile, not unsaved edits.
 
+In v2.0.3, the preview names the two values that Apply replaces. Switching to
+Custom leaves all current edits intact. Save Profile checks the entered endpoint,
+worker and fee fields and points to the first invalid field; errors do not copy
+typed secrets into the validation message. Loading a saved profile refreshes the
+preview after its fields are populated.
+
 ## Catalog review — 2026-09-27
 
 | Entry | Endpoint | Model / fee assumption | Official sources |

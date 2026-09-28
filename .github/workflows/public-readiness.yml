@@ -161,7 +161,7 @@ jobs:
 
           assert not (root / 'startup-error.log').exists(), 'startup-error.log must not be committed'
           assert not (root / 'native-backend.log').exists(), 'native-backend.log must not be committed'
-          assert manifest.get('version') == '2.0.2', manifest.get('version')
+          assert manifest.get('version') in {'2.0.2', '2.0.3'}, manifest.get('version')
           required_signer_inputs = {
               'windows_native_bridge.py',
               'windows_native_host.cs',
@@ -170,6 +170,8 @@ jobs:
               'finalize_windows_portable.ps1',
               'sign_v2_0_2_release.ps1',
           }
+          if manifest.get('version') == '2.0.3':
+              required_signer_inputs.add('sign_v2_0_3_release.ps1')
           for required in required_signer_inputs:
               assert f'"{required}"' in signer, f'v2.0.2 signer must protect {required}'
 
@@ -199,11 +201,12 @@ jobs:
           if manifest.get('signature'):
               for required in required_signer_inputs:
                   assert required in protected, f'signed v2.0.2 manifest must protect {required}'
-              assert len(protected) == 73, f'signed v2.0.2 manifest must contain 73 protected files, got {len(protected)}'
-              print('[PASS] signed v2.0.2 manifest release-hygiene checks')
+              expected = 74 if manifest.get('version') == '2.0.3' else 73
+              assert len(protected) == expected, f'signed manifest must contain {expected} protected files, got {len(protected)}'
+              print('[PASS] signed manifest release-hygiene checks')
           else:
               assert manifest.get('build_id') == 'PENDING-OFFLINE-SIGNATURE'
-              print('[PASS] prepared v2.0.2 pre-sign release-hygiene checks')
+              print('[PASS] prepared pre-sign release-hygiene checks')
 
           print('[PASS] publisher private key absent from repository')
           '@ | python -
@@ -213,4 +216,4 @@ jobs:
         shell: pwsh
         run: |
           Write-Host 'Public-readiness source gate complete.'
-          Write-Host 'Full Purple Dragon integrity validation runs after the final v2.0.2 manifest is re-signed with the offline publisher private key.'
+          Write-Host 'Full Purple Dragon integrity validation runs after the final manifest is re-signed with the offline publisher private key.'

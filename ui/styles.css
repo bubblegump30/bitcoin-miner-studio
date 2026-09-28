@@ -1595,6 +1595,10 @@ html[data-theme="frost"] .foundation-banner-card,html[data-theme="frost"] .found
 .pool-profile-hero-grid small{display:block;font-size:6.5px;color:var(--muted);letter-spacing:.08em}.pool-profile-hero-grid strong{display:block;margin-top:4px;font-size:9px}
 .pool-profile-layout{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(440px,.92fr);gap:12px}.pool-profile-editor,.pool-profile-list-wrap{padding:13px;border-radius:13px;background:rgba(var(--panel-rgb),.48);border:1px solid rgba(var(--accent-soft-rgb),.08)}
 .pool-profile-editor textarea{resize:vertical;min-height:58px}.pool-profile-actions{margin-top:11px;flex-wrap:wrap}.pool-profile-table td:first-child{font-weight:800}.pool-profile-table .active-row td{background:rgba(var(--accent-rgb),.045)}
+.pool-profile-editor .field small,.pool-pt-config .field small{display:block;margin-top:5px;color:var(--muted);line-height:1.45;font-size:10px}
+.pool-profile-validation{min-height:0!important;max-height:none!important;margin-top:10px;color:#ffb6b6;border-color:rgba(255,120,120,.4)}
+.pool-profile-validation[hidden]{display:none}
+.pool-profile-editor [aria-invalid="true"],.pool-pt-config [aria-invalid="true"]{border-color:#ff9292}
 .pool-profile-state{display:inline-flex;padding:3px 5px;border-radius:999px;font-size:6px;font-weight:900;border:1px solid rgba(var(--accent-soft-rgb),.13);color:var(--muted)}.pool-profile-state.active{color:#8ff0c4;border-color:rgba(101,223,163,.22)}.pool-profile-credential{font-size:6.5px;color:var(--muted)}.pool-profile-credential.yes{color:#8ff0c4}
 #poolFailoverPolicyDetail{min-height:26px}.btn-3d.danger{border-color:rgba(255,90,110,.28);color:#ff9aa8;background:linear-gradient(180deg,rgba(120,35,50,.40),rgba(65,20,31,.48))}
 @media(max-width:1180px){.pool-profile-layout{grid-template-columns:1fr}.pool-profile-hero-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}

@@ -1,0 +1,67 @@
+name: Publish signed v2.0.3 Windows release
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/publish-v2.0.3.yml]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact signed source and download successful Windows artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view v2.0.3 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'v2.0.3 release already exists; refusing to overwrite assets.' >&2
+            exit 1
+          fi
+          python3 -m pip install --quiet 'cryptography>=43,<47'
+          python3 - <<'PY'
+          import json
+          from purple_dragon_security import verify_integrity
+          state=verify_integrity()
+          assert state['trust_level']=='TRUSTED' and state['signature_valid'],state
+          assert state['release_version']=='2.0.3',state
+          assert state['verified_file_count']==state['protected_file_count']==74,state
+          assert state['build_id']=='BMS-2.0.3-STABLE-065DC423',state
+          print('Signed source verified:',state['build_id'])
+          PY
+          mkdir release-download
+          gh run download 36374364787 --repo "$GITHUB_REPOSITORY" \
+            --name BitcoinMinerStudio-v2.0.3-Windows-x64-RC --dir release-download
+          python3 - <<'PY'
+          import hashlib,json, pathlib,zipfile
+          root=pathlib.Path('release-download')
+          asset=root/'BitcoinMinerStudio-v2.0.3-Windows-x64.zip'
+          checksums=(root/'SHA256SUMS-Windows.txt').read_text(encoding='utf-8')
+          digest=hashlib.sha256(asset.read_bytes()).hexdigest()
+          assert digest=='b1aab4ee20a42ff44b719eff81cf29e1399f96b24332e8121a343216230a88af',digest
+          assert f'{digest}  {asset.name}' in checksums
+          with zipfile.ZipFile(asset) as archive:
+            manifest=json.loads(archive.read('purple_dragon_manifest.json'))
+            assert manifest['version']=='2.0.3' and manifest['build_id']=='BMS-2.0.3-STABLE-065DC423'
+            assert manifest['signature'] and len(manifest['files'])==74
+            assert b'stratum.btcpowlab-pool.com:3333' in archive.read('ui/script.js')
+            for path, expected in manifest['files'].items():
+              assert hashlib.sha256(archive.read(path)).hexdigest()==expected,path
+          print('Exact signed Windows ZIP and checksum verified:',digest)
+          PY
+      - name: Publish one Windows ZIP and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v2.0.3 \
+            release-download/BitcoinMinerStudio-v2.0.3-Windows-x64.zip \
+            release-download/SHA256SUMS-Windows.txt \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title 'Bitcoin Miner Studio v2.0.3 — Setup & Profile QoL' \
+            --notes-file GITHUB_RELEASE_NOTES-v2.0.3.md

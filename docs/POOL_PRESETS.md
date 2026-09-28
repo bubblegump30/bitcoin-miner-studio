@@ -19,7 +19,7 @@ worker and fee fields and points to the first invalid field; errors do not copy
 typed secrets into the validation message. Loading a saved profile refreshes the
 preview after its fields are populated.
 
-## Catalog review — 2026-09-27
+## Catalog review — 2026-09-28
 
 | Entry | Endpoint | Model / fee assumption | Official sources |
 | --- | --- | --- | --- |
@@ -42,9 +42,11 @@ cannot model hybrid finder and Community rewards. The operator reports no block
 payout history as of this review. Its published terms say automatic Community
 payout broadcasting is disabled; amounts enter payout processing after 100-block
 maturity and are subject to the 546-sat minimum and terms. Users should consult
-current pool terms before making decisions. No live Stratum compatibility probe
-was possible from this workspace because external DNS was unavailable; do not
-claim connection or payout verification from documentation alone.
+current pool terms before making decisions. External DNS was unavailable in the
+local workspace. A one-time
+GitHub Actions probe on 2026-09-28 confirmed the public Stratum V1 endpoint
+responded to `mining.subscribe` without a wallet or worker. This does not verify
+worker authorization, live mining, block finding, or payout behavior.
 
 ## Maintenance and release
 

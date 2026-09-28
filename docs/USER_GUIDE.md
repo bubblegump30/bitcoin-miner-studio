@@ -123,4 +123,6 @@ Use **Diagnostics & Support** for Quick or Full health scans. A support bundle i
 6. **Save Profile → Test Profile → Activate → Start Mining**.
 7. Monitor the Dashboard and Logs; stop if the system is unstable.
 
+For the publisher and its other projects, visit the [Purple Dragon Foundation website](https://www.purpledragonfoundationltd.xyz/).
+
 For more detail, see [Mining Safety](../MINING_SAFETY.md), [Pool Presets](POOL_PRESETS.md), and the [project README](../README.md). Bitcoin Miner Studio does not guarantee mining rewards, profit, pool availability, or hardware compatibility.

@@ -3,6 +3,10 @@
 **Publisher:** Purple Dragon Foundation ltd  
 **Created by:** Purple Dragon Foundation ltd
 
+## User guide
+
+[Read the complete Bitcoin Miner Studio v2.0.3 user guide](docs/USER_GUIDE.md) for installation, benchmark and local testing, pool profiles, mining, optional integrations, and troubleshooting.
+
 ## Download the current Windows build
 
 [Download Bitcoin Miner Studio v2.0.3 for Windows x64](https://github.com/bubblegump30/bitcoin-miner-studio/releases/download/v2.0.3/BitcoinMinerStudio-v2.0.3-Windows-x64.zip) · [SHA-256 checksums](https://github.com/bubblegump30/bitcoin-miner-studio/releases/download/v2.0.3/SHA256SUMS-Windows.txt) · [All releases](https://github.com/bubblegump30/bitcoin-miner-studio/releases)

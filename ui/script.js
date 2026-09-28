@@ -803,7 +803,6 @@ async function callApi(method,...args){
   return await api[method](...args);
 }
 function applyPoolConfigToForm(c,passwordValue){
-  resetPoolPreset();
   c=c||{};
   const backups=Array.isArray(c.pool_backup_urls)?c.pool_backup_urls:[];
   if(c.pool_url!==undefined)$('#poolUrl').value=c.pool_url||'';
@@ -820,6 +819,7 @@ function applyPoolConfigToForm(c,passwordValue){
   if(c.suggest_difficulty!==undefined)$('#suggestDifficulty').value=c.suggest_difficulty||1;
   if(passwordValue!==undefined)$('#poolPassword').value=passwordValue||'';
   syncFailoverPolicyUi();
+  resetPoolPreset();
 }
 function poolPayload(){return {pool_url:$('#poolUrl').value.trim(),pool_backup_urls:[$('#poolBackup1').value.trim(),$('#poolBackup2').value.trim(),$('#poolBackup3').value.trim()].filter(Boolean),pool_failover_enabled:$('#poolFailoverEnabled').checked,pool_failover_policy:$('#poolFailoverPolicy')?.value||'balanced',pool_primary_recovery_seconds:Number($('#poolPrimaryRecovery')?.value||0),pool_job_timeout_seconds:Number($('#poolJobTimeout').value||120),pool_worker:$('#poolWorker').value.trim(),pool_password:$('#poolPassword').value,mining_processes:Number($('#miningProcesses').value||2),suggest_difficulty_enabled:$('#suggestEnabled').checked,suggest_difficulty:Number($('#suggestDifficulty').value||1)}}
 function corePayload(){return {rpc_url:$('#rpcUrl').value.trim(),rpc_user:$('#rpcUser').value.trim(),rpc_password:$('#rpcPassword').value,core_auth_mode:$('#coreAuthMode').value,core_executable:$('#coreExecutable').value.trim(),core_data_dir:$('#coreDataDir').value.trim(),core_cookie_path:$('#coreCookiePath').value.trim(),core_network:$('#coreNetwork').value,core_auto_refresh:$('#coreAutoRefresh').checked,core_refresh_seconds:Number($('#coreRefreshSeconds').value||10),template_auto_refresh:$('#templateAutoRefresh').checked,template_refresh_seconds:Number($('#templateRefreshSeconds').value||15)}}
@@ -1465,6 +1465,12 @@ const POOL_PRESETS=Object.freeze([
     password:'Unused by this pool; any value or empty. Enter it yourself if needed.',
     detail:'Share-based FPPS rewards. Published standard fee; account discounts and payout fees may differ. Provider supports ASIC mining; CPU/GPU are unsupported.',
     sources:['https://academy.braiins.com/braiins-pool/btc-mining-setup','https://academy.braiins.com/braiins-pool/rewards-and-payouts'],reviewed:'2026-09-27'}),
+  Object.freeze({id:'btc-pow-lab',name:'BTC PoW Lab',model:'Hybrid Solo',
+    url:'stratum+tcp://stratum.btcpowlab-pool.com:3333',fee:null,
+    worker:'Your Bitcoin mainnet address.worker (worker suffix: letters, numbers, underscore or hyphen)',
+    password:'x is the public Stratum example; enter it yourself if needed. Never enter a private key.',
+    detail:'85% of a found block to the finder, 10% Community allocation to eligible nonfinders, 5% to infrastructure. Community eligibility uses accepted work over a rolling seven days. The operator reports no block payout history. Automatic Community payout broadcasting is currently disabled; recorded amounts enter the payout process after maturity, subject to the published terms and 546-sat minimum. The ordinary pool-fee percentage cannot model these hybrid rewards; review estimates separately.',
+    sources:['https://btcpowlab-pool.com/start','https://btcpowlab-pool.com/community','https://btcpowlab-pool.com/terms'],reviewed:'2026-09-28'}),
   Object.freeze({id:'ckpool-solo',name:'CKPool Solo',model:'Solo',
     url:'stratum+tcp://stratum.ckpool.org:3333',fee:2,
     worker:'Your own Bitcoin address, optionally followed by .worker name',
@@ -1475,14 +1481,23 @@ const POOL_PRESETS=Object.freeze([
 function selectedPoolPreset(){
   return POOL_PRESETS.find(p=>p.id===$('#poolPresetSelect')?.value);
 }
+function refreshPoolFeeGuidance(){
+  const help=$('#poolFeeHelp');if(!help)return;
+  const hybrid=POOL_PRESETS.some(p=>p.fee===null&&p.url===$('#poolUrl').value.trim());
+  help.textContent=hybrid?
+    'Hybrid Solo: this generic fee assumption does not model finder or Community rewards. Check the pool terms; profitability estimates may be misleading.':
+    "Used for estimates; confirm your account's actual fee.";
+}
 function previewPoolPreset(){
+  refreshPoolFeeGuidance();
   const preset=selectedPoolPreset();
   const reviewed=$('#poolPresetReviewed');
   reviewed.checked=false;reviewed.disabled=!preset;
   $('#poolPresetApply').disabled=true;
+  $('#poolPresetReviewedLabel').textContent=preset?.fee===null?' Replace only the primary endpoint; keep the current fee assumption':' Replace the editor endpoint and fee with these values';
   $('#poolPresetPreview').textContent=preset?
-    `${preset.name} · ${preset.model}\nPrimary endpoint: ${$('#poolUrl').value} → ${preset.url}\nFee assumption: ${$('#poolProfileFee').value}% → ${preset.fee}% (editable)\nTransport: Stratum V1 over TCP (unencrypted).\nWorker format: ${preset.worker}\nPassword guidance: ${preset.password}\n${preset.detail}\nOnly endpoint and fee will change. Wallet/worker, passwords, backups and failover stay as entered. Nothing is saved or connected.\nDocumentation reviewed ${preset.reviewed}: ${preset.sources.join(' | ')}`:
-    'Choose a preset to preview its endpoint and fee assumption.';
+    `${preset.name} · ${preset.model}\nChanges on Apply:\nPrimary endpoint: ${$('#poolUrl').value.trim()||'(empty)'} → ${preset.url}\nFee assumption: ${preset.fee===null?`${$('#poolProfileFee').value||'(empty)'}% → unchanged. This generic estimate cannot represent hybrid payouts.`:`${$('#poolProfileFee').value||'(empty)'}% → ${preset.fee}% (editable)`}\nTransport: Stratum V1 over TCP (unencrypted).\nWorker format: ${preset.worker}\nPassword guidance: ${preset.password}\n${preset.detail}\nUnchanged: worker/wallet, password, backup endpoints, failover policy and settings. Apply does not save, test, activate or connect.\nDocumentation reviewed ${preset.reviewed}: ${preset.sources.join(' | ')}`:
+    'Custom selected. Current endpoint, fee and all other edits are kept. Choose a preset to preview its endpoint and fee assumption.';
 }
 function resetPoolPreset(){
   if(!$('#poolPresetSelect'))return;
@@ -1493,9 +1508,11 @@ function applyPoolPreset(){
   if(!preset||!$('#poolPresetReviewed').checked)return;
   // Deliberately avoid applyPoolConfigToForm: it also writes backups and policies.
   $('#poolUrl').value=preset.url;
-  $('#poolProfileFee').value=String(preset.fee);
+  if(preset.fee!==null)$('#poolProfileFee').value=String(preset.fee);
   previewPoolPreset();
-  $('#poolProfileResult').textContent='Preset applied to the editor only. Review worker/wallet, password and existing backups, then use Save Profile. Test and Activate remain separate actions.';
+  $('#poolProfileResult').textContent=preset.fee===null?
+    'Endpoint applied to the editor only. The fee assumption is unchanged and cannot represent hybrid rewards. Review the pool terms, worker/wallet, password and backups before saving; Test and Activate remain separate actions.':
+    'Preset applied to the editor only. Review worker/wallet, password and existing backups, then use Save Profile. Test and Activate remain separate actions.';
 }
 function initPoolPresets(){
   const select=$('#poolPresetSelect');if(!select)return;
@@ -1510,6 +1527,36 @@ function initPoolPresets(){
   $('#poolPresetApply').addEventListener('click',applyPoolPreset);
   // Editing either target invalidates the preview acknowledgement.
   for(const id of ['#poolUrl','#poolProfileFee'])$(id).addEventListener('input',previewPoolPreset);
+}
+function validateProfileEditor(){
+  const errors=[];
+  const add=(id,message)=>errors.push({id,message});
+  if(!$('#poolProfileName').value.trim())add('poolProfileName','Profile name is required.');
+  for(const [id,label] of [['poolUrl','Primary pool URL'],['poolBackup1','Backup endpoint 1'],['poolBackup2','Backup endpoint 2'],['poolBackup3','Backup endpoint 3']]){
+    const value=$("#"+id).value.trim();
+    if(!value){if(id==='poolUrl')add(id,'Primary pool URL is required; enter a Stratum host and port.');continue}
+    // Match the accepted transport and URL shape in connections.parse_stratum_url.
+    try{
+      const normalized=value.includes('://')?value:`stratum+tcp://${value}`;
+      const url=new URL(normalized);
+      if(!['stratum+tcp:','stratum+ssl:','stratum+tls:','stratum:','tcp:','ssl:','tls:'].includes(url.protocol))throw Error('scheme');
+      if(!url.hostname||!url.port||Number(url.port)<1||Number(url.port)>65535||url.username||url.password||url.search||url.hash||!['','/'].includes(url.pathname))throw Error('shape');
+    }catch{add(id,`${label}: use stratum+tcp://HOST:PORT or stratum+ssl://HOST:PORT, without credentials, paths or query strings.`)}
+  }
+  if(!$('#poolWorker').value.trim())add('poolWorker','Worker / wallet is required. Use the identity format specified by your pool.');
+  const fee=$('#poolProfileFee').value.trim();
+  if(!fee||!Number.isFinite(Number(fee))||Number(fee)<0||Number(fee)>100)add('poolProfileFee','Pool fee assumption must be between 0% and 100%.');
+  return errors;
+}
+function showProfileValidation(errors){
+  const box=$('#poolProfileValidation');
+  if(!box)return;
+  box.hidden=!errors.length;
+  box.textContent=errors.map(e=>e.message).join('\n');
+  for(const id of ['poolProfileName','poolUrl','poolBackup1','poolBackup2','poolBackup3','poolWorker','poolProfileFee']){
+    $('#'+id).setAttribute('aria-invalid',errors.some(e=>e.id===id)?'true':'false');
+  }
+  if(errors.length)$('#'+errors[0].id).focus();
 }
 // END OPTIONAL POOL PRESETS
 function profilePayload(){
@@ -1526,7 +1573,6 @@ function profilePayload(){
   };
 }
 function clearPoolProfileEditor(){
-  resetPoolPreset();
   if($('#poolProfileSelect'))$('#poolProfileSelect').value='';
   if($('#poolProfileName'))$('#poolProfileName').value='';
   if($('#poolProfileNotes'))$('#poolProfileNotes').value='';
@@ -1535,10 +1581,10 @@ function clearPoolProfileEditor(){
   if($('#poolFailoverPolicy'))$('#poolFailoverPolicy').value='balanced';
   if($('#poolPrimaryRecovery'))$('#poolPrimaryRecovery').value='300';
   syncFailoverPolicyUi();
+  resetPoolPreset();showProfileValidation([]);
 }
 function loadProfileIntoEditor(profile){
   if(!profile)return;
-  resetPoolPreset();
   if($('#poolProfileSelect'))$('#poolProfileSelect').value=profile.id||'';
   if($('#poolProfileName'))$('#poolProfileName').value=profile.name||'';
   if($('#poolProfileFee'))$('#poolProfileFee').value=Number(profile.pool_fee_percent??1);
@@ -1560,6 +1606,7 @@ function loadProfileIntoEditor(profile){
   });
   $('#poolPassword').value='';
   syncFailoverPolicyUi();
+  resetPoolPreset();showProfileValidation([]);
 }
 function renderPoolProfiles(state){
   state=state||{};poolProfilesState=state;
@@ -2537,7 +2584,9 @@ if($('#poolProfilesTable'))$('#poolProfilesTable').addEventListener('click',e=>{
 });
 if($('#poolProfileNew'))$('#poolProfileNew').addEventListener('click',()=>{clearPoolProfileEditor();$('#poolProfileResult').textContent='New profile editor ready.'});
 if($('#poolProfileSave'))$('#poolProfileSave').addEventListener('click',async()=>{
-  const box=$('#poolProfileResult');try{const r=await handleResult(callApi('save_pool_profile',profilePayload()),'Pool profile saved');box.textContent=r.result||'Pool profile saved.';if(r.pool_profiles)renderPoolProfiles(r.pool_profiles);if(r.profile)loadProfileIntoEditor(r.profile)}catch(e){box.textContent=`ERROR: ${e.message}`}
+  const box=$('#poolProfileResult');const errors=validateProfileEditor();showProfileValidation(errors);
+  if(errors.length){box.textContent='Check the highlighted profile fields before saving.';return}
+  try{const r=await handleResult(callApi('save_pool_profile',profilePayload()),'Pool profile saved');box.textContent=r.result||'Pool profile saved.';if(r.pool_profiles)renderPoolProfiles(r.pool_profiles);if(r.profile)loadProfileIntoEditor(r.profile)}catch(e){box.textContent=`ERROR: ${e.message}`}
 });
 if($('#poolProfileActivate'))$('#poolProfileActivate').addEventListener('click',async()=>{
   const box=$('#poolProfileResult');const id=$('#poolProfileSelect').value;if(!id){box.textContent='Select a saved profile first.';return}

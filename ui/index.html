@@ -478,22 +478,24 @@
                 <label for="poolPresetSelect">OPTIONAL POOL PRESET</label>
                 <select id="poolPresetSelect"><option value="">Custom / no preset</option></select>
               </div>
-              <p class="muted-note">Presets are editable starting points, not endorsements. Review your worker identity and backups before saving or starting.</p>
+              <p class="muted-note">Presets are editable starting points, not endorsements. Choosing Custom keeps your current edits. Review your worker identity and backups before saving or starting.</p>
               <div class="result-box compact" id="poolPresetPreview" aria-live="polite">Choose a preset to preview its endpoint and fee assumption.</div>
-              <label class="check-row"><input id="poolPresetReviewed" type="checkbox" disabled> Replace the editor endpoint and fee with these values</label>
+              <label class="check-row"><input id="poolPresetReviewed" type="checkbox" disabled><span id="poolPresetReviewedLabel"> Replace the editor endpoint and fee with these values</span></label>
               <div class="inline-actions">
                 <button type="button" class="btn-3d secondary" id="poolPresetApply" disabled>Apply to editor</button>
               </div>
+              <p class="muted-note">Save Profile stores these editor settings. Test Profile checks the last saved version; Activate and Start Mining are separate actions.</p>
               <div class="form-grid">
                 <div class="field"><label>PROFILE</label><select id="poolProfileSelect"><option value="">New profile…</option></select></div>
                 <div class="field"><label>PROFILE NAME</label><input id="poolProfileName" maxlength="60" placeholder="Example: Primary BTC Pool"></div>
                 <div class="field"><label>SMART FAILOVER POLICY</label><select id="poolFailoverPolicy"><option value="manual">Manual Only</option><option value="conservative">Conservative</option><option value="balanced" selected>Balanced</option><option value="aggressive">Aggressive</option></select></div>
                 <div class="field"><label>PRIMARY RECOVERY</label><div class="profit-unit-field"><input id="poolPrimaryRecovery" type="number" min="0" max="86400" step="30" value="300"><b>sec</b></div></div>
-                <div class="field"><label>POOL FEE</label><div class="profit-unit-field"><input id="poolProfileFee" type="number" min="0" max="100" step="0.01" value="1"><b>%</b></div></div>
+                <div class="field"><label for="poolProfileFee">POOL FEE ASSUMPTION</label><div class="profit-unit-field"><input id="poolProfileFee" type="number" min="0" max="100" step="0.01" value="1" aria-describedby="poolFeeHelp"><b>%</b></div><small id="poolFeeHelp">Used for estimates; confirm your account's actual fee.</small></div>
                 <div class="field"><label>PROFILE STATUS</label><label class="check-row"><input id="poolProfileEnabled" type="checkbox" checked> Enabled for activation</label></div>
                 <div class="field full"><label>PRIVATE NOTES</label><textarea id="poolProfileNotes" rows="2" maxlength="1000" placeholder="Optional local notes. Notes are excluded from sanitized exports."></textarea></div>
               </div>
               <p class="muted-note" id="poolFailoverPolicyDetail">Balanced: fail over after one confirmed endpoint failure and retry the primary after 5 minutes on a healthy backup.</p>
+              <div class="result-box compact pool-profile-validation" id="poolProfileValidation" role="status" aria-live="polite" hidden></div>
               <div class="inline-actions pool-profile-actions">
                 <button class="btn-3d primary" id="poolProfileSave">Save Profile</button>
                 <button class="btn-3d secondary" id="poolProfileActivate">Activate</button>
@@ -514,13 +516,13 @@
         <article class="form-panel glass pool-pt-config">
           <div class="panel-head"><h2>ACTIVE ENDPOINT CONFIGURATION</h2><span><b id="credentialBackend">Credential storage</b> · profile passwords stay in the secure credential backend</span></div>
           <div class="form-grid">
-            <div class="field full"><label>PRIMARY POOL URL</label><input id="poolUrl" placeholder="stratum+tcp://host:3333"/></div>
-            <div class="field"><label>BACKUP ENDPOINT 1</label><input id="poolBackup1" placeholder="optional"/></div>
-            <div class="field"><label>BACKUP ENDPOINT 2</label><input id="poolBackup2" placeholder="optional"/></div>
-            <div class="field full"><label>BACKUP ENDPOINT 3</label><input id="poolBackup3" placeholder="optional"/></div>
+            <div class="field full"><label for="poolUrl">PRIMARY POOL URL</label><input id="poolUrl" placeholder="stratum+tcp://pool.example:3333" aria-describedby="poolUrlHelp"/><small id="poolUrlHelp">Use a host and port from your pool. Supported: stratum+tcp:// or stratum+ssl://. Keep credentials out of the URL.</small></div>
+            <div class="field"><label for="poolBackup1">BACKUP ENDPOINT 1</label><input id="poolBackup1" placeholder="Optional: stratum+tcp://backup.example:3333"/></div>
+            <div class="field"><label for="poolBackup2">BACKUP ENDPOINT 2</label><input id="poolBackup2" placeholder="Optional"/></div>
+            <div class="field full"><label for="poolBackup3">BACKUP ENDPOINT 3</label><input id="poolBackup3" placeholder="Optional"/></div>
 
-            <div class="field"><label>WORKER / WALLET</label><input id="poolWorker"/></div>
-            <div class="field"><label>PASSWORD</label><input id="poolPassword" type="password" placeholder="Stored credential or x"/></div>
+            <div class="field"><label for="poolWorker">WORKER / WALLET</label><input id="poolWorker" placeholder="Pool account.worker or your Bitcoin address" aria-describedby="poolWorkerHelp"/><small id="poolWorkerHelp">Use the identity required by your pool. A preset never fills or changes this field.</small></div>
+            <div class="field"><label for="poolPassword">PASSWORD</label><input id="poolPassword" type="password" placeholder="Enter only if your pool requires it" aria-describedby="poolPasswordHelp"/><small id="poolPasswordHelp">Stored separately from profile metadata. Check the pool's instructions; never enter a wallet private key.</small></div>
             <div class="field"><label>MINING PROCESSES</label><input id="miningProcesses" type="number" min="1" max="64" value="2"/></div>
             <div class="field"><label>JOB-SILENCE WATCHDOG</label><input id="poolJobTimeout" type="number" min="20" max="1800" value="120"/></div>
 
@@ -1498,7 +1500,7 @@
       </section>
 
       <section class="view" id="view-release">
-        <span class="assistant-eyebrow">v2.0.2 · UPDATE &amp; RELEASE CENTER</span>
+        <span class="assistant-eyebrow">v2.0.3 · UPDATE &amp; RELEASE CENTER</span>
         <h1 class="view-title">Update &amp; Release Center</h1>
         <p class="view-sub">Local-first update package verification, trusted staging, release-channel policy, rollback metadata, release descriptors, and Stable release readiness. Candidate packages are never executed and the running application is never replaced silently.</p>
 

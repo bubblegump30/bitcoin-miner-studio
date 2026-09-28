@@ -1,22 +1,28 @@
-# Bitcoin Miner Studio v2.0.2 — Stable
+# Bitcoin Miner Studio v2.0.3 — Stable
 
 **Publisher:** Purple Dragon Foundation ltd  
 **Created by:** Purple Dragon Foundation ltd
 
 ## Download the current Windows build
 
-[Download Bitcoin Miner Studio v2.0.2 for Windows x64](https://github.com/bubblegump30/bitcoin-miner-studio/releases/download/v2.0.2/BitcoinMinerStudio-v2.0.2-Windows-x64.zip) · [SHA-256 checksums](https://github.com/bubblegump30/bitcoin-miner-studio/releases/download/v2.0.2/SHA256SUMS-Windows.txt) · [All releases](https://github.com/bubblegump30/bitcoin-miner-studio/releases)
+[Download Bitcoin Miner Studio v2.0.3 for Windows x64](https://github.com/bubblegump30/bitcoin-miner-studio/releases/download/v2.0.3/BitcoinMinerStudio-v2.0.3-Windows-x64.zip) · [SHA-256 checksums](https://github.com/bubblegump30/bitcoin-miner-studio/releases/download/v2.0.3/SHA256SUMS-Windows.txt) · [All releases](https://github.com/bubblegump30/bitcoin-miner-studio/releases)
 
-Extract the ZIP to a new folder and run `BitcoinMinerStudio.exe`. Python is included; Microsoft Edge WebView2 Runtime is required on Windows 10/11. Verify the ZIP checksum before running it, and check that Purple Dragon Security reports **TRUSTED · 73/73 protected files** after extraction. The EXE does not have a Microsoft Authenticode signature.
+Windows ZIP SHA-256: `b1aab4ee20a42ff44b719eff81cf29e1399f96b24332e8121a343216230a88af`.
 
-The v2.0.2 release page has one current Windows ZIP and its checksum file. Older versions remain under [Releases](https://github.com/bubblegump30/bitcoin-miner-studio/releases).
+Extract the ZIP to a new folder and run `BitcoinMinerStudio.exe`. Python is included; Microsoft Edge WebView2 Runtime is required on Windows 10/11. Verify the ZIP checksum before running it, and check that Purple Dragon Security reports **TRUSTED · 74/74 protected files** after extraction. The EXE does not have a Microsoft Authenticode signature.
 
+The v2.0.3 release page has one Windows ZIP and its checksum file. Older versions remain under [Releases](https://github.com/bubblegump30/bitcoin-miner-studio/releases).
+
+
+## v2.0.3 — Setup & Profile QoL
+
+The profile editor now explains pool URLs, worker identity and fee assumptions, shows exactly what a preset changes, and points to invalid fields before saving. Optional BTC PoW Lab Hybrid Solo is included using its documented public endpoint; it changes only that endpoint and leaves your worker, password, backups, failover, and generic fee assumption as entered. Its preview explains the published 85/10/5 allocation and current Community payout limitation. The ordinary fee estimate cannot model hybrid rewards. See [pool preset sources and limitations](docs/POOL_PRESETS.md).
 
 ## v2.0.2 — Public Readiness & Reliability Hotfix
 
 v2.0.2 hardens the stable Windows release for broader distribution: deterministic Bitcoin Core tests no longer depend on the host machine, Stratum endpoint validation is stricter, settings writes are atomic, Release Readiness understands the direct WebView2 architecture, and the embedded CPython runtime is checksum-pinned before packaging. The final offline-signed release expands Purple Dragon protection to 73 files, including the native Python bridge, native C# host, and Windows release/signing tooling.
 
-The current build adds **optional pool presets** in the profile editor for Braiins Pool (FPPS) and CKPool Solo. Choose one to preview its public endpoint and fee assumption, then explicitly apply those editable values. Wallet/worker identity, credentials, backups and failover settings remain under your control; saving, testing, activation and mining start are separate actions. BTC PoW Lab is deferred pending documentation of its authentication, fees and hybrid-solo payout rules. See [pool preset sources and maintenance notes](docs/POOL_PRESETS.md). Windows packaging now isolates build-host Python and reports a stale signed manifest before packaging.
+The current build adds **optional pool presets** in the profile editor for Braiins Pool (FPPS) and CKPool Solo. Choose one to preview its public endpoint and fee assumption, then explicitly apply those editable values. Wallet/worker identity, credentials, backups and failover settings remain under your control; saving, testing, activation and mining start are separate actions. See [pool preset sources and maintenance notes](docs/POOL_PRESETS.md). Windows packaging now isolates build-host Python and reports a stale signed manifest before packaging.
 
 ## v2.0.1 — Diagnostics / RPC Reliability Hotfix
 

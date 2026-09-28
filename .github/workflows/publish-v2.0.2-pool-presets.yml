@@ -1,62 +1,61 @@
-name: Simplify v2.0.2 GitHub release
+name: Republish updated v2.0.2 release
 
-# One-time cleanup. A later edit to this workflow is safe to rerun.
+# Reissue the verified current package under the existing tag/URL so the
+# repository sidebar reflects this updated release's publication date.
 on:
   push:
     branches: [main]
     paths: [.github/workflows/publish-v2.0.2-pool-presets.yml]
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
-  cleanup:
+  republish:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
-      - name: Verify the current download and checksum
+      - name: Check out the current notes
+        uses: actions/checkout@v4
+
+      - name: Download and verify exact signed Windows artifact
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          repo="$GITHUB_REPOSITORY"
-          tag=v2.0.2
-          mkdir verified-release
-          gh release download "$tag" --repo "$repo" --dir verified-release \
-            --pattern 'BitcoinMinerStudio-v2.0.2-Windows-x64.zip' \
-            --pattern 'SHA256SUMS-Windows.txt'
-          cd verified-release
-          expected='c49fd74aabece672c11a7cd40c2a4dad1ac3ec5a41f81a705fde0c2bbe21a9d7'
+          run=36368411750
+          state=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.conclusion + " " + .head_sha')
+          test "$state" = 'success aecc2ea1a94ea916839bc7ba94e9834670bf1098'
+          mkdir -p release-download
+          gh run download "$run" --repo "$GITHUB_REPOSITORY" \
+            --name BitcoinMinerStudio-Windows-x64 --dir release-download
+          cd release-download
+          expected=c49fd74aabece672c11a7cd40c2a4dad1ac3ec5a41f81a705fde0c2bbe21a9d7
           actual=$(sha256sum BitcoinMinerStudio-v2.0.2-Windows-x64.zip | cut -d' ' -f1)
           test "$actual" = "$expected"
           grep -Fq "$expected  BitcoinMinerStudio-v2.0.2-Windows-x64.zip" SHA256SUMS-Windows.txt
+          python - <<'PY'
+          import io,json,zipfile,pathlib
+          outer=pathlib.Path('BitcoinMinerStudio-v2.0.2-Windows-x64.zip').read_bytes()
+          with zipfile.ZipFile(io.BytesIO(outer)) as package:
+              manifest=json.loads(package.read('purple_dragon_manifest.json'))
+          assert manifest['version']=='2.0.2' and manifest['signature']
+          assert len(manifest['files'])==73
+          PY
 
-      - name: Keep one current ZIP and its checksum
+      - name: Reissue release on the existing tag
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          repo="$GITHUB_REPOSITORY"
           tag=v2.0.2
-          for obsolete in \
-            BitcoinMinerStudio-v2.0.2-Windows-x64-RC-FINAL-NATIVE-TRAY.zip \
-            BitcoinMinerStudio-Windows-build.json; do
-            if gh release view "$tag" --repo "$repo" --json assets \
-              --jq '.assets[].name' | grep -Fxq "$obsolete"; then
-              gh release delete-asset "$tag" "$obsolete" --repo "$repo" --yes
-            fi
-          done
-          cat > notes.md <<'NOTES'
-          # Bitcoin Miner Studio v2.0.2
-
-          **Download:** [BitcoinMinerStudio-v2.0.2-Windows-x64.zip](https://github.com/bubblegump30/bitcoin-miner-studio/releases/download/v2.0.2/BitcoinMinerStudio-v2.0.2-Windows-x64.zip)
-
-          Extract the ZIP and run `BitcoinMinerStudio.exe` on Windows 10/11. Microsoft Edge WebView2 Runtime is required. Python is included.
-
-          This updated build adds optional pool presets for Braiins Pool and CKPool Solo. Choosing one previews editable endpoint and fee values; saving, testing, and activation remain separate actions. It also improves Windows packaging and reliability. BTC PoW Lab is deferred pending documented pool terms.
-
-          Verify the ZIP against `SHA256SUMS-Windows.txt`. The extracted app should report **Purple Dragon Security: TRUSTED, 73/73 files verified**. The Windows EXE does not carry a Microsoft Authenticode signature.
-
-          [Changes and documentation](https://github.com/bubblegump30/bitcoin-miner-studio/blob/main/CHANGELOG.md) · [Pool preset notes](https://github.com/bubblegump30/bitcoin-miner-studio/blob/main/docs/POOL_PRESETS.md)
-          NOTES
-          gh release edit "$tag" --repo "$repo" --notes-file notes.md
+          repo="$GITHUB_REPOSITORY"
+          # The existing published record has an older timestamp. The tag stays put.
+          gh release delete "$tag" --repo "$repo" --yes
+          gh release create "$tag" \
+            release-download/BitcoinMinerStudio-v2.0.2-Windows-x64.zip \
+            release-download/SHA256SUMS-Windows.txt \
+            --repo "$repo" --verify-tag --latest \
+            --title 'Bitcoin Miner Studio v2.0.2 — Updated Windows Build' \
+            --notes-file .github/RELEASE_NOTES_CURRENT.md

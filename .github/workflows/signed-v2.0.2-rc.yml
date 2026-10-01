@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Check out exact signed repository bytes
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
@@ -46,7 +46,7 @@ jobs:
 
       - name: Set up Python 3.12 x64 test host
         if: steps.manifest.outputs.signed == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           architecture: 'x64'
@@ -159,7 +159,7 @@ jobs:
 
       - name: Upload exact signed v2.0.2 release-candidate assets
         if: steps.manifest.outputs.signed == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: BitcoinMinerStudio-v2.0.2-Windows-x64-RC
           path: release-windows/*

@@ -21,13 +21,13 @@ jobs:
 
     steps:
       - name: Check out release branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: release/v2.0.2-public-readiness
 
       - name: Set up Python 3.12 x64
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           architecture: 'x64'

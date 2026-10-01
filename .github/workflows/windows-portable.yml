@@ -18,12 +18,12 @@ jobs:
 
     steps:
       - name: Check out exact repository bytes
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
       - name: Set up Python 3.12 x64 build host
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           architecture: 'x64'
@@ -54,7 +54,7 @@ jobs:
         run: .\finalize_windows_portable.ps1
 
       - name: Upload Windows release assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: BitcoinMinerStudio-Windows-x64
           path: release-windows/*

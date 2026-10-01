@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Check out release branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: release/v2.0.2-public-readiness

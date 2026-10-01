@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out the current notes
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download and verify exact signed Windows artifact
         env:

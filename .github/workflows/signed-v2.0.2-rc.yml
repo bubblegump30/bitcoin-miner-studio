@@ -46,7 +46,7 @@ jobs:
 
       - name: Set up Python 3.12 x64 test host
         if: steps.manifest.outputs.signed == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           architecture: 'x64'

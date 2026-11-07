@@ -80,6 +80,12 @@ def _redact_path(value: str) -> str:
 def redact_text(text: str) -> str:
     """Best-effort privacy redaction for support-bundle text."""
     text = _redact_path(str(text or ""))
+    text = re.sub(r"-----BEGIN (?:[A-Z ]*PRIVATE KEY)-----.*?-----END (?:[A-Z ]*PRIVATE KEY)-----",
+                  "<private-key-redacted>", text, flags=re.S)
+    text = re.sub(r"(?i)([a-z][a-z0-9+.-]*://)[^/\s@]+@", r"\1<credentials>@", text)
+    text = re.sub(r'''(?ix)(["']?(?:password|rpc_password|pool_password|private_key|seed_phrase|mnemonic|api_key|access_token|secret)["']?\s*[:=]\s*)(?:"[^"\n]*"|'[^'\n]*'|[^,\s]+)''',
+                  r"\1<redacted>", text)
+    text = re.sub(r"(?i)\bBearer\s+[^\s,\"']+", "Bearer <redacted>", text)
     text = _STRATUM_RE.sub(lambda m: f"{m.group(1)}<pool-host>{m.group(3)}", text)
     text = _BTC_BECH32_RE.sub("<bitcoin-address>", text)
     text = _BTC_BASE58_RE.sub("<bitcoin-address>", text)
@@ -100,9 +106,21 @@ def sanitize_config(cfg: dict[str, Any]) -> dict[str, Any]:
     normalized to %USERPROFILE%.
     """
     out: dict[str, Any] = {}
+    def sanitize_value(value):
+        if isinstance(value, dict):
+            return sanitize_config(value)
+        if isinstance(value, (list, tuple)):
+            return [sanitize_value(item) for item in value]
+        if isinstance(value, str):
+            return redact_text(value)
+        return value
+
     for key, value in dict(cfg or {}).items():
         lower = str(key).lower()
-        if lower in _SECRET_KEYS or "password" in lower or "private_key" in lower:
+        normalized = re.sub(r"[^a-z0-9]", "", lower)
+        if lower in _SECRET_KEYS or any(token in normalized for token in (
+            "password", "privatekey", "seed", "mnemonic", "token", "apikey", "authorization", "cookie", "secret"
+        )):
             continue
         if lower in _PRIVACY_KEYS:
             out[key] = "<redacted>" if value else ""
@@ -110,7 +128,7 @@ def sanitize_config(cfg: dict[str, Any]) -> dict[str, Any]:
         if isinstance(value, str):
             out[key] = redact_text(value)
         elif isinstance(value, list):
-            out[key] = [redact_text(v) if isinstance(v, str) else v for v in value]
+            out[key] = sanitize_value(value)
         elif isinstance(value, dict):
             # Fleet aliases/notes may contain personal names or descriptions.
             if lower in {"asic_aliases", "asic_notes"}:

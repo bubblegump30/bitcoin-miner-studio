@@ -1,4 +1,9 @@
 import json
+import copy
+import os
+import tempfile
+import uuid
+import math
 from pathlib import Path
 
 from ui_theme import DEFAULT_UI_THEME, normalize_ui_theme
@@ -6,6 +11,26 @@ from branding import DEFAULT_COINBASE_TAG
 
 CONFIG_DIR = Path.home() / ".bitcoin-miner-studio"
 CONFIG_FILE = CONFIG_DIR / "settings.json"
+RECOVERY_STATUS = {"recovered": False, "reason": "", "preserved": False}
+
+
+def _reject_constant(value):
+    raise ValueError("Non-finite JSON number")
+
+
+def _finite_float(value):
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("Non-finite JSON number")
+    return number
+
+
+def _read_settings(path):
+    loaded = json.loads(path.read_text(encoding="utf-8-sig"), parse_constant=_reject_constant,
+                        parse_float=_finite_float)
+    if not isinstance(loaded, dict):
+        raise ValueError("Settings must be a JSON object")
+    return loaded
 
 DEFAULTS = {
     "benchmark_processes": 2,
@@ -87,21 +112,33 @@ DEFAULTS = {
 
 
 def load_config():
-    cfg = dict(DEFAULTS)
+    cfg = copy.deepcopy(DEFAULTS)
     loaded = {}
+    RECOVERY_STATUS.update(recovered=False, reason="", preserved=False)
     try:
         if CONFIG_FILE.exists():
-            loaded = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
-            if not isinstance(loaded, dict):
-                loaded = {}
+            loaded = _read_settings(CONFIG_FILE)
             loaded.pop("pool_password", None)
             loaded.pop("rpc_password", None)
             cfg.update(loaded)
-    except Exception:
-        # A damaged/partial settings file must never prevent the application
-        # from starting. Atomic writes in save_config make this path a
-        # last-resort compatibility fallback rather than a normal occurrence.
+    except (OSError, ValueError, UnicodeError):
+        # Preserve damaged input locally before any later settings save.
+        # Never include its contents or exception text in support evidence.
+        RECOVERY_STATUS.update(recovered=True, reason="settings_unreadable")
+        try:
+            CONFIG_FILE.replace(CONFIG_FILE.with_name("settings.corrupt-" + uuid.uuid4().hex + ".json"))
+            RECOVERY_STATUS["preserved"] = True
+        except OSError:
+            pass
         loaded = {}
+    for key, default in DEFAULTS.items():
+        value = loaded.get(key, default)
+        valid = type(value) is type(default)
+        if isinstance(default, float):
+            valid = type(value) in (float, int)
+        if not valid:
+            cfg[key] = copy.deepcopy(default)
+            RECOVERY_STATUS.update(recovered=True, reason="settings_invalid_type")
     if "pool_failover_policy" not in loaded:
         cfg["pool_failover_policy"] = "balanced" if bool(cfg.get("pool_failover_enabled", True)) else "manual"
     if str(cfg.get("pool_failover_policy") or "balanced").lower() not in {"manual", "conservative", "balanced", "aggressive"}:
@@ -142,14 +179,21 @@ def save_config(cfg):
     safe = dict(cfg)
     safe.pop("pool_password", None)
     safe.pop("rpc_password", None)
-    payload = json.dumps(safe, indent=2)
-    tmp = CONFIG_FILE.with_suffix(CONFIG_FILE.suffix + ".tmp")
+    payload = json.dumps(safe, indent=2, allow_nan=False)
+    if RECOVERY_STATUS["reason"] == "settings_unreadable" and not RECOVERY_STATUS["preserved"]:
+        raise OSError("Original settings could not be preserved; refusing to overwrite them.")
+    tmp = None
     try:
-        tmp.write_text(payload, encoding="utf-8")
-        tmp.replace(CONFIG_FILE)
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=CONFIG_DIR,
+                                         prefix="settings-", suffix=".tmp", delete=False) as stream:
+            tmp = Path(stream.name)
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(tmp, CONFIG_FILE)
     finally:
         try:
-            if tmp.exists():
+            if tmp is not None and tmp.exists():
                 tmp.unlink()
         except OSError:
             pass

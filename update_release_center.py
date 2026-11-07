@@ -434,6 +434,12 @@ class UpdateReleaseCenter:
             self._last_inspection = inspection
             return self.state()
 
+        expected = inspection["expected_sha256"]
+        if expected and (not re.fullmatch(r"[0-9a-f]{64}", expected) or not source_path.is_file()):
+            inspection["detail"] = "Expected SHA-256 must be 64 hexadecimal characters and requires a package file."
+            self._last_inspection = inspection
+            return self.state()
+
         if source_path.is_file():
             inspection["package_size"] = _human_bytes(source_path.stat().st_size)
             inspection["package_sha256"] = _sha256_file(source_path)

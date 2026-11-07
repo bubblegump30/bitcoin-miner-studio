@@ -1,0 +1,26 @@
+name: Reliability and Support Regressions
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['release/v2.0.3-reliability-support']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  offline-regressions:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Test recovery, privacy and checksum failure paths
+        run: python -m unittest discover -s tests -p test_reliability.py -v
+      - name: Compile Python with syntax warnings rejected
+        run: python -W error::SyntaxWarning -m compileall -q -f .

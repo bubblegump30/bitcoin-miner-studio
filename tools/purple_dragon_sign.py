@@ -79,6 +79,7 @@ PROTECTED_FILES = [
     "finalize_windows_portable.ps1",
     "sign_v2_0_2_release.ps1",
     "selftest.py",
+    "tests/test_reliability.py",
     "credentials.py",
     "connections.py",
     "bitcoin_utils.py",

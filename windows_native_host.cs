@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
@@ -190,8 +191,14 @@ internal sealed class MainForm : Form
                 throw new TimeoutException("The Bitcoin Miner Studio backend did not become ready within 15 seconds.");
             await _backendReady.Task;
 
+            if (await Task.WhenAny(environmentTask, Task.Delay(30000)) != environmentTask)
+                throw new TimeoutException("WebView2 environment initialization timed out. Repair the Microsoft Edge WebView2 Runtime and retry.");
             CoreWebView2Environment environment = await environmentTask;
-            await _webView.EnsureCoreWebView2Async(environment);
+            Task webViewTask = _webView.EnsureCoreWebView2Async(environment);
+            if (await Task.WhenAny(webViewTask, Task.Delay(30000)) != webViewTask)
+                throw new TimeoutException("WebView2 control initialization timed out. Repair the Microsoft Edge WebView2 Runtime and retry.");
+            await webViewTask;
+            if (_forceExit) return;
 
             _webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
             _webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
@@ -218,7 +225,7 @@ internal sealed class MainForm : Form
         }
         catch (Exception ex)
         {
-            FailStartup(ex.ToString());
+            FailStartup("Startup failed (" + ex.GetType().Name + ", HRESULT 0x" + ex.HResult.ToString("X8") + "). Check the embedded runtime and WebView2 installation, then retry.");
         }
     }
 
@@ -334,7 +341,7 @@ internal sealed class MainForm : Form
         if (_forceExit) return;
         try
         {
-            if (_backend != null && _backend.ExitCode != 0)
+            if (_backend != null)
                 BeginInvoke(new Action(() => FailStartup("The Bitcoin Miner Studio backend exited unexpectedly with code " + _backend.ExitCode + ". Check native-backend.log for details.")));
         }
         catch { }
@@ -631,6 +638,8 @@ internal sealed class MainForm : Form
         bool enabled = settings != null && settings.ContainsKey("tray_enabled") && Convert.ToBoolean(settings["tray_enabled"]);
         if (_trayIcon != null)
             _trayIcon.Visible = !_smokeTest && supported && enabled;
+        if (!_smokeTest && !CanHideToTray() && !Visible && !_forceExit)
+            ShowMainWindow();
     }
 
     private void ShowNativeTrayNotification(Dictionary<string, object> message)
@@ -694,7 +703,7 @@ internal sealed class MainForm : Form
         }
         if (action == "hide_window")
         {
-            Hide();
+            if (CanHideToTray()) Hide();
             return;
         }
         if (action == "exit_app")
@@ -717,13 +726,18 @@ internal sealed class MainForm : Form
 
     private void HandleResize(object sender, EventArgs e)
     {
-        if (WindowState == FormWindowState.Minimized && _minimizeToTray)
+        if (WindowState == FormWindowState.Minimized && _minimizeToTray && CanHideToTray())
             Hide();
+    }
+
+    private bool CanHideToTray()
+    {
+        return !_forceExit && _trayIcon != null && _trayIcon.Visible;
     }
 
     private void HandleFormClosing(object sender, FormClosingEventArgs e)
     {
-        if (!_forceExit && _closeToTray && e.CloseReason == CloseReason.UserClosing)
+        if (!_forceExit && _closeToTray && CanHideToTray() && e.CloseReason == CloseReason.UserClosing)
         {
             e.Cancel = true;
             Hide();
@@ -755,12 +769,15 @@ internal sealed class MainForm : Form
     {
         try
         {
-            File.WriteAllText(Path.Combine(_root, "startup-error.log"), details, Encoding.UTF8);
+            string diagnostics = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PurpleDragonFoundation", "BitcoinMinerStudio", "Diagnostics");
+            Directory.CreateDirectory(diagnostics);
+            File.WriteAllText(Path.Combine(diagnostics, "startup-error.log"), DateTime.UtcNow.ToString("o") + Environment.NewLine + details, Encoding.UTF8);
         }
         catch { }
 
         ExitCode = 1;
         _forceExit = true;
+        ShutdownBackend();
         if (!_smokeTest)
             MessageBox.Show(this, "Bitcoin Miner Studio could not start.\n\n" + details, "Bitcoin Miner Studio", MessageBoxButtons.OK, MessageBoxIcon.Error);
         Close();
@@ -775,10 +792,27 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         bool smoke = args.Any(a => string.Equals(a, "--smoke-test", StringComparison.OrdinalIgnoreCase));
-        using (var form = new MainForm(smoke))
+        // A session-wide identity is independent of extraction directory/version.
+        // A separate smoke-test identity cannot close a user's running instance.
+        using (var instance = new Mutex(false, "Local\\PurpleDragonFoundation.BitcoinMinerStudio" + (smoke ? ".SmokeTest" : "")))
         {
-            Application.Run(form);
-            return form.ExitCode;
+            bool owned;
+            try { owned = instance.WaitOne(0); }
+            catch (AbandonedMutexException) { owned = true; }
+            if (!owned)
+            {
+                if (!smoke) MessageBox.Show("Bitcoin Miner Studio is already running. Restore it from the taskbar or notification area.", "Bitcoin Miner Studio", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return 2;
+            }
+            try
+            {
+                using (var form = new MainForm(smoke))
+                {
+                    Application.Run(form);
+                    return form.ExitCode;
+                }
+            }
+            finally { instance.ReleaseMutex(); }
         }
     }
 }

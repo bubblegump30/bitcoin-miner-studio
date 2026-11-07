@@ -5,9 +5,9 @@
   "security_scheme": "PD-PROVENANCE-2",
   "protection_profile": "signed-provenance+file-integrity+critical-action-gating",
   "publisher_key_id": "PDK-808EE470A2FF419A3A827956",
-  "build_id": "BMS-2.0.3-STABLE-FC03C86A",
-  "provenance_tag": "PD-BMS-FC03C86A1DEB0DB6",
-  "issued_utc": "2026-11-07T11:20:57Z",
+  "build_id": "BMS-2.0.3-STABLE-DDD276C4",
+  "provenance_tag": "PD-BMS-DDD276C4236BEA6B",
+  "issued_utc": "2026-11-07T11:24:26Z",
   "marker_digest": "f671a093bfbb7b2c9eaf0152057e3896a420e50421c83894fa722cdd6c63172c",
   "release_watermark": "PD203-RELIABILITY-20261107",
   "watermark_digest": "36218be0ae78c65a509d05a1bba67b0837361710d94ff47dbca04df9033c477e",
@@ -70,7 +70,7 @@
     "finalize_windows_portable.ps1": "004f0ccfbeef081ad3adc445124444b942a38bec72b2865704256b5d2609edbe",
     "sign_v2_0_2_release.ps1": "946a9083d9c6f6a98b12ca8ed5f8e5701046dcb20f9f4df3f3d439da20cafe9c",
     "sign_reliability_release.ps1": "31cc68d116f5bd753e5c5612c5e13ad396cb4d69311937be705f3e0f2804440f",
-    "selftest.py": "43c2d3776bcfcb6a6af00daad8d2629936216b3d6f93f8e6b7c8a5277ae45a11",
+    "selftest.py": "009d13c304e98e2a104b87f123c2618f3e80a5d106e39bbe0bd10182ca670221",
     "tests/test_reliability.py": "07c31b55a9521d3c114c26141dbe5d03f2720157ba9fdd1e89df9ec768aa02fe",
     "tests/native_reliability.cs": "33f4ae221737f8c12e302ac12b78365a9ef8e1508c6d738062ff6ffa80356ac1",
     "tests/run_native_reliability.ps1": "72f10904f2d924f168e9c78bb423487a63044dd2b25696163f0f22ad64d00111",
@@ -96,6 +96,6 @@
     "ui/styles.css": "2f1e133e4acd2a530792d8d4dec685e604c71998222e6415aa29a6c0234ad677",
     "ui/script.js": "aea6abc6a82d3e104576829a430e159d7e2128bbb32ed424c829c43376053b2f"
   },
-  "signature": "Wk8n/2OWimd09lFLT0V3AnuZaT2Y/o+YTxd+yIWSDmfd1RwWOFfsjek1PCaMyZBK3RKip/Ues4SERbDWOrPBv97ZkT2v6//t7CzX1ZANggcIW5tRIZXs6CxQuLI0eovIf51dvuN80KwL3AoLMbf1DRjg1a42JCkg+dpd1TJkW94KfOUU500NWYgAR/6EwgF66snhE4PFMesgu1J7oiYoJ1Cp2fAUDyHvGf1sFub4D4Q2WLqohBIvijok6FoZFR0jgBSt4mcVRo14ZqFtamb7AjW0xkTbv0GmbrCcMRE9supfY+SEvWfC17XSJxFDvoMcSz9oF4Ca+Nd82I5FJbduJQRzeRpG8BRwSHP1Z848YKBc6r3GuL/KmmCkOucI9P5UaKz3Jileqgdus++eP5kLo/kdY3wjdXQutB/dkAWpcGpUd16w8PeQWpTFCL05mze22ZT7wBBqMZ8HbnvmAMrKnmptUg8Jwt0vEHRq/1NO5Msrt01ppNWNFZPj2vgUGW3A",
+  "signature": "gtfkPu1AbHo8/35ZUylKDOt/+fqrMmLuF4sI4Gs3EcL8nJ9TAs9zPfiUdfJffaQodOTk62xldBTCIfN8T2wq21/MU2YTfS4ern/eXNJgiZUpEz0mtJ7Pn07vbkRIQPLpMtWSPx3Ptg8zjEbsMqolDMB9NSe0sUaKSji8eX+asOPP9eOUSrdG1ttmXOZPwg1EUMf4U2uObzbKZ0eWgTNODvF6Jp4RMz3hpFqdBdtQcD05AB4Y66qEih3x4heyGZPPm5IuHddgY7jrLrv9NuPlZJNRYaR7STm79eue213S4Y9IvH92dVJMblOJIWRLnMbEBEnkpJnMbPLlvYte3RZ14TJX8iq/dj/qLtXsvLHTDlt/lsBDTJGFk1hJZxR44u8K1pryF16jllHm4O1rQTQ3OaUgSTi6Y2z7YFEa1AkVnIxjG+ShlScHeiXjAIgfwWHL1tWlWTe7v+fc8B3Kt3nRLljgG32IEtSSU2yKmbpB4xsvYvHXQUV5035hvXCp0Fdt",
   "publisher_name": "Purple Dragon Foundation ltd"
 }

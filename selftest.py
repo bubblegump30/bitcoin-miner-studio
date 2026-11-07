@@ -336,7 +336,7 @@ def local_pool_integration():
     deadline = time.time() + 12
     while time.time() < deadline:
         stats = miner.stats()
-        if stats["accepted"] >= 2:
+        if stats["accepted"] >= 2 and stats["total_hashes"] > 0:
             break
         time.sleep(0.2)
 

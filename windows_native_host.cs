@@ -31,6 +31,7 @@ internal sealed class MainForm : Form
     private readonly string _runtimeRoot;
     private readonly string _bridgePath;
     private readonly bool _smokeTest;
+    private readonly string _smokeRoot;
     private readonly WebView2 _webView;
     private readonly Label _startupLabel;
     private readonly Stopwatch _startupWatch = Stopwatch.StartNew();
@@ -53,6 +54,7 @@ internal sealed class MainForm : Form
     public MainForm(bool smokeTest)
     {
         _smokeTest = smokeTest;
+        _smokeRoot = smokeTest ? Path.Combine(Path.GetTempPath(), "BitcoinMinerStudio-Smoke-" + Guid.NewGuid().ToString("N")) : null;
         _root = AppDomain.CurrentDomain.BaseDirectory;
         _runtimeRoot = Path.Combine(_root, "_runtime");
         _bridgePath = Path.Combine(_runtimeRoot, "bms_native_bridge.py");
@@ -168,6 +170,14 @@ internal sealed class MainForm : Form
         psi.EnvironmentVariables["PYTHONUTF8"] = "1";
         psi.EnvironmentVariables["PYTHONPATH"] = "";
         psi.EnvironmentVariables["BMS_WEBVIEW2_VERSION"] = CoreWebView2Environment.GetAvailableBrowserVersionString();
+        if (_smokeTest)
+        {
+            string home = Environment.GetEnvironmentVariable("BMS_SMOKE_HOME");
+            if (string.IsNullOrWhiteSpace(home)) home = Path.Combine(_smokeRoot, "Home");
+            Directory.CreateDirectory(home);
+            psi.EnvironmentVariables["USERPROFILE"] = home;
+            psi.EnvironmentVariables["HOME"] = home;
+        }
 
         _backend = new Process { StartInfo = psi, EnableRaisingEvents = true };
         _backend.OutputDataReceived += BackendOutput;
@@ -191,7 +201,7 @@ internal sealed class MainForm : Form
             string webViewData = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "PurpleDragonFoundation", "BitcoinMinerStudio", "WebView2");
-            if (_smokeTest) webViewData = Path.Combine(_root, "smoke-data", "WebView2");
+            if (_smokeTest) webViewData = Path.Combine(_smokeRoot, "WebView2");
             Directory.CreateDirectory(webViewData);
 
             Task<CoreWebView2Environment> environmentTask = CoreWebView2Environment.CreateAsync(null, webViewData);

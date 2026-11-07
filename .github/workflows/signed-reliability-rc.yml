@@ -60,10 +60,10 @@ jobs:
         run: |
           ./build_windows_portable.ps1
           ./finalize_windows_portable.ps1
-      - name: Upload candidate for review
+      - name: Upload source-signed build for offline runtime sealing
         uses: actions/upload-artifact@v4
         with:
-          name: BitcoinMinerStudio-reliability-signed-candidate
+          name: BitcoinMinerStudio-reliability-offline-sealing-input
           path: release-windows/*
           if-no-files-found: error
           retention-days: 14

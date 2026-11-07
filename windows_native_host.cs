@@ -168,6 +168,7 @@ internal sealed class MainForm : Form
         psi.EnvironmentVariables["PYTHONHOME"] = _runtimeRoot;
         psi.EnvironmentVariables["PYTHONNOUSERSITE"] = "1";
         psi.EnvironmentVariables["PYTHONUTF8"] = "1";
+        psi.EnvironmentVariables["PYTHONDONTWRITEBYTECODE"] = "1";
         psi.EnvironmentVariables["PYTHONPATH"] = "";
         psi.EnvironmentVariables["BMS_WEBVIEW2_VERSION"] = CoreWebView2Environment.GetAvailableBrowserVersionString();
         if (_smokeTest)

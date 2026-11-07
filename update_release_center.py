@@ -242,6 +242,25 @@ def verify_release_folder(root: Path) -> dict[str, Any]:
         result["errors"].append("Publisher signature verification failed.")
 
     files = dict(manifest.get("files") or {})
+    result["source_files_total"] = len(files)
+    runtime_path = root / "purple_dragon_runtime.json"
+    if (root / "_runtime").is_dir() and not runtime_path.is_file():
+        result["errors"].append("Native runtime packages require the offline publisher-signed runtime inventory.")
+    if runtime_path.is_file():
+        try:
+            runtime = read_json(runtime_path)
+            if (runtime.get("schema") != 1 or runtime.get("product") != PRODUCT_NAME
+                    or runtime.get("version") != result["version"] or runtime.get("publisher_key_id") != publisher_key_id()
+                    or runtime.get("source_manifest_sha256") != _sha256_file(manifest_path)
+                    or not _verify_rsa_pkcs1_v15_sha256(_canonical_manifest(runtime), str(runtime.get("signature") or ""))):
+                raise ValueError("Invalid runtime publisher signature or source binding")
+            runtime_files = runtime.get("files")
+            if not isinstance(runtime_files, dict) or not runtime_files or set(runtime_files) & set(files):
+                raise ValueError("Invalid runtime inventory coverage")
+            files.update(runtime_files)
+            result["runtime_files_total"] = len(runtime_files)
+        except (OSError, ValueError, TypeError, AttributeError):
+            result["errors"].append("Runtime inventory signature, identity or source-manifest binding failed.")
     result["files_total"] = len(files)
 
     # Candidate folders must not contain symlinks. A signed relative filename
@@ -290,8 +309,8 @@ def verify_release_folder(root: Path) -> dict[str, Any]:
         code_like = {
             p.relative_to(root).as_posix()
             for p in root.rglob("*")
-            if p.is_file() and not p.is_symlink() and p.suffix.lower() in {".py", ".pyw", ".js", ".html", ".css", ".bat"}
-            and "__pycache__" not in p.parts
+            if p.is_file() and not p.is_symlink() and p.suffix.lower() in {".py", ".pyw", ".js", ".html", ".css", ".bat", ".ps1", ".cs", ".exe", ".dll", ".pyd", ".pth", ".pyc"}
+            and ("__pycache__" not in p.parts or p.relative_to(root).as_posix().startswith("_runtime/"))
         }
         unsigned_code = sorted(code_like - protected_names)
         if unsigned_code:

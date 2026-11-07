@@ -254,6 +254,39 @@ class SupportPrivacyTests(unittest.TestCase):
 
 
 class ReleaseVerificationTests(unittest.TestCase):
+    def test_native_runtime_inventory_cannot_bypass_source_binding(self):
+        from update_release_center import verify_release_folder
+        import hashlib
+        from purple_dragon_security import PRODUCT_NAME, SECURITY_SCHEME, publisher_key_id
+        from branding import PUBLISHER_NAME
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            manifest = {"product": PRODUCT_NAME, "security_scheme": SECURITY_SCHEME,
+                        "publisher_key_id": publisher_key_id(), "publisher_name": PUBLISHER_NAME,
+                        "version": "2.0.3", "files": {}, "signature": "fixture"}
+            (root / "purple_dragon_manifest.json").write_text(json.dumps(manifest))
+            (root / "release_info.json").write_text(json.dumps({"product": PRODUCT_NAME, "version": "2.0.3"}))
+            runtime = root / "_runtime"
+            runtime.mkdir()
+            binary = runtime / "python.exe"
+            binary.write_bytes(b"fixture-runtime")
+            with patch("update_release_center._verify_rsa_pkcs1_v15_sha256", return_value=True):
+                missing = verify_release_folder(root)
+                self.assertFalse(missing["trusted"])
+                self.assertTrue(any("runtime inventory" in error for error in missing["errors"]))
+                inventory = {"schema": 1, "product": PRODUCT_NAME, "version": "2.0.3",
+                             "publisher_key_id": publisher_key_id(), "source_manifest_sha256": "wrong-source",
+                             "files": {"_runtime/python.exe": hashlib.sha256(binary.read_bytes()).hexdigest()}, "signature": "fixture"}
+                (root / "purple_dragon_runtime.json").write_text(json.dumps(inventory))
+                self.assertFalse(verify_release_folder(root)["trusted"])
+                inventory["source_manifest_sha256"] = hashlib.sha256((root / "purple_dragon_manifest.json").read_bytes()).hexdigest()
+                (root / "purple_dragon_runtime.json").write_text(json.dumps(inventory))
+                self.assertTrue(verify_release_folder(root)["trusted"])
+                binary.write_bytes(b"tampered-runtime")
+                self.assertFalse(verify_release_folder(root)["trusted"])
+            # A forged signature must fail even when the inventory digest matches.
+            self.assertFalse(verify_release_folder(root)["trusted"])
+
     def test_unreadable_package_returns_blocked_inspection(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

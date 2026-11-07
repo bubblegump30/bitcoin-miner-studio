@@ -11,7 +11,6 @@ import hashlib
 import json
 import sys
 import time
-import zipfile
 from pathlib import Path
 
 try:
@@ -22,9 +21,10 @@ except Exception:
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from purple_dragon_security import SECURITY_SCHEME, marker_digest, publisher_key_id, release_watermark, watermark_digest, PUBLIC_MODULUS, PUBLIC_EXPONENT
+from purple_dragon_security import SECURITY_SCHEME, marker_digest, publisher_key_id, release_watermark, watermark_digest
 from branding import PUBLISHER_NAME
 from reliability_io import atomic_json_write
+from tools.publisher_key import load_publisher_key
 MANIFEST = ROOT / "purple_dragon_manifest.json"
 
 PROTECTED_FILES = [
@@ -77,6 +77,8 @@ PROTECTED_FILES = [
     "verify_build_integrity.bat",
     "selftest.bat",
     "tools/purple_dragon_sign.py",
+    "tools/publisher_key.py",
+    "tools/sign_runtime_inventory.py",
     "tools/prepare_v2_0_2.py",
     "build_windows_portable.ps1",
     "finalize_windows_portable.ps1",
@@ -128,24 +130,7 @@ if len(sys.argv) != 2:
     raise SystemExit("Usage: python tools\\purple_dragon_sign.py <publisher-private-key.pem>")
 
 key_path = Path(sys.argv[1]).expanduser().resolve()
-if key_path.is_relative_to(ROOT):
-    raise SystemExit("Publisher private-key material must remain outside the repository.")
-if key_path.suffix.lower() == ".zip":
-    # Read the existing offline key archive in memory. Never extract private
-    # material into the working tree, build directory or temporary files.
-    with zipfile.ZipFile(key_path) as archive:
-        candidates = [item for item in archive.infolist() if "private" in item.filename.lower()
-                      and item.filename.lower().endswith((".pem", ".key")) and item.file_size <= 65536]
-        if len(candidates) != 1:
-            raise SystemExit("Publisher archive must contain exactly one private PEM/key entry.")
-        private_bytes = archive.read(candidates[0])
-else:
-    private_bytes = key_path.read_bytes()
-private_key = serialization.load_pem_private_key(private_bytes, password=None)
-del private_bytes
-public = private_key.public_key().public_numbers()
-if public.n != PUBLIC_MODULUS or public.e != PUBLIC_EXPONENT:
-    raise SystemExit("Publisher key does not match the embedded Purple Dragon public identity.")
+private_key = load_publisher_key(key_path, ROOT)
 
 manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
 release_info = json.loads((ROOT / "release_info.json").read_text(encoding="utf-8"))

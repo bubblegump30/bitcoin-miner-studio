@@ -5,6 +5,7 @@ import platform
 import socket
 import sys
 import uuid
+import os
 from pathlib import Path
 
 from branding import PUBLISHER_NAME
@@ -305,6 +306,24 @@ def verify_integrity(base_dir=None):
         and not result["missing_files"]
         and not result["modified_files"]
     )
+    if result["verified"] and (base / "_runtime").is_dir():
+        inventory = base / "purple_dragon_runtime.json"
+        if inventory.is_file():
+            try:
+                from update_release_center import verify_release_folder
+                runtime = verify_release_folder(base)
+                result["runtime_verified"] = bool(runtime.get("trusted"))
+                result["runtime_files_verified"] = max(0, runtime.get("files_verified", 0) - len(files))
+                if not result["runtime_verified"]:
+                    result["verified"] = False
+                    result["error"] = "Publisher-signed runtime inventory verification failed."
+            except Exception:
+                result["verified"] = False
+                result["error"] = "Publisher-signed runtime inventory could not be verified."
+        elif os.environ.get("BMS_NATIVE_HOST") == "1":
+            result["verified"] = False
+            result["runtime_verified"] = False
+            result["error"] = "This native build requires the final offline publisher runtime seal."
     result["critical_actions_allowed"] = bool(result["verified"])
 
     if result["verified"]:
@@ -314,7 +333,7 @@ def verify_integrity(base_dir=None):
     else:
         result["status"] = "locked"
         result["trust_level"] = "LOCKED"
-        result["error"] = "One or more protected application files were changed or removed."
+        result["error"] = result.get("error") or "One or more protected application files were changed or removed."
     return result
 
 

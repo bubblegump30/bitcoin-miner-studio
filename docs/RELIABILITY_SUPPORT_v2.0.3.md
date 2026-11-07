@@ -22,11 +22,11 @@ Run the existing development groups with `python -u tests/run_development_regres
 Run native lifecycle checks with `tests/run_native_reliability.ps1`, supplying the verified SDK and a scratch output directory.
 Run all signed groups with `python -W error::SyntaxWarning selftest.py` after fresh publisher signing.
 
-The development runner runs 44 existing groups and explicitly reports three publisher-signature-dependent groups as pending. It never patches keys, verifiers, manifests or assertions. Full signed acceptance runs all 47 groups. The new suite contains 20 failure-path regressions.
+The development runner runs 44 existing groups and explicitly reports three publisher-signature-dependent groups as pending. It never patches keys, verifiers, manifests or assertions. Full signed acceptance runs all 47 groups. The new suite contains 21 failure-path regressions.
 
 Evidence before signing on 2026-11-07:
 
-- 44 existing development groups, 20 new Python tests and four Node preset tests passed. Loopback integration tests required access outside the restricted network sandbox and used isolated simulated servers/settings.
+- 44 existing development groups, 21 new Python tests and four Node preset tests passed. Loopback integration tests required access outside the restricted network sandbox and used isolated simulated servers/settings.
 - The native .NET Framework harness passed eight lifecycle assertions, including separate-process mutex ownership, second launch, abandoned ownership, missing runtime, close-to-tray and disposal. Native compilation is clean.
 - The real WinForms/WebView2/embedded Python 3.12.10 fixture passed clean startup, settings/workspace/profile corruption recovery, tampered-bridge rejection, missing Python, abrupt backend termination and successful relaunch.
 - Missing WebView2 Core or WinForms assemblies produced controlled failure. The SDK still started without the standalone loader DLL on this machine; this does not establish support for incomplete packages.
@@ -43,3 +43,10 @@ Final signed-suite, package and checksum results must be recorded with the candi
 ## Remaining manual coverage
 
 Explorer restart, Windows logoff/shutdown, machine-wide WebView2 uninstall/repair, long-running sleep/resume and active production mining/hardware sessions have not been exercised by isolated checks. No live pool, wallet, ASIC or Bitcoin Core settings were used. Retain these limits when reporting readiness. A public release needs a distinct publication identity because the original v2.0.3 tag is occupied.
+
+
+## Final native-runtime seal
+
+Extracted-package acceptance found that third-party runtime Python modules were outside the source-only signature. Native distributions now require a separate `purple_dragon_runtime.json` signed by the same offline publisher key and bound to the exact source-manifest hash. It authenticates the embedded Python, native EXE, WebView2 libraries, Python dependencies and runtime bytecode. Unexpected runtime code, forged inventories, changed source bindings and tampered runtime files block inspection/staging. Native critical actions stay locked until this final seal is present and valid. The host disables bytecode writes to keep sealed runtime bytes stable.
+
+CI produces a source-signed build input, without any private key. After downloading and verifying its artifact digest, the publisher runs `python tools/sign_runtime_inventory.py <extracted-distribution> <external-key-or-key-zip>` offline. Final archive/checksum metadata is generated only after this seal and extracted-package verification. The private key stays outside the repository and is never uploaded to CI. The source verifier and distribution verifier report their distinct coverage counts.

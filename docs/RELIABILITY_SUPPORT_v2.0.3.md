@@ -1,75 +1,45 @@
-# v2.0.3 — Post-Release Reliability & Support (development)
+# v2.0.3 — Post-Release Reliability & Support
 
 Branch: `release/v2.0.3-reliability-support`.
 
-Baseline: `aecc2ea1a94ea916839bc7ba94e9834670bf1098`, the signed source
-identified by the published v2.0.2 Windows release. This intentionally does
-not use the older v2.0.2 tag or import the separate Setup & Profile QoL line.
-The repository already contains a v2.0.3 tag for that other line. The owner
-explicitly requested retaining this milestone/branch name and preserving all
-existing tags. Resolve the final publication identifier before releasing;
-never move either existing tag or overwrite its assets.
+Baseline: `aecc2ea1a94ea916839bc7ba94e9834670bf1098`, the signed source identified by the published v2.0.2 Windows release. This does not import the separate Setup & Profile QoL line. The owner requested retaining this milestone and branch name while preserving all existing tags. The existing v2.0.3 tag refers to that other line. This reliability candidate is distinguished by branch, commit, signed build ID and checksum. Do not move historical tags or replace their assets.
 
-## Initial implementation
+## Implemented behavior
 
-- Damaged JSON, invalid root values, non-finite JSON numbers and invalid UTF-8
-  recover to fresh defaults after moving original bytes to a unique local
-  `settings.corrupt-<id>.json`. These files may contain private data and must
-  not be uploaded or placed in support bundles. If preservation fails, saving
-  refuses to overwrite the original. Known setting types are validated before
-  consumers use them, and mutable defaults are copied independently.
-- Settings saves use unique temporary files in the same directory, flush and
-  fsync before atomic replacement, and remove failed temporary writes.
-- Support sanitization now traverses dictionaries inside nested lists and
-  strips additional secret-key spellings. Text redaction handles quoted
-  passwords with spaces, URL credentials, bearer tokens and PEM private keys.
-  Free text redaction is best effort; review generated bundles before sharing.
-- Supplied checksums must contain exactly 64 hexadecimal characters and apply
-  to package files. Folder inspection cannot silently ignore a checksum.
-- Native startup bounds WebView2 initialization, reports safe error type and
-  HRESULT diagnostics under LocalAppData, and stops the backend on failure.
-  Unexpected backend exit is handled even when its exit code is zero.
-- A session-scoped mutex prevents concurrent native hosts across extracted
-  folders; abandoned ownership is recoverable after a crash. Smoke tests have
-  a separate identity. A second launch tells the user how to restore the first.
-- Native minimize, close and backend hide requests require a visible tray
-  icon. Disabling the tray restores a hidden window.
+- Strict finite JSON parsing and validation recover invalid settings types, ranges, device lists and interrupted local-pool restore data before startup consumers use them. Original bytes are preserved in a unique local recovery file; preservation failure blocks writes. Session-sticky recovery evidence is visible in Diagnostics. Mutable defaults are independently copied.
+- Workspaces recover invalid history/preferences/command usage, and profiles preserve damaged storage before recovery. Settings, workspaces, profiles, session markers and update history share durable atomic JSON writes using unique temporary files, flush/fsync and replacement. Malformed or non-boolean session markers cannot falsely report a clean shutdown.
+- Native startup has a session-scoped single-instance mutex, abandoned-owner recovery, separate smoke-test identity, bounded WebView2 and overall startup, safe early assembly-load errors, and renderer/backend failure handling. A second launch directs the user to the existing window/tray.
+- Hide/minimize/close-to-tray require an available icon. Disabling the tray restores a hidden window. Background monitor generations own separate cancellation events so restarting cannot reactivate a slow stopped generation.
+- Diagnostics recognizes native WinForms/WebView2 packaging without requiring legacy GUI imports. Production startup diagnostics go to LocalAppData; smoke-test diagnostics and browser state stay in the isolated fixture.
+- Both support paths sanitize every JSON/text archive entry, including nested lists, quoted passwords, URL credentials, bearer tokens and PEM keys. Known logs are bounded; symlink logs, recovery files and analytics databases are excluded. Unique ZIPs are published atomically; write failure leaves no advertised partial archive. Free-text redaction remains best effort: review bundles before sharing.
+- Supplied checksums require 64 hexadecimal characters and a package file. Inaccessible package inspection returns a blocked result. Folder staging revalidates copied signature/files and the originally inspected manifest, rejecting changed folders and removing partial staging.
+- CPython 3.12.10 and WebView2 SDK 1.0.4191.47 archives are pinned by SHA-256. Native WinForms + WebView2 + embedded Python, the offline publisher identity and critical-action verification policy remain intact.
 
-## Validation and release gates
+## Validation
 
-Run `python -m unittest discover -s tests -p test_reliability.py -v`.
-The new read-only CI workflow runs these tests on Python 3.12 x64 Windows.
-Tests use temporary directories and do not read user settings or start mining.
+Run the new tests with `python -m unittest discover -s tests -p test_reliability.py -v`.
+Run the existing development groups with `python -u tests/run_development_regressions.py`.
+Run native lifecycle checks with `tests/run_native_reliability.ps1`, supplying the verified SDK and a scratch output directory.
+Run all signed groups with `python -W error::SyntaxWarning selftest.py` after fresh publisher signing.
 
-Local evidence on 2026-11-07:
+The development runner runs 44 existing groups and explicitly reports three publisher-signature-dependent groups as pending. It never patches keys, verifiers, manifests or assertions. Full signed acceptance runs all 47 groups. The new suite contains 20 failure-path regressions.
 
-- Nine new Python regressions and four existing Node preset tests passed.
-- Existing release/support, diagnostics/support, tray/background, preflight
-  cleanup and startup DOM regression groups passed.
-- Native host compiled with the pinned WebView2 SDK and .NET Framework C#
-  compiler. One existing unused-field warning remains (`_navigationReady`).
-- Full selftest stops at the publisher integrity assertion, as expected for
-  edited protected source. The release-folder regression likewise rejects the
-  unsigned development tree. These gates were not bypassed.
+Evidence before signing on 2026-11-07:
 
-The existing signing key, verifier, manifest, release metadata and publishing
-workflows are preserved. The signer list includes the new Python test file so
-the existing unsigned-code rejection remains enforceable. No private key is
-required for development. This tree remains intentionally untrusted until a
-publisher signs the finalized source using an appropriately versioned helper.
-It is not a release candidate and must not be packaged as a trusted release.
+- 44 existing development groups, 20 new Python tests and four Node preset tests passed. Loopback integration tests required access outside the restricted network sandbox and used isolated simulated servers/settings.
+- The native .NET Framework harness passed eight lifecycle assertions, including separate-process mutex ownership, second launch, abandoned ownership, missing runtime, close-to-tray and disposal. Native compilation is clean.
+- The real WinForms/WebView2/embedded Python 3.12.10 fixture passed clean startup, settings/workspace/profile corruption recovery, tampered-bridge rejection, missing Python, abrupt backend termination and successful relaunch.
+- Missing WebView2 Core or WinForms assemblies produced controlled failure. The SDK still started without the standalone loader DLL on this machine; this does not establish support for incomplete packages.
+- Both actual support ZIP paths passed nested/text privacy fixtures, archive checks, collision avoidance and simulated disk-full cleanup.
 
-Remaining acceptance work before release:
+## Signing and packaging
 
-1. Exercise the native host on embedded Python 3.12 with missing/broken/slow
-   WebView2, abrupt backend exit, repeated launch, crash/relaunch, session exit,
-   tray toggles, Explorer restart and active background tasks.
-2. Extend recovery evidence into the visible Diagnostics UI; validate malformed
-   setting ranges and persisted workspace/profile/session state recovery.
-3. Exercise both actual ZIP support bundle entry sets against adversarial
-   nested and free-text fixtures, interrupted writes and disk-full failures.
-4. Finalize the version/publication identity, prepare branch-specific signing
-   tooling without changing historical helpers, sign offline, then run the full
-   signed regression suite and Windows package smoke test.
-5. Verify final archive checksum, embedded runtime, manifest coverage and
-   publisher trust from extracted release bytes before any publication.
+`sign_reliability_release.ps1` requires a clean reviewed branch and the existing publisher key outside the repository. The signer supports a private PEM/key or the existing publisher-key ZIP, reading its private entry only in memory. It checks public-key identity before signing. The helper verifies trust and complete protected coverage before committing the manifest. It does not create tags or publish assets. Historical signing helpers remain unchanged.
+
+The new signed-candidate workflow requires fresh publisher trust, runs all signed selftests and new regressions, builds/finalizes the native package and uploads candidate artifacts for review. The development workflow separately runs strict compilation, development groups, new regressions and the native lifecycle harness. No private key enters CI.
+
+Final signed-suite, package and checksum results must be recorded with the candidate commit/build ID. A prior signature or development smoke test does not replace those gates.
+
+## Remaining manual coverage
+
+Explorer restart, Windows logoff/shutdown, machine-wide WebView2 uninstall/repair, long-running sleep/resume and active production mining/hardware sessions have not been exercised by isolated checks. No live pool, wallet, ASIC or Bitcoin Core settings were used. Retain these limits when reporting readiness. A public release needs a distinct publication identity because the original v2.0.3 tag is occupied.

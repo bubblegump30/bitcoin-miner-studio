@@ -14,6 +14,9 @@ jobs:
   offline-regressions:
     runs-on: windows-latest
     timeout-minutes: 10
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: 'utf-8'
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -24,3 +27,16 @@ jobs:
         run: python -m unittest discover -s tests -p test_reliability.py -v
       - name: Compile Python with syntax warnings rejected
         run: python -W error::SyntaxWarning -m compileall -q -f .
+      - name: Run existing development regression groups
+        run: python -u tests/run_development_regressions.py
+      - name: Verify pinned WebView2 SDK and test the native host lifecycle
+        shell: pwsh
+        run: |
+          $package = Join-Path $env:RUNNER_TEMP 'webview2-sdk.zip'
+          $sdk = Join-Path $env:RUNNER_TEMP 'webview2-sdk'
+          Invoke-WebRequest -Uri 'https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.4191.47' -OutFile $package
+          if ((Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'f492bbf547d0da329553b6727435b677579b1e9f91cc9e4a1ad029366d5f23d0') {
+            throw 'Pinned WebView2 SDK checksum mismatch'
+          }
+          Expand-Archive -LiteralPath $package -DestinationPath $sdk
+          ./tests/run_native_reliability.ps1 -SdkDirectory $sdk -OutputDirectory (Join-Path $env:RUNNER_TEMP 'native-reliability')

@@ -1,4 +1,10 @@
-# Bitcoin Miner Studio v2.0.2 — Stable
+# Bitcoin Miner Studio v2.0.3 — Reliability Release Candidate
+
+This branch develops **v2.0.3 — Post-Release Reliability & Support** from the
+published v2.0.2 Windows source. It is a release candidate, pending signed package
+acceptance. Existing v2.0.2 and v2.0.3 tags/releases remain unchanged. See
+[the reliability acceptance record](docs/RELIABILITY_SUPPORT_v2.0.3.md) for scope,
+evidence and remaining limitations. The earlier stable baseline notes follow.
 
 **Publisher:** Purple Dragon Foundation ltd  
 **Created by:** Purple Dragon Foundation ltd

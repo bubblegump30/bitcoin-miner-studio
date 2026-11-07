@@ -22,10 +22,12 @@ import stat
 import tempfile
 import time
 import zipfile
+import uuid
 from pathlib import Path
 from typing import Any
 
 from branding import PUBLISHER_NAME
+from reliability_io import atomic_json_write, read_json
 from purple_dragon_security import (
     PRODUCT_NAME,
     PUBLIC_EXPONENT,
@@ -331,15 +333,13 @@ class UpdateReleaseCenter:
 
     def _load_json(self, path: Path, default: Any) -> Any:
         try:
-            return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else default
+            value = read_json(path) if path.is_file() else default
+            return value if type(value) is type(default) else default
         except Exception:
             return default
 
     def _write_json(self, path: Path, payload: Any) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-        tmp.replace(path)
+        atomic_json_write(path, payload)
 
     def _release_info(self) -> dict[str, Any]:
         return dict(self._load_json(self.root / "release_info.json", {}) or {})
@@ -441,8 +441,13 @@ class UpdateReleaseCenter:
             return self.state()
 
         if source_path.is_file():
-            inspection["package_size"] = _human_bytes(source_path.stat().st_size)
-            inspection["package_sha256"] = _sha256_file(source_path)
+            try:
+                inspection["package_size"] = _human_bytes(source_path.stat().st_size)
+                inspection["package_sha256"] = _sha256_file(source_path)
+            except OSError:
+                inspection["detail"] = "The selected package could not be read. Check access and retry."
+                self._last_inspection = inspection
+                return self.state()
             expected = inspection["expected_sha256"]
             inspection["checksum_match"] = (inspection["package_sha256"] == expected) if expected else None
             if expected and inspection["checksum_match"] is False:
@@ -463,6 +468,9 @@ class UpdateReleaseCenter:
                 release_root = extracted_root
 
             trust = verify_release_folder(release_root)
+            manifest_path = release_root / "purple_dragon_manifest.json"
+            if trust.get("trusted"):
+                inspection["manifest_sha256"] = _sha256_file(manifest_path)
             inspection["trust"] = trust
             relation_value = compare_versions(str(trust.get("version") or ""), self.version)
             inspection["relation"] = "NEWER" if relation_value > 0 else "SAME" if relation_value == 0 else "OLDER"
@@ -486,6 +494,8 @@ class UpdateReleaseCenter:
             else:
                 inspection["recommendation"] = "ROLLBACK CANDIDATE"
                 inspection["detail"] = "Trusted older release verified. It can be staged as an explicit rollback candidate."
+        except (OSError, ValueError, zipfile.BadZipFile):
+            inspection.update(ok=False, recommendation="BLOCKED", detail="The candidate could not be verified. Select a complete accessible release package and retry.")
         finally:
             if temp_dir is not None:
                 temp_dir.cleanup()
@@ -506,7 +516,7 @@ class UpdateReleaseCenter:
 
         self.staging_dir.mkdir(parents=True, exist_ok=True)
         safe_version = re.sub(r"[^0-9A-Za-z._-]+", "-", str(trust.get("version") or "unknown"))
-        stamp = time.strftime("%Y%m%d-%H%M%S", time.gmtime())
+        stamp = time.strftime("%Y%m%d-%H%M%S", time.gmtime()) + "-" + uuid.uuid4().hex[:12]
         if source.is_file():
             target = self.staging_dir / f"BMS-v{safe_version}-{stamp}{source.suffix.lower()}"
             shutil.copy2(source, target)
@@ -516,7 +526,15 @@ class UpdateReleaseCenter:
                 raise IOError("Staged package checksum changed during copy.")
         else:
             target = self.staging_dir / f"BMS-v{safe_version}-{stamp}"
-            shutil.copytree(source, target, ignore=_stage_copy_ignore)
+            try:
+                shutil.copytree(source, target, ignore=_stage_copy_ignore)
+                staged_trust = verify_release_folder(target)
+                if not staged_trust.get("trusted") or _sha256_file(target / "purple_dragon_manifest.json") != inspection.get("manifest_sha256"):
+                    raise IOError("The release folder changed after inspection; inspect it again before staging.")
+            except Exception:
+                if target.exists():
+                    _remove_tree(target)
+                raise
             staged_sha = ""
 
         rollback = {

@@ -5,6 +5,7 @@ import json
 import threading
 import time
 from pathlib import Path
+from reliability_io import atomic_json_write, preserve_corrupt_file, read_json
 
 
 KNOWN_VIEWS = (
@@ -37,13 +38,24 @@ class WorkspaceManager:
 
     def _load(self):
         state = self._default()
+        invalid = False
+        self._write_blocked = False
         try:
             if self.path.exists():
-                raw = json.loads(self.path.read_text(encoding="utf-8"))
+                raw = read_json(self.path)
                 if isinstance(raw, dict):
                     state.update(raw)
-        except Exception:
-            pass
+                else:
+                    invalid = True
+        except (OSError, ValueError, UnicodeError, RecursionError):
+            invalid = True
+        for key in ("recent_views", "pinned_views"):
+            if not isinstance(state.get(key), list):
+                state[key] = self._default()[key]
+                invalid = True
+        if not isinstance(state.get("last_view"), str):
+            state["last_view"] = "dashboard"
+            invalid = True
         state["schema"] = self.SCHEMA
         state["last_view"] = state.get("last_view") if state.get("last_view") in KNOWN_VIEWS else "dashboard"
         recent = [x for x in state.get("recent_views", []) if x in KNOWN_VIEWS]
@@ -53,16 +65,22 @@ class WorkspaceManager:
             if view in KNOWN_VIEWS and view not in pinned:
                 pinned.append(view)
         state["pinned_views"] = pinned[:8]
-        state["sidebar_compact"] = bool(state.get("sidebar_compact", False))
+        if type(state.get("sidebar_compact")) is not bool:
+            invalid = True
+            state["sidebar_compact"] = False
         usage = state.get("command_usage")
-        state["command_usage"] = dict(usage) if isinstance(usage, dict) else {}
+        state["command_usage"] = {key: min(value, 999999) for key, value in usage.items()
+                                  if isinstance(key, str) and type(value) is int and value >= 0} if isinstance(usage, dict) else {}
+        if state["command_usage"] != usage:
+            invalid = True
+        if invalid and self.path.exists():
+            self._write_blocked = not preserve_corrupt_file(self.path)
         return state
 
     def _save(self):
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.path.with_suffix(self.path.suffix + ".tmp")
-        tmp.write_text(json.dumps(self._state, indent=2), encoding="utf-8")
-        tmp.replace(self.path)
+        if self._write_blocked:
+            raise OSError("Original workspace state could not be preserved.")
+        atomic_json_write(self.path, self._state)
 
     def snapshot(self):
         with self._lock:

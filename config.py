@@ -1,33 +1,28 @@
-import json
 import copy
-import os
-import tempfile
-import uuid
-import math
 from pathlib import Path
 
 from ui_theme import DEFAULT_UI_THEME, normalize_ui_theme
 from branding import DEFAULT_COINBASE_TAG
+from reliability_io import atomic_json_write, read_json, preserve_corrupt_file
 
 CONFIG_DIR = Path.home() / ".bitcoin-miner-studio"
 CONFIG_FILE = CONFIG_DIR / "settings.json"
-RECOVERY_STATUS = {"recovered": False, "reason": "", "preserved": False}
+RECOVERY_STATUS = {"recovered": False, "reason": "", "preserved": False, "write_blocked": False, "fields": []}
 
 
-def _reject_constant(value):
-    raise ValueError("Non-finite JSON number")
+def recovery_status():
+    """Session-sticky, support-safe recovery evidence; never includes values."""
+    return copy.deepcopy(RECOVERY_STATUS)
 
 
-def _finite_float(value):
-    number = float(value)
-    if not math.isfinite(number):
-        raise ValueError("Non-finite JSON number")
-    return number
+def _preserve_settings(reason, fields=()):
+    RECOVERY_STATUS.update(recovered=True, reason=reason, fields=sorted(set(fields)))
+    preserved = preserve_corrupt_file(CONFIG_FILE)
+    RECOVERY_STATUS.update(preserved=preserved, write_blocked=not preserved)
 
 
 def _read_settings(path):
-    loaded = json.loads(path.read_text(encoding="utf-8-sig"), parse_constant=_reject_constant,
-                        parse_float=_finite_float)
+    loaded = read_json(path)
     if not isinstance(loaded, dict):
         raise ValueError("Settings must be a JSON object")
     return loaded
@@ -111,42 +106,75 @@ DEFAULTS = {
 }
 
 
+NUMERIC_LIMITS = {
+    "benchmark_processes": (1, 64), "mining_processes": (1, 64),
+    "benchmark_duration_seconds": (3, 3600), "benchmark_scaling_seconds": (3, 120),
+    "pool_primary_recovery_seconds": (0, 86400), "pool_job_timeout_seconds": (20, 1800),
+    "core_refresh_seconds": (5, 300), "template_refresh_seconds": (5, 300),
+    "analytics_sample_seconds": (5, 300), "analytics_retention_days": (1, 365),
+    "tray_poll_seconds": (5, 300), "asic_refresh_seconds": (5, 300),
+    "regtest_lab_rpc_port": (1, 65535), "regtest_lab_p2p_port": (1, 65535),
+    "asic_solo_port": (1, 65535), "coinbase_extranonce_size": (2, 32),
+    "solo_batch_size": (1, 10000000), "solo_extranonce_roll_hashes": (1, 1000000000),
+    "local_test_difficulty": (1e-12, 1e12), "suggest_difficulty": (1e-12, 1e20),
+    "asic_solo_share_difficulty": (1e-12, 1e20), "asic_temp_alert_c": (1, 200),
+    "asic_hashrate_drop_percent": (0, 100), "profitability_pool_fee_percent": (0, 100),
+}
+
+
+def _valid_setting(key, value):
+    default = DEFAULTS[key]
+    valid = type(value) is type(default)
+    if isinstance(default, float):
+        valid = type(value) in (float, int)
+    if valid and key in NUMERIC_LIMITS:
+        low, high = NUMERIC_LIMITS[key]
+        valid = low <= value <= high
+    if valid and key.startswith("profitability_") and type(value) in (float, int):
+        valid = 0 <= value <= 1e100
+    return valid
+
+
 def load_config():
     cfg = copy.deepcopy(DEFAULTS)
     loaded = {}
-    RECOVERY_STATUS.update(recovered=False, reason="", preserved=False)
+    invalid_fields = []
     try:
         if CONFIG_FILE.exists():
             loaded = _read_settings(CONFIG_FILE)
             loaded.pop("pool_password", None)
             loaded.pop("rpc_password", None)
             cfg.update(loaded)
-    except (OSError, ValueError, UnicodeError):
+    except (OSError, ValueError, UnicodeError, RecursionError):
         # Preserve damaged input locally before any later settings save.
         # Never include its contents or exception text in support evidence.
-        RECOVERY_STATUS.update(recovered=True, reason="settings_unreadable")
-        try:
-            CONFIG_FILE.replace(CONFIG_FILE.with_name("settings.corrupt-" + uuid.uuid4().hex + ".json"))
-            RECOVERY_STATUS["preserved"] = True
-        except OSError:
-            pass
+        _preserve_settings("settings_unreadable")
         loaded = {}
     for key, default in DEFAULTS.items():
         value = loaded.get(key, default)
-        valid = type(value) is type(default)
-        if isinstance(default, float):
-            valid = type(value) in (float, int)
-        if not valid:
+        if not _valid_setting(key, value):
             cfg[key] = copy.deepcopy(default)
-            RECOVERY_STATUS.update(recovered=True, reason="settings_invalid_type")
+            invalid_fields.append(key)
+    restore = cfg["pool_restore_after_local_test"]
+    restore_backups = restore.get("pool_backup_urls", [])
+    if any(key in DEFAULTS and not _valid_setting(key, value) for key, value in restore.items()) or (
+        isinstance(restore_backups, list) and any(not isinstance(item, str) for item in restore_backups)
+    ):
+        cfg["pool_restore_after_local_test"] = {}
+        invalid_fields.append("pool_restore_after_local_test")
+    for key in ("pool_backup_urls", "asic_manual_devices", "asic_known_devices"):
+        if any(not isinstance(item, str) for item in cfg[key]):
+            cfg[key] = []
+            invalid_fields.append(key)
+    if cfg["regtest_lab_rpc_port"] == cfg["regtest_lab_p2p_port"]:
+        cfg["regtest_lab_rpc_port"], cfg["regtest_lab_p2p_port"] = 19443, 19444
+        invalid_fields.extend(("regtest_lab_rpc_port", "regtest_lab_p2p_port"))
+    if invalid_fields:
+        _preserve_settings("settings_invalid_fields", invalid_fields)
     if "pool_failover_policy" not in loaded:
         cfg["pool_failover_policy"] = "balanced" if bool(cfg.get("pool_failover_enabled", True)) else "manual"
     if str(cfg.get("pool_failover_policy") or "balanced").lower() not in {"manual", "conservative", "balanced", "aggressive"}:
         cfg["pool_failover_policy"] = "balanced"
-    try:
-        cfg["pool_primary_recovery_seconds"] = max(0, min(86400, int(cfg.get("pool_primary_recovery_seconds", 300))))
-    except (TypeError, ValueError):
-        cfg["pool_primary_recovery_seconds"] = 300
 
     # Branding migration applies only to exact former built-in defaults.
     # Any custom user-authored coinbase message remains unchanged.
@@ -155,19 +183,6 @@ def load_config():
         "Bitcoin Miner Studio / Purple Dragon Foundation",
     }:
         cfg["coinbase_tag"] = DEFAULT_COINBASE_TAG
-
-    try:
-        cfg["benchmark_processes"] = max(1, min(64, int(cfg.get("benchmark_processes", 2))))
-    except (TypeError, ValueError):
-        cfg["benchmark_processes"] = 2
-    try:
-        cfg["benchmark_duration_seconds"] = max(3, min(3600, int(cfg.get("benchmark_duration_seconds", 30))))
-    except (TypeError, ValueError):
-        cfg["benchmark_duration_seconds"] = 30
-    try:
-        cfg["benchmark_scaling_seconds"] = max(3, min(120, int(cfg.get("benchmark_scaling_seconds", 8))))
-    except (TypeError, ValueError):
-        cfg["benchmark_scaling_seconds"] = 8
 
     cfg["ui_theme"] = normalize_ui_theme(cfg.get("ui_theme"))
     return cfg
@@ -179,21 +194,6 @@ def save_config(cfg):
     safe = dict(cfg)
     safe.pop("pool_password", None)
     safe.pop("rpc_password", None)
-    payload = json.dumps(safe, indent=2, allow_nan=False)
-    if RECOVERY_STATUS["reason"] == "settings_unreadable" and not RECOVERY_STATUS["preserved"]:
+    if RECOVERY_STATUS.get("write_blocked"):
         raise OSError("Original settings could not be preserved; refusing to overwrite them.")
-    tmp = None
-    try:
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=CONFIG_DIR,
-                                         prefix="settings-", suffix=".tmp", delete=False) as stream:
-            tmp = Path(stream.name)
-            stream.write(payload)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(tmp, CONFIG_FILE)
-    finally:
-        try:
-            if tmp is not None and tmp.exists():
-                tmp.unlink()
-        except OSError:
-            pass
+    atomic_json_write(CONFIG_FILE, safe)

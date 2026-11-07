@@ -1,3 +1,15 @@
+## v2.0.3 — Post-Release Reliability & Support (release candidate)
+
+- Preserve damaged settings, workspace state and profile files before recovery; validate persisted types, ranges and interrupted local-pool restore data.
+- Share durable, unique-temporary-file JSON persistence across settings, workspaces, profiles, update history and session markers.
+- Report startup recovery through Diagnostics and recognize the native WinForms/WebView2 runtime without requiring legacy GUI dependencies.
+- Protect native launches with a recoverable single-instance mutex; bound startup and bridge waits, handle missing WebView2 assemblies and unexpected backend exits safely.
+- Keep hidden windows reachable through tray lifecycle changes; isolate cancellation across background-monitor generations.
+- Sanitize every support archive entry and publish complete ZIPs atomically, with unique names, bounded known log inputs and no recovery files or analytics database.
+- Reject malformed/inapplicable checksums, fail safely on inaccessible packages, and reverify copied release folders before recording trusted staging.
+- Pin the WebView2 SDK archive by SHA-256 and add offline/native/development CI coverage plus a separate signed-candidate gate.
+- Preserve the existing Purple Dragon public identity and all historical tags/releases. The reliability candidate is identified by its branch and signed build ID; it does not replace the existing v2.0.3 tag.
+
 ## v2.0.2 — Public Readiness & Reliability Hotfix
 
 - Isolated Bitcoin Core setup self-tests from real Windows process, registry, PATH and user-profile state so tests are deterministic on machines that already run Bitcoin Core.

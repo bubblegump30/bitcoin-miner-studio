@@ -23,10 +23,13 @@ import sys
 import tempfile
 import time
 import zipfile
+import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
 from ui_theme import UI_THEME_PRESETS
+from reliability_io import atomic_json_write
 
 APP_DATA_DIR = Path.home() / ".bitcoin-miner-studio"
 SESSION_MARKER = APP_DATA_DIR / "runtime-session.json"
@@ -49,6 +52,7 @@ _PRIVACY_KEYS = {
     "rpc_user",
     "coinbase_payout_address",
     "core_cookie_path",
+    "worker", "wallet", "username", "user_name", "account", "notes", "aliases",
 }
 
 _STRATUM_RE = re.compile(r"(stratum\+(?:tcp|ssl)://)([^/\s:]+)(:\d+)", re.I)
@@ -122,7 +126,7 @@ def sanitize_config(cfg: dict[str, Any]) -> dict[str, Any]:
             "password", "privatekey", "seed", "mnemonic", "token", "apikey", "authorization", "cookie", "secret"
         )):
             continue
-        if lower in _PRIVACY_KEYS:
+        if normalized in {re.sub(r"[^a-z0-9]", "", item) for item in _PRIVACY_KEYS}:
             out[key] = "<redacted>" if value else ""
             continue
         if isinstance(value, str):
@@ -138,6 +142,61 @@ def sanitize_config(cfg: dict[str, Any]) -> dict[str, Any]:
         else:
             out[key] = value
     return out
+
+
+class _SanitizedArchive:
+    def __init__(self, archive):
+        self.archive = archive
+
+    def writestr(self, name, value):
+        if isinstance(value, bytes):
+            value = value.decode("utf-8", errors="replace")
+        if str(name).endswith(".json"):
+            raw = json.loads(value)
+            if not isinstance(raw, dict):
+                raise ValueError("Support JSON entries must be objects")
+            value = json.dumps(sanitize_config(raw), indent=2, allow_nan=False)
+        else:
+            value = redact_text(value)
+        self.archive.writestr(name, value)
+
+
+@contextmanager
+def support_archive(path):
+    """Publish a complete, sanitized ZIP atomically, or leave no partial ZIP."""
+    path = Path(path)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=path.parent, prefix="support-", suffix=".tmp", delete=False) as stream:
+            temporary = Path(stream.name)
+        with zipfile.ZipFile(temporary, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            yield _SanitizedArchive(archive)
+        with temporary.open("r+b") as stream:
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+
+def add_startup_evidence(archive, root):
+    """Read only known, bounded regular logs; never follow a log symlink."""
+    candidates = [(name, Path(root) / name) for name in ("startup-error.log", "startup-bridge.log", "native-backend.log")]
+    local = os.environ.get("LOCALAPPDATA")
+    if local:
+        candidates.append(("native-startup-error.log", Path(local) / "PurpleDragonFoundation" / "BitcoinMinerStudio" / "Diagnostics" / "startup-error.log"))
+    for name, candidate in candidates:
+        if candidate.is_symlink() or not candidate.is_file():
+            continue
+        try:
+            with candidate.open("rb") as stream:
+                data = stream.read(1024 * 1024 + 1)
+        except OSError:
+            continue
+        archive.writestr(name, data if len(data) <= 1024 * 1024 else "Log omitted because it exceeds the support size limit.")
 
 
 def validate_config(cfg: dict[str, Any], config_path: Path | None = None) -> list[dict[str, Any]]:
@@ -183,8 +242,11 @@ def validate_config(cfg: dict[str, Any], config_path: Path | None = None) -> lis
             "Configuration",
         )
 
-    if int(cfg.get("regtest_lab_rpc_port", 19443)) == int(cfg.get("regtest_lab_p2p_port", 19444)):
-        add("fail", "config.regtest_ports", "Regtest RPC and P2P ports cannot be the same.", "Regtest")
+    try:
+        if int(cfg.get("regtest_lab_rpc_port", 19443)) == int(cfg.get("regtest_lab_p2p_port", 19444)):
+            add("fail", "config.regtest_ports", "Regtest RPC and P2P ports cannot be the same.", "Regtest")
+    except (TypeError, ValueError, OverflowError):
+        pass  # Range/type checks above already report these invalid values.
 
     core_exe = str(cfg.get("core_executable") or "")
     if core_exe and not Path(core_exe).is_file():
@@ -273,12 +335,11 @@ class ReleaseCandidateManager:
         self._state["previous_unclean_shutdown"] = self._previous_unclean
 
     def _mark_session_started(self) -> bool:
-        APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
         previous_unclean = False
         try:
             if SESSION_MARKER.exists():
                 previous = json.loads(SESSION_MARKER.read_text(encoding="utf-8"))
-                previous_unclean = not bool(previous.get("clean_shutdown"))
+                previous_unclean = not (isinstance(previous, dict) and previous.get("clean_shutdown") is True)
         except Exception:
             previous_unclean = True
         payload = {
@@ -288,7 +349,7 @@ class ReleaseCandidateManager:
             "clean_shutdown": False,
         }
         try:
-            SESSION_MARKER.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            atomic_json_write(SESSION_MARKER, payload)
         except Exception:
             pass
         return previous_unclean
@@ -301,8 +362,7 @@ class ReleaseCandidateManager:
             "clean_shutdown": True,
         }
         try:
-            APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
-            SESSION_MARKER.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            atomic_json_write(SESSION_MARKER, payload)
         except Exception:
             pass
 
@@ -633,7 +693,7 @@ class ReleaseCandidateManager:
     ) -> dict[str, Any]:
         SUPPORT_DIR.mkdir(parents=True, exist_ok=True)
         stamp = time.strftime("%Y%m%d-%H%M%S")
-        path = SUPPORT_DIR / f"BitcoinMinerStudio-v{self.version}-support-{stamp}.zip"
+        path = SUPPORT_DIR / f"BitcoinMinerStudio-v{self.version}-support-{stamp}-{uuid.uuid4().hex[:12]}.zip"
 
         state = self.state()
         payload = {
@@ -671,20 +731,14 @@ class ReleaseCandidateManager:
                 f"{row.get('time', '')}  {redact_text(row.get('message', ''))}"
             )
 
-        with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as z:
+        with support_archive(path) as z:
             z.writestr("support-report.json", json.dumps(payload, indent=2))
             z.writestr("settings-sanitized.json", json.dumps(sanitize_config(cfg), indent=2))
             z.writestr("preflight.txt", self.report())
             z.writestr("activity-log-redacted.txt", "\n".join(activity) + "\n")
             if pool_diagnostic_report:
                 z.writestr("pool-diagnostics-redacted.txt", redact_text(pool_diagnostic_report))
-            for name in ("startup-error.log", "startup-bridge.log"):
-                candidate = self.root / name
-                if candidate.is_file():
-                    try:
-                        z.writestr(name, redact_text(candidate.read_text(encoding="utf-8", errors="replace")))
-                    except Exception:
-                        pass
+            add_startup_evidence(z, self.root)
             manifest = self.root / "purple_dragon_manifest.json"
             if manifest.is_file():
                 z.writestr("purple_dragon_manifest.json", manifest.read_bytes())

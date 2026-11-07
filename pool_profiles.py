@@ -11,6 +11,7 @@ import re
 import time
 import uuid
 from pathlib import Path
+from reliability_io import atomic_json_write, preserve_corrupt_file, read_json
 
 from pool_powertools import normalize_endpoints
 
@@ -163,12 +164,16 @@ class PoolProfileStore:
         self._load()
 
     def _load(self):
+        self._write_blocked = False
+        invalid = False
         try:
             if not self.path.exists():
                 self._profiles = []
                 return
-            raw = json.loads(self.path.read_text(encoding="utf-8"))
-            rows = raw.get("profiles", []) if isinstance(raw, dict) else []
+            raw = read_json(self.path)
+            if not isinstance(raw, dict) or not isinstance(raw.get("profiles", []), list):
+                raise ValueError("Invalid profile storage shape")
+            rows = raw.get("profiles", [])
             clean = []
             for row in rows[:MAX_PROFILES]:
                 try:
@@ -177,17 +182,20 @@ class PoolProfileStore:
                     normalized["updated_at"] = float(row.get("updated_at") or normalized["created_at"])
                     clean.append(normalized)
                 except Exception:
+                    invalid = True
                     continue
             self._profiles = clean
         except Exception:
             self._profiles = []
+            invalid = True
+        if invalid and self.path.exists():
+            self._write_blocked = not preserve_corrupt_file(self.path)
 
     def _save(self):
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        if self._write_blocked:
+            raise OSError("Original pool profiles could not be preserved.")
         payload = {"schema": PROFILE_SCHEMA, "profiles": self._profiles}
-        tmp = self.path.with_suffix(self.path.suffix + ".tmp")
-        tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-        tmp.replace(self.path)
+        atomic_json_write(self.path, payload)
 
     def list(self):
         return [dict(row) for row in sorted(self._profiles, key=lambda x: (str(x.get("name", "")).lower(), x.get("id", "")))]

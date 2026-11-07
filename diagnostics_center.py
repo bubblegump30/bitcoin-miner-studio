@@ -22,10 +22,11 @@ import sys
 import tempfile
 import time
 import zipfile
+import uuid
 from pathlib import Path
 from typing import Any
 
-from release_candidate import redact_text, sanitize_config, validate_config
+from release_candidate import redact_text, sanitize_config, validate_config, support_archive, add_startup_evidence
 
 DIAGNOSTICS_SCHEMA = 3
 SUPPORT_BUNDLE_SCHEMA = 2
@@ -218,10 +219,21 @@ class DiagnosticsSupportCenter:
             "Use a 64-bit Python runtime on Windows for the supported configuration." if "64" not in arch else "",
         ))
 
-        for module_name, title, critical in (
+        native = os.environ.get("BMS_NATIVE_HOST") == "1" and os.environ.get("BMS_GUI_BACKEND") == "microsoft-edge-webview2-direct"
+        dependencies = () if native else (
             ("webview", "WebView runtime", True),
             ("cryptography", "Cryptography runtime", True),
-        ):
+        )
+        if native:
+            required_native = ("Microsoft.Web.WebView2.Core.dll", "Microsoft.Web.WebView2.WinForms.dll",
+                               "WebView2Loader.dll", "_runtime/python.exe", "_runtime/bms_native_bridge.py")
+            missing_native = [name for name in required_native if not (self.root / name).is_file()]
+            checks.append(_check("fail" if missing_native else "pass", "runtime.webview2_native",
+                                 "Native WebView2 runtime", "Missing native runtime files: " + ", ".join(missing_native)
+                                 if missing_native else "Native WinForms/WebView2 package files are present; the host initialized this backend.",
+                                 "Runtime", "Extract a complete verified Windows package into a new folder." if missing_native else "",
+                                 critical=bool(missing_native)))
+        for module_name, title, critical in dependencies:
             try:
                 module = importlib.import_module(module_name)
                 version = getattr(module, "__version__", "available")
@@ -355,6 +367,14 @@ class DiagnosticsSupportCenter:
         ))
 
     def _configuration_checks(self, checks: list[dict[str, Any]], cfg: dict[str, Any]) -> None:
+        from config import recovery_status
+        recovery = recovery_status()
+        if recovery["recovered"]:
+            checks.append(_check("fail" if recovery.get("write_blocked") else "warn", "config.startup_recovery",
+                                 "Settings recovered during startup",
+                                 "Invalid settings were replaced with safe defaults. " +
+                                 ("The original file was preserved locally." if recovery["preserved"] else "The original could not be preserved; settings writes are blocked."),
+                                 "Configuration", "Review settings before starting mining. Keep recovered files private."))
         issues = validate_config(dict(cfg or {}))
         if not issues:
             checks.append(_check("pass", "config.validation", "Configuration validation", "Current settings passed range, type and privacy checks.", "Configuration"))
@@ -699,7 +719,7 @@ class DiagnosticsSupportCenter:
             self.run(snapshot, "quick")
         self.support_dir.mkdir(parents=True, exist_ok=True)
         stamp = time.strftime("%Y%m%d-%H%M%S")
-        path = self.support_dir / f"BitcoinMinerStudio-v{self.version}-diagnostics-{stamp}.zip"
+        path = self.support_dir / f"BitcoinMinerStudio-v{self.version}-diagnostics-{stamp}-{uuid.uuid4().hex[:12]}.zip"
 
         security = dict(snapshot.get("security") or {})
         release = dict(snapshot.get("release") or {})
@@ -760,7 +780,7 @@ class DiagnosticsSupportCenter:
 
         pool_report = str(snapshot.get("pool_diagnostic_report") or "")
         release_report = str(snapshot.get("release_report") or "")
-        with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as z:
+        with support_archive(path) as z:
             z.writestr("README.txt", (
                 "Bitcoin Miner Studio Diagnostics & Support Center\n"
                 f"Version {self.version}\n\n"
@@ -783,13 +803,7 @@ class DiagnosticsSupportCenter:
                 z.writestr("release-readiness.json", json.dumps(sanitize_config(release), indent=2))
             if pool_report:
                 z.writestr("pool-diagnostics-redacted.txt", redact_text(pool_report))
-            for name in ("startup-error.log", "startup-bridge.log"):
-                candidate = self.root / name
-                if candidate.is_file():
-                    try:
-                        z.writestr(name, redact_text(candidate.read_text(encoding="utf-8", errors="replace")))
-                    except Exception:
-                        pass
+            add_startup_evidence(z, self.root)
             manifest = self.root / "purple_dragon_manifest.json"
             if manifest.is_file():
                 z.writestr("purple_dragon_manifest.json", manifest.read_bytes())

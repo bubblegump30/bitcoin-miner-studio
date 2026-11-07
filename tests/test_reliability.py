@@ -6,6 +6,7 @@ import unittest
 import zipfile
 import os
 import threading
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -18,6 +19,58 @@ import release_candidate as release
 from diagnostics_center import DiagnosticsSupportCenter
 from workspace_manager import WorkspaceManager
 from pool_profiles import PoolProfileStore
+
+
+class LauncherRegressionTests(unittest.TestCase):
+    def test_python39_is_rejected_before_dependency_installation(self):
+        import bootstrap
+        with patch.object(bootstrap.sys, "version_info", (3, 9, 13)), patch.object(bootstrap.subprocess, "check_call") as install:
+            with self.assertRaisesRegex(RuntimeError, "3.11"):
+                bootstrap.ensure_runtime()
+            install.assert_not_called()
+
+    def test_import_probe_uses_a_fresh_exact_interpreter(self):
+        import bootstrap
+        response = subprocess.CompletedProcess([], 0, "installed\n", "")
+        with patch.object(bootstrap.subprocess, "run", return_value=response) as probe:
+            self.assertEqual(bootstrap._webview_import_ok(), (True, "installed"))
+            self.assertEqual(probe.call_args.args[0][:3], [sys.executable, "-E", "-c"])
+
+    def test_native_distribution_does_not_install_legacy_dependencies(self):
+        import bootstrap
+        with tempfile.TemporaryDirectory() as directory:
+            exe = Path(directory) / "BitcoinMinerStudio.exe"
+            exe.touch()
+            with patch.object(bootstrap, "NATIVE_EXE", exe), patch.object(bootstrap, "ensure_runtime") as ensure, patch.object(bootstrap.subprocess, "Popen") as launch:
+                bootstrap.launch_windowed()
+                ensure.assert_not_called()
+                self.assertEqual(launch.call_args.args[0], [str(exe)])
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows interpreter discovery")
+    def test_batch_discovery_selects_supported_python(self):
+        root = Path(__file__).resolve().parents[1]
+        result = subprocess.run(["cmd", "/c", "call select_python.bat & set PYEXE"], cwd=root, capture_output=True, text=True, check=True)
+        selected = next(line.split("=", 1)[1] for line in result.stdout.splitlines() if line.startswith("PYEXE="))
+        subprocess.run([selected, "-E", "-c", "import sys; assert sys.version_info[:2] >= (3,11)"], check=True)
+
+    @unittest.skipUnless(sys.platform == "win32", "Native Windows x64 message regression")
+    def test_tray_callback_accepts_pointer_sized_message_arguments(self):
+        import ctypes
+        from windows_tray import WindowsTrayManager
+        if ctypes.sizeof(ctypes.c_void_p) != 8:
+            self.skipTest("Requires x64 pointers")
+        errors = []
+        tray = WindowsTrayManager(Path(__file__).resolve().parents[1] / "assets/BitcoinMinerStudio.ico")
+        # CI may have no interactive notification area. Keep the real hidden
+        # window/message callback, substituting only the shell icon service.
+        with patch.object(sys, "unraisablehook", side_effect=errors.append), patch.object(ctypes.windll.shell32, "Shell_NotifyIconW", return_value=True):
+            try:
+                self.assertTrue(tray.start(), tray.error)
+                value = 0x1234567887654321
+                tray._user32.SendMessageW(tray._hwnd, 0x8000 + 63, value, value)
+            finally:
+                tray.stop()
+            self.assertEqual(errors, [])
 
 
 class ConfigRecoveryTests(unittest.TestCase):

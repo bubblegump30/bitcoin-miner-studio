@@ -71,6 +71,7 @@ PROTECTED_FILES = [
     "ui/assets/PurpleDragonFoundationLogo.png",
     "requirements.txt",
     "run.bat",
+    "select_python.bat",
     "package_portable.bat",
     "package_pyinstaller.bat",
     "diagnose.bat",

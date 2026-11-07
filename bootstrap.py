@@ -7,12 +7,15 @@ from pathlib import Path
 import subprocess
 import sys
 import traceback
+import json
 
 ROOT = Path(__file__).resolve().parent
 REQUIREMENTS = ROOT / "requirements.txt"
 LAUNCH_SCRIPT = ROOT / "launch.pyw"
 MAIN_SCRIPT = ROOT / "main.py"
 ERROR_LOG = ROOT / "startup-error.log"
+NATIVE_EXE = ROOT / "BitcoinMinerStudio.exe"
+MINIMUM_PYTHON = (3, 11)
 
 
 def _write_error(text: str) -> None:
@@ -34,14 +37,18 @@ def _show_windows_error(text: str) -> None:
 
 def _webview_import_ok() -> tuple[bool, str]:
     try:
-        import webview
-        version = getattr(webview, "__version__", "installed")
-        return True, str(version)
+        result = subprocess.run(
+            [sys.executable, "-E", "-c", "import webview; print(getattr(webview, '__version__', 'installed'))"],
+            cwd=ROOT, capture_output=True, text=True, timeout=30,
+        )
+        return result.returncode == 0, (result.stdout.strip() if result.returncode == 0 else result.stderr.strip()[-1000:])
     except Exception as exc:
         return False, f"{type(exc).__name__}: {exc}"
 
 
 def ensure_runtime(verbose: bool = False) -> None:
+    if sys.version_info[:2] < MINIMUM_PYTHON:
+        raise RuntimeError("Source launch requires Python 3.11 or newer. Use BitcoinMinerStudio.exe for the embedded Windows runtime.")
     ok, detail = _webview_import_ok()
     if ok:
         if verbose:
@@ -55,6 +62,7 @@ def ensure_runtime(verbose: bool = False) -> None:
 
     cmd = [
         sys.executable,
+        "-E",
         "-m",
         "pip",
         "install",
@@ -98,6 +106,9 @@ def windowed_interpreter() -> Path | None:
 
 
 def launch_windowed() -> None:
+    if NATIVE_EXE.is_file():
+        subprocess.Popen([str(NATIVE_EXE)], cwd=str(ROOT), close_fds=True)
+        return
     ensure_runtime(verbose=False)
 
     if os.name == "nt":
@@ -105,7 +116,7 @@ def launch_windowed() -> None:
         if pyw:
             # IMPORTANT: direct absolute pythonw.exe path. Never use global pyw.exe.
             subprocess.Popen(
-                [str(pyw), str(LAUNCH_SCRIPT)],
+                [str(pyw), "-E", str(LAUNCH_SCRIPT)],
                 cwd=str(ROOT),
                 close_fds=True,
             )
@@ -116,24 +127,41 @@ def launch_windowed() -> None:
         flags |= getattr(subprocess, "CREATE_NO_WINDOW", 0)
         flags |= getattr(subprocess, "DETACHED_PROCESS", 0)
         subprocess.Popen(
-            [sys.executable, str(MAIN_SCRIPT)],
+            [sys.executable, "-E", str(MAIN_SCRIPT)],
             cwd=str(ROOT),
             creationflags=flags,
             close_fds=True,
         )
         return
 
-    subprocess.Popen([sys.executable, str(MAIN_SCRIPT)], cwd=str(ROOT), close_fds=True)
+    subprocess.Popen([sys.executable, "-E", str(MAIN_SCRIPT)], cwd=str(ROOT), close_fds=True)
 
 
 def diagnostics(launch_console: bool = False) -> int:
-    print("=== Bitcoin Miner Studio v2.0.2 Stable diagnostics ===")
+    try:
+        version = json.loads((ROOT / "release_info.json").read_text(encoding="utf-8"))["version"]
+    except (OSError, ValueError, KeyError):
+        version = "unknown"
+    print(f"=== Bitcoin Miner Studio v{version} diagnostics ===")
+    if NATIVE_EXE.is_file():
+        runtime = ROOT / "_runtime" / "python.exe"
+        print("Native host:", NATIVE_EXE)
+        print("Embedded interpreter:", runtime)
+        if not runtime.is_file():
+            print("Embedded runtime is missing. Extract the complete Windows release ZIP.")
+            return 1
+        env = dict(os.environ, BMS_NATIVE_HOST="1", PYTHONDONTWRITEBYTECODE="1")
+        return subprocess.call([str(runtime), "-X", "utf8", "-c", "from purple_dragon_security import verify_integrity; s=verify_integrity(); print('Publisher trust:', s['trust_level']); print(s.get('error','')); raise SystemExit(0 if s['critical_actions_allowed'] else 1)"], cwd=str(ROOT), env=env)
+    if sys.version_info[:2] < MINIMUM_PYTHON:
+        print("Unsupported source interpreter:", sys.executable)
+        print("Python 3.11 or newer is required. Use the native Windows EXE or repair interpreter discovery.")
+        return 1
     print()
     print("Chosen interpreter:")
     print(sys.executable)
     print()
     print("Python version:")
-    print(sys.version.replace("\\n", " "))
+    print(sys.version.replace("\n", " "))
     print()
 
     pyw = windowed_interpreter()
@@ -176,7 +204,7 @@ def diagnostics(launch_console: bool = False) -> int:
     if launch_console:
         print("Starting main.py with this exact interpreter in console mode...")
         print()
-        return subprocess.call([sys.executable, str(MAIN_SCRIPT)], cwd=str(ROOT))
+        return subprocess.call([sys.executable, "-E", str(MAIN_SCRIPT)], cwd=str(ROOT))
 
     return 0
 
@@ -196,8 +224,8 @@ def main() -> int:
         details = traceback.format_exc()
         _write_error(details)
         message = (
-            "Bitcoin Miner Studio could not start.\\n\\n"
-            "startup-error.log was written beside the program.\\n\\n"
+            "Bitcoin Miner Studio could not start.\n\n"
+            "startup-error.log was written beside the program.\n\n"
             "Run diagnose.bat for detailed diagnostics."
         )
         _show_windows_error(message)

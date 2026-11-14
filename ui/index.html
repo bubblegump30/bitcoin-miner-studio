@@ -49,7 +49,7 @@
     <main class="content">
       <header class="topbar glass">
         <button class="mobile-menu" id="mobileMenu">☰</button>
-        <div class="search-wrap"><span>⌕</span><input id="searchInput" type="text" placeholder="Search tools or run a command..."/><kbd>Ctrl K</kbd></div>
+        <div class="search-wrap"><span>⌕</span><button id="searchInput" type="button" aria-haspopup="dialog">Search tools or run a command…</button><kbd>Ctrl K</kbd></div>
         <div class="top-actions">
           <button class="architecture-top-chip" id="architectureTopChip" data-view-jump="diagnostics" title="v2 application architecture health"><span>▦</span><strong>Architecture</strong><small id="architectureTopState">STARTING</small></button>
           <button class="performance-plus-toggle" id="performancePlusToggle" title="Reduce UI/GPU overhead and prioritize mining responsiveness"><span>⚡</span><strong>Performance+</strong><small id="performancePlusState">OFF</small></button>
@@ -73,7 +73,7 @@
               <p class="theme-note">Theme changes are cosmetic only. Mining, Pool, ASIC, Bitcoin Core, security, and payout settings are untouched.</p>
             </div>
           </div>
-          <button class="icon-btn" id="refreshBtn" title="Refresh">↻</button>
+          <button class="icon-btn" id="refreshBtn" title="Refresh app state" aria-label="Refresh app state">↻</button>
           <button class="icon-btn notification" data-view-jump="logs">♢<b id="alertCount">0</b></button>
           <button class="profile" data-view-jump="pool"><span class="avatar">BTC</span><span><strong>SHA-256d</strong><small id="profileStatus">Ready</small></span><span>⌄</span></button>
         </div>
@@ -87,7 +87,7 @@
         </div>
         <div class="workspace-recents" id="workspaceRecents" aria-label="Recent workspaces"></div>
         <div class="workspace-bar-actions">
-          <button class="ghost-btn" id="workspaceCommandButton" type="button">Command Palette <kbd>Ctrl K</kbd></button>
+          <button class="ghost-btn" id="workspaceCommandButton" type="button" aria-haspopup="dialog">Command Palette <kbd>Ctrl K</kbd></button>
         </div>
       </section>
 
@@ -1321,11 +1321,11 @@
             <div><small>LOCAL TELEMETRY RECORDER</small><strong id="monitorRecorderState">Starting</strong><span id="monitorRecorderDetail">Preparing local SQLite history.</span></div>
           </div>
           <div class="monitor-range-pills" id="monitorRangePills">
-            <button data-seconds="3600" class="active">1H</button>
-            <button data-seconds="21600">6H</button>
-            <button data-seconds="86400">24H</button>
-            <button data-seconds="604800">7D</button>
-            <button data-seconds="2592000">30D</button>
+            <button data-seconds="3600" class="active" aria-pressed="true">1H</button>
+            <button data-seconds="21600" aria-pressed="false">6H</button>
+            <button data-seconds="86400" aria-pressed="false">24H</button>
+            <button data-seconds="604800" aria-pressed="false">7D</button>
+            <button data-seconds="2592000" aria-pressed="false">30D</button>
           </div>
           <div class="monitor-hero-meta">
             <div><small>SAMPLES</small><strong id="monitorSampleCount">0</strong></div>
@@ -1485,7 +1485,7 @@
           <article class="panel glass diagnostics-system-card">
             <div class="panel-head"><h2>SYSTEM SNAPSHOT</h2><span>Support-safe</span></div>
             <div class="template-details diagnostics-system-details">
-              <div class="full"><span>Version</span><strong id="diagnosticsSystemVersion">2.0.2</strong></div>
+              <div class="full"><span>Version</span><strong id="diagnosticsSystemVersion">2.0.3</strong></div>
               <div class="full"><span>Operating system</span><strong id="diagnosticsSystemPlatform">—</strong></div>
               <div class="full"><span>Python</span><strong id="diagnosticsSystemPython">—</strong></div>
               <div class="full"><span>Architecture</span><strong id="diagnosticsSystemArch">—</strong></div>
@@ -1508,7 +1508,7 @@
           <article class="panel glass update-current-card">
             <div class="panel-head"><h2>CURRENT TRUSTED RELEASE</h2><span id="urCurrentChannel">STABLE</span></div>
             <div class="update-current-grid">
-              <div><small>VERSION</small><strong id="urCurrentVersion">2.0.2</strong></div>
+              <div><small>VERSION</small><strong id="urCurrentVersion">2.0.3</strong></div>
               <div><small>BUILD ID</small><strong class="mono" id="urCurrentBuild">—</strong></div>
               <div><small>PURPLE DRAGON</small><strong id="urCurrentTrust">CHECKING</strong></div>
               <div><small>PROTECTED FILES</small><strong id="urCurrentProtected">—</strong></div>
@@ -1519,7 +1519,7 @@
           <article class="panel glass update-channel-card">
             <div class="panel-head"><h2>UPDATE CHANNEL</h2><span>Preference only</span></div>
             <div class="field"><label>CHANNEL POLICY</label><select id="urChannel"><option value="stable">Stable</option><option value="preview">Preview</option></select></div>
-            <p class="muted-note">Stable accepts signed Stable packages only. Preview also permits signed Preview packages. v2.0.2 does not contact an update server automatically.</p>
+            <p class="muted-note">Stable accepts signed Stable packages only. Preview also permits signed Preview packages. v2.0.3 does not contact an update server automatically.</p>
             <div class="update-safety-note"><b>Explicit offline apply</b><span>Inspection and staging never overwrite the active Bitcoin Miner Studio folder. Close the application before manually promoting a complete trusted release.</span></div>
           </article>
         </section>
@@ -1566,7 +1566,7 @@
           </article>
         </section>
 
-        <div class="update-release-readiness-head"><div><span class="assistant-eyebrow">STABLE RELEASE ENGINEERING</span><h2>Release Readiness</h2><p>Existing preflight gates remain part of v2.0.2 and sit inside Update &amp; Release Center.</p></div></div>
+        <div class="update-release-readiness-head"><div><span class="assistant-eyebrow">STABLE RELEASE ENGINEERING</span><h2>Release Readiness</h2><p>Existing preflight gates remain part of v2.0.3 and sit inside Update &amp; Release Center.</p></div></div>
 
         <article class="rc-hero glass holographic-border">
           <div class="rc-hero-status">
@@ -1608,7 +1608,7 @@
             <div class="panel-head"><h2>RELEASE ACTIONS</h2><span>local release engineering</span></div>
             <p class="muted-note">Preflight does not start/stop mining or modify Bitcoin Core/ASIC settings. Support bundles are created locally and are never uploaded automatically.</p>
             <div class="rc-policy-list">
-              <div><span>◆</span><div><strong>Stable baseline</strong><small>Stable release gates remain active while feature milestones advance. v2.0.2 preserves Update & Release Center while adding the v2 architecture/workspace layer without weakening mining controls or Purple Dragon gating.</small></div><b>ACTIVE</b></div>
+              <div><span>◆</span><div><strong>Stable baseline</strong><small>Stable release gates remain active while feature milestones advance. v2.0.3 preserves Update & Release Center while adding the v2 architecture/workspace layer without weakening mining controls or Purple Dragon gating.</small></div><b>ACTIVE</b></div>
               <div><span>◇</span><div><strong>Support privacy</strong><small>Passwords, seed phrases, private keys, wallet addresses, worker IDs, and the analytics database are excluded/redacted.</small></div><b>LOCAL</b></div>
               <div><span>⌁</span><div><strong>Crash signal</strong><small>An unclean previous application session appears as a warning for investigation, not as a mining lock.</small></div><b>ON</b></div>
               <div><span>✓</span><div><strong>Release blocking</strong><small>Missing runtime/security/startup essentials produce RELEASE BLOCKED. Optional Bitcoin Core/pool/ASIC configuration does not.</small></div><b>STRICT</b></div>
@@ -1629,10 +1629,10 @@
         </section>
 
         <article class="panel glass rc-freeze">
-          <div class="panel-head"><h2>STABLE RELEASE POLICY</h2><span>v2.0.2 stable baseline</span></div>
+          <div class="panel-head"><h2>STABLE RELEASE POLICY</h2><span>v2.0.3 stable baseline</span></div>
           <div class="rc-freeze-grid">
             <div><strong>STABLE MAINTENANCE</strong><span>Bug fixes, compatibility fixes, security hardening, performance regressions, documentation, packaging, accessibility and UI polish remain supported.</span></div>
-            <div><strong>v2.0.2 FEATURE SET</strong><span>BMS-ARCH-2 runtime services, explicit API contract, persistent workspace UX, Command Palette, Update & Release Center, Diagnostics, Mining Academy, Benchmark Lab 2.0, Pool Profiles, tray monitoring and the mining/Core/ASIC toolchain are included.</span></div>
+            <div><strong>v2.0.3 FEATURE SET</strong><span>BMS-ARCH-2 runtime services, explicit API contract, persistent workspace UX, Command Palette, Update & Release Center, Diagnostics, Mining Academy, Benchmark Lab 2.0, Pool Profiles, tray monitoring and the mining/Core/ASIC toolchain are included.</span></div>
             <div><strong>STABLE GATE</strong><span>No known blocking crashes, trusted Purple Dragon build, clean startup, stable Pool/Solo/Core/ASIC paths, Monitoring integrity and reproducible release diagnostics.</span></div>
           </div>
         </article>
@@ -1739,6 +1739,6 @@
     </section>
   </div>
 
-  <div class="toast" id="toast">Action completed.</div>
+  <div class="toast" id="toast" role="status" aria-atomic="true"></div>
   <script src="script.js"></script>
 </body></html>

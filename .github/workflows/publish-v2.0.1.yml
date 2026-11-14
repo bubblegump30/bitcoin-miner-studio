@@ -60,7 +60,7 @@ jobs:
           $sums = Join-Path 'release-download' 'SHA256SUMS-Windows.txt'
           $infoPath = Join-Path 'release-download' 'BitcoinMinerStudio-Windows-build.json'
 
-          foreach ($path in @($zip, $sums, $infoPath, 'GITHUB_RELEASE_NOTES-v2.0.1.md')) {
+          foreach ($path in @($zip, $sums, $infoPath, 'docs/archive/GITHUB_RELEASE_NOTES-v2.0.1.md')) {
             if (-not (Test-Path $path -PathType Leaf)) {
               throw "Missing release asset: $path"
             }
@@ -111,5 +111,5 @@ jobs:
             --repo '${{ github.repository }}' `
             --target '${{ github.sha }}' `
             --title $title `
-            --notes-file 'GITHUB_RELEASE_NOTES-v2.0.1.md' `
+            --notes-file 'docs/archive/GITHUB_RELEASE_NOTES-v2.0.1.md' `
             --latest

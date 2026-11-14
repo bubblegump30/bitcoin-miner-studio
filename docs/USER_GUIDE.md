@@ -4,16 +4,16 @@ Bitcoin Miner Studio is a Windows x64 workspace for SHA-256d CPU benchmarking an
 
 ## 1. Download and install
 
-1. Download `BitcoinMinerStudio-v2.0.3-Windows-x64.zip` and `SHA256SUMS-Windows.txt` from the [v2.0.3 release](https://github.com/bubblegump30/bitcoin-miner-studio/releases/tag/v2.0.3).
+1. Download `BitcoinMinerStudio-v2.0.3-Workspace-QoL-Windows-x64.zip` and `SHA256SUMS-Windows.txt` from the [v2.0.3 Workspace QoL release](https://github.com/bubblegump30/bitcoin-miner-studio/releases/tag/v2.0.3-workspace-qol).
 2. In PowerShell, from the download folder, run:
 
    ```powershell
-   Get-FileHash .\BitcoinMinerStudio-v2.0.3-Windows-x64.zip -Algorithm SHA256
+   Get-FileHash .\BitcoinMinerStudio-v2.0.3-Workspace-QoL-Windows-x64.zip -Algorithm SHA256
    ```
 
-3. Compare the result with the release checksum file. The published ZIP hash for v2.0.3 is `b1aab4ee20a42ff44b719eff81cf29e1399f96b24332e8121a343216230a88af` (letter case does not matter). If it differs, download the ZIP again from the official release.
+3. Compare the result with the release checksum file. The published ZIP hash for v2.0.3 is `1637324436e4aded5cb4c0cc46790c3ebabb515b24ae13e69aba76dc19118c52` (letter case does not matter). If it differs, download the ZIP again from the official release.
 4. Extract the ZIP into its own folder, then run `BitcoinMinerStudio.exe` from the extracted folder. Do not run it from inside the ZIP. Python is bundled; the Microsoft Edge WebView2 Runtime is required on Windows 10/11.
-5. The EXE does not have a Microsoft Authenticode signature. Verify the published ZIP checksum and open **Purple Dragon** in the app. The official v2.0.3 release should show **TRUSTED** and **74/74 protected files** before you use critical mining controls.
+5. The EXE does not have a Microsoft Authenticode signature. Verify the published ZIP checksum and open **Purple Dragon** in the app. The official v2.0.3 release should show **TRUSTED** and **82/82 protected source files** before you use critical mining controls.
 
 ## 2. Learn the workspace
 
@@ -103,7 +103,7 @@ Use **Monitoring** to inspect session and system trends and **Logs** to investig
 | Symptom | Check |
 | --- | --- |
 | Interface will not open | Extract the ZIP fully and ensure Microsoft Edge WebView2 Runtime is installed. |
-| Mining controls are unavailable | Check **Purple Dragon** for a valid publisher signature and **TRUSTED**, with all 74 v2.0.3 protected files verified. |
+| Mining controls are unavailable | Check **Purple Dragon** for a valid publisher signature and **TRUSTED**, with all 82 Workspace QoL protected source files verified. |
 | Pool URL is rejected | Use a supported `stratum+tcp://` or `stratum+ssl://` host and port, without embedded credentials or query strings. |
 | Test Profile uses old values | Click **Save Profile** after editing, then run **Test Profile** again. |
 | Worker authorization fails | Compare the worker identity and password with the provider's current instructions; see **Logs**. |

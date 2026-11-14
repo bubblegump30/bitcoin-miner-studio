@@ -1,4 +1,8 @@
-# Bitcoin Miner Studio v2.0.2 — Stable
+# Bitcoin Miner Studio — Stable Baseline and Reliability Candidate
+
+The current branch contains the v2.0.3 reliability release candidate. The
+v2.0.2 stable-baseline record below is historical. Candidate acceptance is
+tracked in `docs/RELIABILITY_SUPPORT_v2.0.3.md`; no historical tag is replaced.
 
 This folder is the Bitcoin Miner Studio v2.0.2 Stable source release.
 

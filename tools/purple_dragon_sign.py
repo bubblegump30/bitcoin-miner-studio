@@ -23,6 +23,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from purple_dragon_security import SECURITY_SCHEME, marker_digest, publisher_key_id, release_watermark, watermark_digest
 from branding import PUBLISHER_NAME
+from reliability_io import atomic_json_write
+from tools.publisher_key import load_publisher_key
 MANIFEST = ROOT / "purple_dragon_manifest.json"
 
 PROTECTED_FILES = [
@@ -53,6 +55,7 @@ PROTECTED_FILES = [
     "block_template.py",
     "core_setup.py",
     "config.py",
+    "reliability_io.py",
     "branding.py",
     "ui_theme.py",
     "neon_widgets.py",
@@ -68,18 +71,25 @@ PROTECTED_FILES = [
     "ui/assets/PurpleDragonFoundationLogo.png",
     "requirements.txt",
     "run.bat",
+    "select_python.bat",
     "package_portable.bat",
     "package_pyinstaller.bat",
     "diagnose.bat",
     "verify_build_integrity.bat",
     "selftest.bat",
     "tools/purple_dragon_sign.py",
+    "tools/publisher_key.py",
+    "tools/sign_runtime_inventory.py",
     "tools/prepare_v2_0_2.py",
     "build_windows_portable.ps1",
     "finalize_windows_portable.ps1",
     "sign_v2_0_2_release.ps1",
-    "sign_v2_0_3_release.ps1",
+    "sign_reliability_release.ps1",
     "selftest.py",
+    "tests/test_reliability.py",
+    "tests/native_reliability.cs",
+    "tests/run_native_reliability.ps1",
+    "tests/run_development_regressions.py",
     "credentials.py",
     "connections.py",
     "bitcoin_utils.py",
@@ -121,7 +131,7 @@ if len(sys.argv) != 2:
     raise SystemExit("Usage: python tools\\purple_dragon_sign.py <publisher-private-key.pem>")
 
 key_path = Path(sys.argv[1]).expanduser().resolve()
-private_key = serialization.load_pem_private_key(key_path.read_bytes(), password=None)
+private_key = load_publisher_key(key_path, ROOT)
 
 manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
 release_info = json.loads((ROOT / "release_info.json").read_text(encoding="utf-8"))
@@ -158,5 +168,5 @@ signature = private_key.sign(
     hashes.SHA256(),
 )
 manifest["signature"] = base64.b64encode(signature).decode("ascii")
-MANIFEST.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+atomic_json_write(MANIFEST, manifest)
 print("Signed:", MANIFEST)

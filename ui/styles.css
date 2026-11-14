@@ -164,7 +164,7 @@ button{color:inherit}
   flex:1;max-width:560px;display:flex;align-items:center;gap:9px;padding:10px 12px;
   border:1px solid rgba(255,255,255,.08);background:rgba(var(--deep-surface-rgb),.35);border-radius:13px;
 }
-.search-wrap input{flex:1;background:transparent;border:0;outline:0;color:#fff;min-width:0}
+.search-wrap button{flex:1;background:transparent;border:0;color:var(--muted);min-width:0;text-align:left;font:inherit;cursor:pointer}
 .search-wrap input::placeholder{color:var(--muted)}
 kbd{font-size:11px;padding:3px 6px;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:var(--muted)}
 

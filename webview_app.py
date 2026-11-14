@@ -1703,7 +1703,7 @@ class WebBackend:
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
 
-    # v2.0.2 — Update & Release Center retained inside Architecture/UX milestone
+    # v2.0.3 — Update & Release Center retained inside Architecture/UX milestone
     def get_update_release_state(self):
         try:
             return {"ok": True, "update_release": self.update_release_center.state()}
@@ -2522,11 +2522,11 @@ class WebBackend:
         if not trusted:
             return {"ok": False, "error": security_error}
         try:
+            if self.miner.running:
+                return {"ok": True, "message": "Mining is already running."}
             self._save_pool(payload)
             if self.benchmark.running:
                 self.benchmark.stop()
-            if self.miner.running:
-                return {"ok": True, "message": "Mining is already running."}
             password = self._password(payload, "pool_password", self.session_pool_password) or "x"
             suggested = self.cfg.get("suggest_difficulty") if self.cfg.get("suggest_difficulty_enabled") else None
             self.miner.start(

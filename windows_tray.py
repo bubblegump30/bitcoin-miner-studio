@@ -355,7 +355,39 @@ class WindowsTrayManager:
                 ]
 
             # ctypes defaults native function return values to 32-bit c_int.
-            # Menu/Window handles are pointer-sized on 64-bit Windows, so an
+            # Bind message callbacks as well as menu APIs: LPARAM/WPARAM and
+            # native handles exceed 32 bits on x64 even for ordinary messages.
+            user32.DefWindowProcW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+            user32.DefWindowProcW.restype = LRESULT
+            user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+            user32.PostMessageW.restype = wintypes.BOOL
+            user32.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+            user32.SendMessageW.restype = LRESULT
+            user32.DestroyWindow.argtypes = [wintypes.HWND]
+            user32.DestroyWindow.restype = wintypes.BOOL
+            user32.PostQuitMessage.argtypes = [ctypes.c_int]
+            user32.PostQuitMessage.restype = None
+            user32.GetMessageW.argtypes = [ctypes.POINTER(wintypes.MSG), wintypes.HWND, wintypes.UINT, wintypes.UINT]
+            user32.GetMessageW.restype = wintypes.BOOL
+            user32.TranslateMessage.argtypes = [ctypes.POINTER(wintypes.MSG)]
+            user32.TranslateMessage.restype = wintypes.BOOL
+            user32.DispatchMessageW.argtypes = [ctypes.POINTER(wintypes.MSG)]
+            user32.DispatchMessageW.restype = LRESULT
+            user32.RegisterClassW.argtypes = [ctypes.POINTER(WNDCLASSW)]
+            user32.RegisterClassW.restype = wintypes.WORD
+            user32.CreateWindowExW.argtypes = [wintypes.DWORD, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.DWORD,
+                                              ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                              wintypes.HWND, wintypes.HANDLE, wintypes.HINSTANCE, ctypes.c_void_p]
+            user32.CreateWindowExW.restype = wintypes.HWND
+            user32.LoadImageW.argtypes = [wintypes.HINSTANCE, wintypes.LPCWSTR, wintypes.UINT, ctypes.c_int, ctypes.c_int, wintypes.UINT]
+            user32.LoadImageW.restype = wintypes.HANDLE
+            user32.MessageBoxW.argtypes = [wintypes.HWND, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.UINT]
+            user32.MessageBoxW.restype = ctypes.c_int
+            kernel32.GetModuleHandleW.argtypes = [wintypes.LPCWSTR]
+            kernel32.GetModuleHandleW.restype = wintypes.HMODULE
+            shell32.Shell_NotifyIconW.argtypes = [wintypes.DWORD, ctypes.POINTER(NOTIFYICONDATAW)]
+            shell32.Shell_NotifyIconW.restype = wintypes.BOOL
+            # Menu/Window handles are pointer-sized on 64-bit Windows.
             # untyped CreatePopupMenu() result can be truncated and produce an
             # empty/blank tray popup. Bind the Win32 menu APIs explicitly.
             HMENU = getattr(wintypes, "HMENU", wintypes.HANDLE)

@@ -112,6 +112,7 @@ class NativeHostTrayManager:
         self._previous_status = None
         self._stop = threading.Event()
         self._thread = None
+        self._lifecycle_lock = threading.RLock()
 
     def _snapshot(self):
         try:
@@ -144,25 +145,29 @@ class NativeHostTrayManager:
         return self._state_payload()
 
     def start(self):
-        if not self.supported or not self.settings.get("tray_enabled"):
-            self.running = False
-            return False
-        if self.running:
-            return True
-        self._stop.clear()
-        self.running = True
-        self._thread = threading.Thread(target=self._monitor_loop, name="NativeHostTrayMonitor", daemon=True)
-        self._thread.start()
-        _host_event("tray_state", tray=self.state())
+        with self._lifecycle_lock:
+            if not self.supported or not self.settings.get("tray_enabled"):
+                self.running = False
+                return False
+            if self.running:
+                return True
+            # Each generation owns its cancellation event. Restarting must never
+            # clear an event still observed by a slow previous generation.
+            self._stop = threading.Event()
+            self.running = True
+            self._thread = threading.Thread(target=self._monitor_loop, args=(self._stop,), name="NativeHostTrayMonitor", daemon=True)
+            self._thread.start()
+            _host_event("tray_state", tray=self._state_payload(self.last_status))
         return True
 
     def stop(self):
-        self._stop.set()
-        self.running = False
-        thread = self._thread
+        with self._lifecycle_lock:
+            self._stop.set()
+            self.running = False
+            thread = self._thread
+            self._thread = None
         if thread and thread.is_alive() and threading.current_thread() is not thread:
             thread.join(timeout=2.0)
-        self._thread = None
         return True
 
     def update_settings(self, values=None):
@@ -251,15 +256,17 @@ class NativeHostTrayManager:
                 current.get("severity"),
             )
 
-    def _monitor_loop(self):
-        while not self._stop.is_set():
+    def _monitor_loop(self, stop):
+        while not stop.is_set():
             current = self._snapshot()
+            if stop.is_set():
+                return
             previous = self._previous_status
             if previous is not None:
                 self._notify_transition(previous, current)
             self._previous_status = dict(current)
             _host_event("tray_state", tray=self._state_payload(current))
-            self._stop.wait(int(self.settings.get("tray_poll_seconds") or 10))
+            stop.wait(int(self.settings.get("tray_poll_seconds") or 10))
 
 
 class NativeTrayBridge:
@@ -322,7 +329,10 @@ def _reader_loop(backend, tray_bridge: NativeTrayBridge) -> None:
         try:
             message = json.loads(raw)
         except Exception:
-            print(f"Ignoring malformed native-host message: {raw[:200]}", file=sys.stderr)
+            print("Ignoring malformed native-host message.", file=sys.stderr)
+            continue
+        if not isinstance(message, dict):
+            print("Ignoring native-host message with invalid shape.", file=sys.stderr)
             continue
 
         msg_type = str(message.get("type") or "")

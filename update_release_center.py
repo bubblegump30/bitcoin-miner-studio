@@ -22,10 +22,12 @@ import stat
 import tempfile
 import time
 import zipfile
+import uuid
 from pathlib import Path
 from typing import Any
 
 from branding import PUBLISHER_NAME
+from reliability_io import atomic_json_write, read_json
 from purple_dragon_security import (
     PRODUCT_NAME,
     PUBLIC_EXPONENT,
@@ -240,6 +242,25 @@ def verify_release_folder(root: Path) -> dict[str, Any]:
         result["errors"].append("Publisher signature verification failed.")
 
     files = dict(manifest.get("files") or {})
+    result["source_files_total"] = len(files)
+    runtime_path = root / "purple_dragon_runtime.json"
+    if (root / "_runtime").is_dir() and not runtime_path.is_file():
+        result["errors"].append("Native runtime packages require the offline publisher-signed runtime inventory.")
+    if runtime_path.is_file():
+        try:
+            runtime = read_json(runtime_path)
+            if (runtime.get("schema") != 1 or runtime.get("product") != PRODUCT_NAME
+                    or runtime.get("version") != result["version"] or runtime.get("publisher_key_id") != publisher_key_id()
+                    or runtime.get("source_manifest_sha256") != _sha256_file(manifest_path)
+                    or not _verify_rsa_pkcs1_v15_sha256(_canonical_manifest(runtime), str(runtime.get("signature") or ""))):
+                raise ValueError("Invalid runtime publisher signature or source binding")
+            runtime_files = runtime.get("files")
+            if not isinstance(runtime_files, dict) or not runtime_files or set(runtime_files) & set(files):
+                raise ValueError("Invalid runtime inventory coverage")
+            files.update(runtime_files)
+            result["runtime_files_total"] = len(runtime_files)
+        except (OSError, ValueError, TypeError, AttributeError):
+            result["errors"].append("Runtime inventory signature, identity or source-manifest binding failed.")
     result["files_total"] = len(files)
 
     # Candidate folders must not contain symlinks. A signed relative filename
@@ -288,8 +309,8 @@ def verify_release_folder(root: Path) -> dict[str, Any]:
         code_like = {
             p.relative_to(root).as_posix()
             for p in root.rglob("*")
-            if p.is_file() and not p.is_symlink() and p.suffix.lower() in {".py", ".pyw", ".js", ".html", ".css", ".bat"}
-            and "__pycache__" not in p.parts
+            if p.is_file() and not p.is_symlink() and p.suffix.lower() in {".py", ".pyw", ".js", ".html", ".css", ".bat", ".ps1", ".cs", ".exe", ".dll", ".pyd", ".pth", ".pyc"}
+            and ("__pycache__" not in p.parts or p.relative_to(root).as_posix().startswith("_runtime/"))
         }
         unsigned_code = sorted(code_like - protected_names)
         if unsigned_code:
@@ -331,15 +352,13 @@ class UpdateReleaseCenter:
 
     def _load_json(self, path: Path, default: Any) -> Any:
         try:
-            return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else default
+            value = read_json(path) if path.is_file() else default
+            return value if type(value) is type(default) else default
         except Exception:
             return default
 
     def _write_json(self, path: Path, payload: Any) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        tmp.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-        tmp.replace(path)
+        atomic_json_write(path, payload)
 
     def _release_info(self) -> dict[str, Any]:
         return dict(self._load_json(self.root / "release_info.json", {}) or {})
@@ -434,9 +453,20 @@ class UpdateReleaseCenter:
             self._last_inspection = inspection
             return self.state()
 
+        expected = inspection["expected_sha256"]
+        if expected and (not re.fullmatch(r"[0-9a-f]{64}", expected) or not source_path.is_file()):
+            inspection["detail"] = "Expected SHA-256 must be 64 hexadecimal characters and requires a package file."
+            self._last_inspection = inspection
+            return self.state()
+
         if source_path.is_file():
-            inspection["package_size"] = _human_bytes(source_path.stat().st_size)
-            inspection["package_sha256"] = _sha256_file(source_path)
+            try:
+                inspection["package_size"] = _human_bytes(source_path.stat().st_size)
+                inspection["package_sha256"] = _sha256_file(source_path)
+            except OSError:
+                inspection["detail"] = "The selected package could not be read. Check access and retry."
+                self._last_inspection = inspection
+                return self.state()
             expected = inspection["expected_sha256"]
             inspection["checksum_match"] = (inspection["package_sha256"] == expected) if expected else None
             if expected and inspection["checksum_match"] is False:
@@ -457,6 +487,9 @@ class UpdateReleaseCenter:
                 release_root = extracted_root
 
             trust = verify_release_folder(release_root)
+            manifest_path = release_root / "purple_dragon_manifest.json"
+            if trust.get("trusted"):
+                inspection["manifest_sha256"] = _sha256_file(manifest_path)
             inspection["trust"] = trust
             relation_value = compare_versions(str(trust.get("version") or ""), self.version)
             inspection["relation"] = "NEWER" if relation_value > 0 else "SAME" if relation_value == 0 else "OLDER"
@@ -480,6 +513,8 @@ class UpdateReleaseCenter:
             else:
                 inspection["recommendation"] = "ROLLBACK CANDIDATE"
                 inspection["detail"] = "Trusted older release verified. It can be staged as an explicit rollback candidate."
+        except (OSError, ValueError, zipfile.BadZipFile):
+            inspection.update(ok=False, recommendation="BLOCKED", detail="The candidate could not be verified. Select a complete accessible release package and retry.")
         finally:
             if temp_dir is not None:
                 temp_dir.cleanup()
@@ -500,7 +535,7 @@ class UpdateReleaseCenter:
 
         self.staging_dir.mkdir(parents=True, exist_ok=True)
         safe_version = re.sub(r"[^0-9A-Za-z._-]+", "-", str(trust.get("version") or "unknown"))
-        stamp = time.strftime("%Y%m%d-%H%M%S", time.gmtime())
+        stamp = time.strftime("%Y%m%d-%H%M%S", time.gmtime()) + "-" + uuid.uuid4().hex[:12]
         if source.is_file():
             target = self.staging_dir / f"BMS-v{safe_version}-{stamp}{source.suffix.lower()}"
             shutil.copy2(source, target)
@@ -510,7 +545,15 @@ class UpdateReleaseCenter:
                 raise IOError("Staged package checksum changed during copy.")
         else:
             target = self.staging_dir / f"BMS-v{safe_version}-{stamp}"
-            shutil.copytree(source, target, ignore=_stage_copy_ignore)
+            try:
+                shutil.copytree(source, target, ignore=_stage_copy_ignore)
+                staged_trust = verify_release_folder(target)
+                if not staged_trust.get("trusted") or _sha256_file(target / "purple_dragon_manifest.json") != inspection.get("manifest_sha256"):
+                    raise IOError("The release folder changed after inspection; inspect it again before staging.")
+            except Exception:
+                if target.exists():
+                    _remove_tree(target)
+                raise
             staged_sha = ""
 
         rollback = {

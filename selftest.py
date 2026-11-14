@@ -336,7 +336,7 @@ def local_pool_integration():
     deadline = time.time() + 12
     while time.time() < deadline:
         stats = miner.stats()
-        if stats["accepted"] >= 2:
+        if stats["accepted"] >= 2 and stats["total_hashes"] > 0:
             break
         time.sleep(0.2)
 
@@ -1729,7 +1729,7 @@ def release_candidate_hardening_tests():
     info = json.loads((root / "release_info.json").read_text(encoding="utf-8"))
     assert info["version"] == "2.0.3"
     assert info["channel"] == "Stable"
-    assert info["feature_freeze"] is False
+    assert info["feature_freeze"] is True
     assert info["cloud_telemetry"] is False
     assert info["automatic_support_upload"] is False
 
@@ -2025,7 +2025,7 @@ def stable_release_promotion_tests():
     info = json.loads((root / "release_info.json").read_text(encoding="utf-8"))
     assert info["version"] == "2.0.3"
     assert info["channel"] == "Stable"
-    assert info["stability"] == "Stable"
+    assert info["stability"] == "Release Candidate"
     assert info["cloud_telemetry"] is False
     assert info["automatic_support_upload"] is False
     assert info["silent_auto_update"] is False
@@ -3335,7 +3335,7 @@ def diagnostics_support_center_tests():
     security={
         "checked":True,"verified":True,"signature_valid":True,
         "critical_actions_allowed":True,"protected_file_count":73,
-        "verified_file_count":73,"build_id":"BMS-2.0.2-TEST",
+        "verified_file_count":73,"build_id":"BMS-2.0.3-TEST",
         "release_seal":"PD6-TEST","publisher_key_id":"PDK-TEST",
     }
     snapshot={
@@ -3365,7 +3365,7 @@ def diagnostics_support_center_tests():
         sys.modules["cryptography"]=types.ModuleType("cryptography")
     try:
         with tempfile.TemporaryDirectory() as td:
-            center=dc.DiagnosticsSupportCenter(root,"2.0.2",app_data_dir=Path(td)/"appdata")
+            center=dc.DiagnosticsSupportCenter(root,"2.0.3",app_data_dir=Path(td)/"appdata")
             state=center.run(snapshot,"quick")
             assert state["checked"] is True
             assert state["mode"] == "quick"

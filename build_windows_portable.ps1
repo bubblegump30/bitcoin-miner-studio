@@ -132,6 +132,10 @@ $WebViewSdk = Join-Path $BuildDir 'webview2-sdk'
 $WebViewUrl = "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/$WebView2Version"
 Write-Host "Downloading Microsoft.Web.WebView2 $WebView2Version..."
 Invoke-WebRequest -Uri $WebViewUrl -OutFile $WebViewPackage -UseBasicParsing
+$WebViewExpectedSha256 = 'f492bbf547d0da329553b6727435b677579b1e9f91cc9e4a1ad029366d5f23d0'
+if ((Get-FileHash -LiteralPath $WebViewPackage -Algorithm SHA256).Hash.ToLowerInvariant() -ne $WebViewExpectedSha256) {
+    throw 'WebView2 SDK SHA-256 mismatch. Refusing to extract or compile unverified SDK bytes.'
+}
 Copy-Item $WebViewPackage $WebViewPackageZip -Force
 Expand-Archive -LiteralPath $WebViewPackageZip -DestinationPath $WebViewSdk -Force
 

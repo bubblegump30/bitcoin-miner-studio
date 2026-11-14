@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
@@ -30,10 +31,12 @@ internal sealed class MainForm : Form
     private readonly string _runtimeRoot;
     private readonly string _bridgePath;
     private readonly bool _smokeTest;
+    private readonly string _smokeRoot;
     private readonly WebView2 _webView;
     private readonly Label _startupLabel;
     private readonly Stopwatch _startupWatch = Stopwatch.StartNew();
     private readonly TaskCompletionSource<bool> _backendReady = new TaskCompletionSource<bool>();
+    private readonly System.Windows.Forms.Timer _startupTimer = new System.Windows.Forms.Timer();
     private Process _backend;
     private StreamWriter _backendInput;
     private bool _forceExit;
@@ -51,6 +54,7 @@ internal sealed class MainForm : Form
     public MainForm(bool smokeTest)
     {
         _smokeTest = smokeTest;
+        _smokeRoot = smokeTest ? Path.Combine(Path.GetTempPath(), "BitcoinMinerStudio-Smoke-" + Guid.NewGuid().ToString("N")) : null;
         _root = AppDomain.CurrentDomain.BaseDirectory;
         _runtimeRoot = Path.Combine(_root, "_runtime");
         _bridgePath = Path.Combine(_runtimeRoot, "bms_native_bridge.py");
@@ -90,7 +94,13 @@ internal sealed class MainForm : Form
         Controls.Add(_webView);
         Controls.Add(_startupLabel);
 
-        Shown += async (sender, args) => await InitializeAsync();
+        _startupTimer.Interval = 40000;
+        _startupTimer.Tick += (sender, args) =>
+        {
+            _startupTimer.Stop();
+            if (!_navigationReady || _smokeTest) FailStartup("Application startup did not complete within 40 seconds. Check the embedded runtime and WebView2 installation.");
+        };
+        Shown += async (sender, args) => { _startupTimer.Start(); await InitializeAsync(); };
         Resize += HandleResize;
         FormClosing += HandleFormClosing;
     }
@@ -158,6 +168,17 @@ internal sealed class MainForm : Form
         psi.EnvironmentVariables["PYTHONHOME"] = _runtimeRoot;
         psi.EnvironmentVariables["PYTHONNOUSERSITE"] = "1";
         psi.EnvironmentVariables["PYTHONUTF8"] = "1";
+        psi.EnvironmentVariables["PYTHONDONTWRITEBYTECODE"] = "1";
+        psi.EnvironmentVariables["PYTHONPATH"] = "";
+        psi.EnvironmentVariables["BMS_WEBVIEW2_VERSION"] = CoreWebView2Environment.GetAvailableBrowserVersionString();
+        if (_smokeTest)
+        {
+            string home = Environment.GetEnvironmentVariable("BMS_SMOKE_HOME");
+            if (string.IsNullOrWhiteSpace(home)) home = Path.Combine(_smokeRoot, "Home");
+            Directory.CreateDirectory(home);
+            psi.EnvironmentVariables["USERPROFILE"] = home;
+            psi.EnvironmentVariables["HOME"] = home;
+        }
 
         _backend = new Process { StartInfo = psi, EnableRaisingEvents = true };
         _backend.OutputDataReceived += BackendOutput;
@@ -181,6 +202,7 @@ internal sealed class MainForm : Form
             string webViewData = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "PurpleDragonFoundation", "BitcoinMinerStudio", "WebView2");
+            if (_smokeTest) webViewData = Path.Combine(_smokeRoot, "WebView2");
             Directory.CreateDirectory(webViewData);
 
             Task<CoreWebView2Environment> environmentTask = CoreWebView2Environment.CreateAsync(null, webViewData);
@@ -189,9 +211,17 @@ internal sealed class MainForm : Form
             if (ready != _backendReady.Task)
                 throw new TimeoutException("The Bitcoin Miner Studio backend did not become ready within 15 seconds.");
             await _backendReady.Task;
+            if (_forceExit) return;
 
+            if (await Task.WhenAny(environmentTask, Task.Delay(30000)) != environmentTask)
+                throw new TimeoutException("WebView2 environment initialization timed out. Repair the Microsoft Edge WebView2 Runtime and retry.");
             CoreWebView2Environment environment = await environmentTask;
-            await _webView.EnsureCoreWebView2Async(environment);
+            if (_forceExit) return;
+            Task webViewTask = _webView.EnsureCoreWebView2Async(environment);
+            if (await Task.WhenAny(webViewTask, Task.Delay(30000)) != webViewTask)
+                throw new TimeoutException("WebView2 control initialization timed out. Repair the Microsoft Edge WebView2 Runtime and retry.");
+            await webViewTask;
+            if (_forceExit) return;
 
             _webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
             _webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
@@ -209,6 +239,7 @@ internal sealed class MainForm : Form
 
             _webView.CoreWebView2.WebMessageReceived += WebMessageReceived;
             _webView.CoreWebView2.NavigationCompleted += NavigationCompleted;
+            _webView.CoreWebView2.ProcessFailed += (sender, args) => FailStartup("The WebView2 renderer stopped unexpectedly (" + args.ProcessFailedKind + "). Restart the application after checking the WebView2 Runtime.");
             await _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(BridgeBootstrapScript());
             _webView.Source = new Uri("https://app.bms/index.html");
         }
@@ -218,7 +249,7 @@ internal sealed class MainForm : Form
         }
         catch (Exception ex)
         {
-            FailStartup(ex.ToString());
+            FailStartup("Startup failed (" + ex.GetType().Name + ", HRESULT 0x" + ex.HResult.ToString("X8") + "). Check the embedded runtime and WebView2 installation, then retry.");
         }
     }
 
@@ -237,6 +268,7 @@ internal sealed class MainForm : Form
     const item = pending.get(id);
     if (!item) return;
     pending.delete(id);
+    clearTimeout(item.timer);
     if (message.ok) item.resolve(message.result);
     else item.reject(new Error(message.error || 'Bitcoin Miner Studio backend call failed.'));
   };
@@ -249,7 +281,10 @@ internal sealed class MainForm : Form
         const args = Array.prototype.slice.call(arguments);
         return new Promise(function (resolve, reject) {
           const id = 'native-' + (++sequence);
-          pending.set(id, { resolve: resolve, reject: reject });
+          const timer = setTimeout(function () {
+            if (pending.delete(id)) reject(new Error('The backend request timed out. Check application health before retrying.'));
+          }, 130000);
+          pending.set(id, { resolve: resolve, reject: reject, timer: timer });
           chrome.webview.postMessage({ type: 'call', id: id, method: property, args: args });
         });
       };
@@ -292,7 +327,7 @@ internal sealed class MainForm : Form
             }
             if (type == "fatal")
             {
-                string error = message.ContainsKey("traceback") ? Convert.ToString(message["traceback"]) : Convert.ToString(message["error"]);
+                string error = "The embedded backend could not initialize. Review runtime diagnostics and application settings.";
                 _backendReady.TrySetException(new InvalidOperationException(error));
                 BeginInvoke(new Action(() => FailStartup(error)));
                 return;
@@ -301,9 +336,13 @@ internal sealed class MainForm : Form
             {
                 BeginInvoke(new Action(async () =>
                 {
-                    if (_webView.CoreWebView2 == null) return;
-                    string literal = JsonString(line);
-                    await _webView.CoreWebView2.ExecuteScriptAsync("window.__bmsBridgeReceive(JSON.parse(" + literal + ")); ");
+                    if (_forceExit || _webView.CoreWebView2 == null) return;
+                    try
+                    {
+                        string literal = JsonString(line);
+                        await _webView.CoreWebView2.ExecuteScriptAsync("window.__bmsBridgeReceive(JSON.parse(" + literal + ")); ");
+                    }
+                    catch (Exception) { FailStartup("The native WebView2 connection was interrupted. Restart Bitcoin Miner Studio."); }
                 }));
                 return;
             }
@@ -319,7 +358,7 @@ internal sealed class MainForm : Form
         }
         catch (Exception ex)
         {
-            AppendBackendLog("Protocol parse error: " + ex + Environment.NewLine + line);
+            AppendBackendLog("Protocol message rejected: " + ex.GetType().Name);
         }
     }
 
@@ -334,7 +373,7 @@ internal sealed class MainForm : Form
         if (_forceExit) return;
         try
         {
-            if (_backend != null && _backend.ExitCode != 0)
+            if (_backend != null)
                 BeginInvoke(new Action(() => FailStartup("The Bitcoin Miner Studio backend exited unexpectedly with code " + _backend.ExitCode + ". Check native-backend.log for details.")));
         }
         catch { }
@@ -414,13 +453,17 @@ internal sealed class MainForm : Form
         }
 
         _navigationReady = true;
+        if (!_smokeTest) _startupTimer.Stop();
         _startupLabel.Visible = false;
         _webView.Visible = true;
         _webView.BringToFront();
 
         if (_smokeTest)
         {
+            try
+            {
             await Task.Delay(350);
+            if (_forceExit) return;
             await _webView.CoreWebView2.ExecuteScriptAsync(@"
 (async function () {
   try {
@@ -430,6 +473,8 @@ internal sealed class MainForm : Form
     chrome.webview.postMessage({type:'smoke_result', ok:false, error:String(error && error.message || error)});
   }
 })();");
+            }
+            catch (Exception) { FailStartup("The native WebView2 startup handshake failed. Restart Bitcoin Miner Studio."); }
         }
     }
 
@@ -631,6 +676,8 @@ internal sealed class MainForm : Form
         bool enabled = settings != null && settings.ContainsKey("tray_enabled") && Convert.ToBoolean(settings["tray_enabled"]);
         if (_trayIcon != null)
             _trayIcon.Visible = !_smokeTest && supported && enabled;
+        if (!_smokeTest && !CanHideToTray() && !Visible && !_forceExit)
+            ShowMainWindow();
     }
 
     private void ShowNativeTrayNotification(Dictionary<string, object> message)
@@ -694,7 +741,7 @@ internal sealed class MainForm : Form
         }
         if (action == "hide_window")
         {
-            Hide();
+            if (CanHideToTray()) Hide();
             return;
         }
         if (action == "exit_app")
@@ -717,19 +764,26 @@ internal sealed class MainForm : Form
 
     private void HandleResize(object sender, EventArgs e)
     {
-        if (WindowState == FormWindowState.Minimized && _minimizeToTray)
+        if (WindowState == FormWindowState.Minimized && _minimizeToTray && CanHideToTray())
             Hide();
+    }
+
+    private bool CanHideToTray()
+    {
+        return !_forceExit && _trayIcon != null && _trayIcon.Visible;
     }
 
     private void HandleFormClosing(object sender, FormClosingEventArgs e)
     {
-        if (!_forceExit && _closeToTray && e.CloseReason == CloseReason.UserClosing)
+        if (!_forceExit && _closeToTray && CanHideToTray() && e.CloseReason == CloseReason.UserClosing)
         {
             e.Cancel = true;
             Hide();
             return;
         }
         _forceExit = true;
+        _startupTimer.Stop();
+        _startupTimer.Dispose();
         DisposeNativeTray();
         ShutdownBackend();
     }
@@ -753,14 +807,12 @@ internal sealed class MainForm : Form
 
     private void FailStartup(string details)
     {
-        try
-        {
-            File.WriteAllText(Path.Combine(_root, "startup-error.log"), details, Encoding.UTF8);
-        }
-        catch { }
+        if (_forceExit) return;
+        Program.WriteStartupDiagnostic(_smokeTest, details);
 
         ExitCode = 1;
         _forceExit = true;
+        ShutdownBackend();
         if (!_smokeTest)
             MessageBox.Show(this, "Bitcoin Miner Studio could not start.\n\n" + details, "Bitcoin Miner Studio", MessageBoxButtons.OK, MessageBoxIcon.Error);
         Close();
@@ -769,16 +821,61 @@ internal sealed class MainForm : Form
 
 internal static class Program
 {
+    internal static void WriteStartupDiagnostic(bool smoke, string details)
+    {
+        try
+        {
+            string directory = smoke ? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "smoke-data", "Diagnostics") :
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PurpleDragonFoundation", "BitcoinMinerStudio", "Diagnostics");
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, "startup-error.log"), DateTime.UtcNow.ToString("o") + Environment.NewLine + details, Encoding.UTF8);
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
+
+    // Keep dependency loading inside a separate call so a missing WebView2
+    // assembly can be caught before the CLR attempts to initialize MainForm.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static int RunHost(bool smoke)
+    {
+        using (var form = new MainForm(smoke))
+        {
+            Application.Run(form);
+            return form.ExitCode;
+        }
+    }
+
     [STAThread]
     private static int Main(string[] args)
     {
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         bool smoke = args.Any(a => string.Equals(a, "--smoke-test", StringComparison.OrdinalIgnoreCase));
-        using (var form = new MainForm(smoke))
+        // A session-wide identity is independent of extraction directory/version.
+        // A separate smoke-test identity cannot close a user's running instance.
+        using (var instance = new Mutex(false, "Local\\PurpleDragonFoundation.BitcoinMinerStudio" + (smoke ? ".SmokeTest" : "")))
         {
-            Application.Run(form);
-            return form.ExitCode;
+            bool owned;
+            try { owned = instance.WaitOne(0); }
+            catch (AbandonedMutexException) { owned = true; }
+            if (!owned)
+            {
+                if (!smoke) MessageBox.Show("Bitcoin Miner Studio is already running. Restore it from the taskbar or notification area.", "Bitcoin Miner Studio", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return 2;
+            }
+            try
+            {
+                return RunHost(smoke);
+            }
+            catch (Exception error)
+            {
+                string detail = "The Windows host could not initialize (" + error.GetType().Name + ", HRESULT 0x" + error.HResult.ToString("X8") + "). Extract the complete package and install or repair Microsoft Edge WebView2 Runtime.";
+                WriteStartupDiagnostic(smoke, detail);
+                if (!smoke) MessageBox.Show(detail, "Bitcoin Miner Studio", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return 1;
+            }
+            finally { instance.ReleaseMutex(); }
         }
     }
 }

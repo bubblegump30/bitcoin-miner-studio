@@ -11,14 +11,16 @@ let apiInitialized = false;
 let bridgeRetryTimer = null;
 let bridgeRetryCount = 0;
 let refreshTimer = null;
-let refreshInFlight = false;
+let stateRefreshRequest = null;
+let miningActionPending = false;
 let performancePlusEnabled = false;
 let stateRenderCount = 0;
 let lastLogSignature = '';
 let lastAsicSignature = '';
 let analyticsRangeSeconds=3600;
 let analyticsLastFetch=0;
-let analyticsInFlight=false;
+let analyticsRequest = null;
+let analyticsRefreshQueued = false;
 let lastAnalytics=null;
 let currentUiTheme='purple';
 let miningAssistantState=null;
@@ -35,6 +37,7 @@ let workspaceState=null;
 let architectureState=null;
 let currentView='dashboard';
 let commandPaletteIndex=0;
+let commandPaletteOpener=null;
 const VIEW_META={
   dashboard:{label:'Dashboard',icon:'⌂',group:'Workspace',keywords:'home overview command center'},
   benchmark:{label:'Benchmark Lab',icon:'◇',group:'Workspace',keywords:'benchmark sha256d performance score'},
@@ -105,6 +108,7 @@ function setBridgeUiState(ready){
   apiReady=!!ready;
   document.documentElement.dataset.pythonApi=ready?'ready':'waiting';
   $$('.requires-python-api').forEach(el=>{el.disabled=!ready;});
+  syncMiningControls();
 }
 
 function applyPerformancePlus(enabled){
@@ -285,10 +289,22 @@ function renderCommandPalette(query=''){
 
 function openCommandPalette(initial=''){
   const palette=$('#commandPalette'),input=$('#commandPaletteInput');if(!palette||!input)return;
-  palette.hidden=false;commandPaletteIndex=0;input.value=String(initial||'');renderCommandPalette(input.value);
-  requestAnimationFrame(()=>{input.focus();input.select()});
+  if(!palette.hidden)return;
+  commandPaletteOpener=document.activeElement;
+  palette.hidden=false;
+  $('.app-shell').inert=true;
+  commandPaletteIndex=0;
+  input.value=String(initial||'');
+  renderCommandPalette(input.value);
+  input.focus();
+  input.select();
 }
-function closeCommandPalette(){const palette=$('#commandPalette');if(palette)palette.hidden=true}
+function closeCommandPalette(){
+  $('#commandPalette').hidden=true;
+  $('.app-shell').inert=false;
+  commandPaletteOpener?.focus();
+  commandPaletteOpener=null;
+}
 async function runPaletteCommand(id){
   const cmd=commandDefinitions().find(row=>row.id===id);if(!cmd)return;
   closeCommandPalette();
@@ -306,7 +322,6 @@ $('#mobileMenu')?.addEventListener('click',()=>$('.sidebar')?.classList.toggle('
 $('#sidebarCompactToggle')?.addEventListener('click',toggleSidebarCompact);
 $('#workspaceCommandButton')?.addEventListener('click',()=>openCommandPalette());
 $('#workspaceRecents')?.addEventListener('click',e=>{const b=e.target.closest('[data-workspace-recent]');if(b)setView(b.dataset.workspaceRecent)});
-$('#searchInput')?.addEventListener('focus',e=>{openCommandPalette(e.target.value);e.target.blur()});
 $('#searchInput')?.addEventListener('click',()=>openCommandPalette());
 $('#commandPaletteInput')?.addEventListener('input',e=>{commandPaletteIndex=0;renderCommandPalette(e.target.value)});
 $('#commandPaletteResults')?.addEventListener('click',e=>{const b=e.target.closest('[data-command-id]');if(b)runPaletteCommand(b.dataset.commandId)});
@@ -316,12 +331,12 @@ document.addEventListener('keydown',e=>{
   const palette=$('#commandPalette');
   if(palette&&!palette.hidden){
     if(e.key==='Escape'){e.preventDefault();closeCommandPalette();return}
-    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    if(e.target===$('#commandPaletteInput') && (e.key==='ArrowDown'||e.key==='ArrowUp')){
       e.preventDefault();const rows=filteredCommands($('#commandPaletteInput')?.value||'');
       if(rows.length){commandPaletteIndex=(commandPaletteIndex+(e.key==='ArrowDown'?1:-1)+rows.length)%rows.length;renderCommandPalette($('#commandPaletteInput')?.value||'')}
       return;
     }
-    if(e.key==='Enter'){
+    if(e.key==='Enter' && e.target===$('#commandPaletteInput') && !e.isComposing){
       e.preventDefault();const rows=filteredCommands($('#commandPaletteInput')?.value||'');if(rows[commandPaletteIndex])runPaletteCommand(rows[commandPaletteIndex].id);return;
     }
   }
@@ -860,7 +875,7 @@ function renderAnalyticsStatus(status){
   if($('#monitorDbSize'))$('#monitorDbSize').textContent=formatBytes(status.database_size);
 }
 function renderAnalytics(data){
-  if(!data?.ok)return;lastAnalytics=data;analyticsLastFetch=Date.now();renderAnalyticsStatus(data.status||{});const a=data.summary||{},series=data.series||[];
+  if(!data?.ok)return;lastAnalytics=data;renderAnalyticsStatus(data.status||{});const a=data.summary||{},series=data.series||[];
   $('#monitorSampleCount').textContent=Number(a.sample_count||0).toLocaleString();$('#monitorLastSample').textContent=formatAnalyticsTime(a.last_sample||data.status?.last_sample);
   $('#monPoolAvg').textContent=a.pool_avg_hashrate?formatHashrate(a.pool_avg_hashrate):'—';$('#monPoolPeak').textContent=`Peak ${a.pool_peak_hashrate?formatHashrate(a.pool_peak_hashrate):'—'}`;
   $('#monPoolAcceptance').textContent=(a.pool_acceptance||0)?`${Number(a.pool_acceptance).toFixed(2)}%`:'—';$('#monPoolShares').textContent=`${Number(a.pool_accepted_delta||0).toLocaleString()} accepted · ${Number(a.pool_rejected_delta||0).toLocaleString()} rejected · ${Number(a.pool_stale_delta||0).toLocaleString()} stale`;
@@ -876,10 +891,32 @@ function renderAnalytics(data){
   });
   const root=$('#monitorEventList');root.innerHTML='';(data.events||[]).forEach(e=>{const row=document.createElement('div');row.className=`monitor-event ${escapeHtml(e.severity||'info')}`;row.innerHTML=`<i></i><div><strong>${escapeHtml(e.source||'System')} · ${escapeHtml(e.kind||'event')}</strong><small>${escapeHtml(e.message||'')}</small></div><time>${formatAnalyticsTime(e.ts)}</time>`;root.appendChild(row)});if(!root.children.length)root.innerHTML='<div class="empty-state">No operational threshold events in this range.</div>';
 }
-async function refreshAnalytics(force=false){
-  if(!apiReady||analyticsInFlight||!bridgeAvailable('get_analytics_dashboard'))return;if(!force&&Date.now()-analyticsLastFetch<4500)return;analyticsInFlight=true;
-  try{const r=await callApi('get_analytics_dashboard',analyticsRangeSeconds);if(r?.ok)renderAnalytics(r);else if(r?.error)$('#analyticsResult').textContent=`ERROR: ${r.error}`}
-  catch(e){console.error('Analytics refresh:',e)}finally{analyticsInFlight=false}
+function refreshAnalytics(force=false){
+  if(!apiReady || !bridgeAvailable('get_analytics_dashboard'))return;
+  if(analyticsRequest){
+    if(force)analyticsRefreshQueued=true;
+    return analyticsRequest;
+  }
+  if(!force && Date.now()-analyticsLastFetch<4500)return;
+
+  analyticsRequest=(async()=>{
+    do{
+      analyticsRefreshQueued=false;
+      const range=analyticsRangeSeconds;
+      analyticsLastFetch=Date.now();
+      try{
+        const result=await callApi('get_analytics_dashboard',range);
+        if(range!==analyticsRangeSeconds || analyticsRefreshQueued)continue;
+        if(!result?.ok)throw new Error(result?.error||'Could not load monitoring data');
+        renderAnalytics(result);
+      }catch(error){
+        if(range===analyticsRangeSeconds && !analyticsRefreshQueued){
+          $('#analyticsResult').textContent=`Could not refresh monitoring: ${error.message}`;
+        }
+      }
+    }while(analyticsRefreshQueued);
+  })().finally(()=>{analyticsRequest=null});
+  return analyticsRequest;
 }
 
 function releaseAreaState(checks,area){
@@ -1427,9 +1464,7 @@ function renderSecurity(x){
 
   // Fail-safe: start/write controls lock on a failed/unfinished build check,
   // while stop/read-only/diagnostic controls remain available.
-  if($('#poolStart'))$('#poolStart').disabled=!apiReady||!!lastState?.miner_running||!securityTrusted;
-  if($('#enginePrimary')&&!lastState?.miner_running)$('#enginePrimary').disabled=!securityTrusted;
-  if($('#quickMining')&&!lastState?.miner_running)$('#quickMining').disabled=!securityTrusted;
+  syncMiningControls();
   if($('#soloStart'))$('#soloStart').disabled=!apiReady||!!lastState?.solo_mining?.running||!securityTrusted;
   if($('#asicSoloStart'))$('#asicSoloStart').disabled=!apiReady||!!lastState?.asic_solo_bridge?.running||!securityTrusted;
 }
@@ -1798,13 +1833,12 @@ function renderState(s){
   $('#heroHashrate').textContent=s.hashrate_text;$('#heroAccepted').textContent=s.accepted;$('#heroDifficulty').textContent=s.difficulty_text;$('#heroUptime').textContent=s.uptime_text;
   $('#modeEyebrow').textContent=`${s.mode} · ${String(s.status).toUpperCase()}`;$('#profileStatus').textContent=s.status;$('#engineOnline').textContent=`● ${s.status}`;$('#engineCopy').textContent=s.endpoint;
   $('#enginePrimary').textContent=s.miner_running?'Stop Mining →':'Start Mining →';$('#quickMining').innerHTML=s.miner_running?'<span>₿</span>Stop Mining':'<span>₿</span>Start Mining';$('#quickBenchmark').innerHTML=s.benchmark_running?'<span>◇</span>Stop Benchmark':'<span>◇</span>Start Benchmark';$('#quickLocalPool').innerHTML=s.local_pool_running?'<span>⌁</span>Stop Local Test Pool':'<span>⌁</span>Local Test Pool';
-  $('#enginePrimary').disabled=!s.miner_running&&!securityTrusted;$('#quickMining').disabled=!s.miner_running&&!securityTrusted;
   $('#sideHealth').textContent=`${s.health}%`;$('#gaugeValue').textContent=`${s.health}%`;$('#healthGauge').style.setProperty('--value',s.health);$('#gaugeLabel').textContent=s.health>=90?'Optimal':s.health>=70?'Good':'Attention';$('#liveStatus').textContent=`● ${s.status}`;
   const avgRatio=s.hashrate>0?Math.min(100,s.avg_hashrate/s.hashrate*100):0;$('#meterAvgText').textContent=`${avgRatio.toFixed(0)}%`;$('#meterAvg').style.width=`${avgRatio}%`;$('#meterAcceptanceText').textContent=s.acceptance_text==='—'?'0%':s.acceptance_text;$('#meterAcceptance').style.width=`${Math.min(100,s.acceptance||0)}%`;
   $('#meterSharesText').textContent=s.submitted;$('#meterShares').style.width=`${Math.min(100,s.submitted*5)}%`;$('#meterWorkersText').textContent=s.workers;$('#meterWorkers').style.width=`${Math.min(100,s.workers/16*100)}%`;
   $('#sessionEndpoint').textContent=s.endpoint;$('#sessionMode').textContent=s.mode;$('#sessionJob').textContent=s.job;$('#sessionLatency').textContent=s.latency_text;$('#sessionHashes').textContent=Number(s.total_hashes).toLocaleString();$('#sessionWorkers').textContent=`${s.workers} workers`;$('#sessionEta').textContent=s.expected_share_text;$('#sessionAcceptance').textContent=s.acceptance_text;
   $('#sysCores').textContent=s.system.cpu_cores;$('#sysSubmitted').textContent=s.submitted;$('#sysRejected').textContent=s.rejected;$('#alertCount').textContent=s.rejected+s.stale;
-  $('#poolStart').disabled=s.miner_running||!securityTrusted;$('#poolStop').disabled=!s.miner_running;$('#poolReset').disabled=s.miner_running;$('#localPoolToggle').textContent=s.local_pool_running?'Stop Local Test Pool':'Start Local Test Pool';
+  $('#localPoolToggle').textContent=s.local_pool_running?'Stop Local Test Pool':'Start Local Test Pool';
   const logSig=lightweightSignature(s.logs||[]);
   if(!performancePlusEnabled||logSig!==lastLogSignature){
     lastLogSignature=logSig;
@@ -2151,15 +2185,75 @@ async function pollPurpleDragonStartup(){
   }
 }
 
-async function refreshState(){
-  if(!apiReady || refreshInFlight || !bridgeAvailable('get_state'))return;
-  refreshInFlight=true;
+function refreshState(){
+  if(stateRefreshRequest)return stateRefreshRequest;
+  if(!apiReady || !bridgeAvailable('get_state'))return Promise.resolve(false);
+
+  stateRefreshRequest=(async()=>{
+    try{
+      const state=await callApi('get_state');
+      if(!state || state.ok===false)throw new Error(state?.error||'State unavailable');
+      renderState(state);
+      return true;
+    }catch(error){
+      console.error('State refresh:',error);
+      return false;
+    }
+  })().finally(()=>{stateRefreshRequest=null});
+  return stateRefreshRequest;
+}
+
+async function manualStateRefresh(){
+  if(!apiReady){
+    showToast('Connecting to the Bitcoin Miner Studio backend…');
+    return;
+  }
+  const buttons=[$('#refreshBtn'),$('#logsRefresh')];
+  if(buttons.some(button=>button.disabled))return;
+  buttons.forEach(button=>{button.disabled=true});
   try{
-    renderState(await callApi('get_state'));
-  }catch(e){
-    console.error(e);
+    showToast(await refreshState()?'App state refreshed':'Could not refresh app state. Try again.');
   }finally{
-    refreshInFlight=false;
+    buttons.forEach(button=>{button.disabled=false});
+  }
+}
+
+function syncMiningControls(){
+  const running=!!lastState?.miner_running;
+  const waiting=!apiReady || !lastState || miningActionPending;
+  for(const id of ['#enginePrimary','#quickMining']){
+    $(id).disabled=waiting || (!running && !securityTrusted);
+  }
+  $('#poolStart').disabled=waiting || running || !securityTrusted;
+  $('#poolStop').disabled=waiting || !running;
+  $('#poolReset').disabled=waiting || running;
+}
+
+async function runMiningAction(action){
+  const running=!!lastState?.miner_running;
+  if(!apiReady || !lastState || miningActionPending)return;
+  if(action==='start' && (running || !securityTrusted))return;
+  if(action==='stop' && !running)return;
+  if(action==='reset' && (running || !confirm('Reset statistics for this mining session?')))return;
+
+  miningActionPending=true;
+  syncMiningControls();
+  try{
+    if(action==='start'){
+      await handleResult(callApi('start_mining',poolPayload()),'Mining started');
+    }else if(action==='stop'){
+      await handleResult(callApi('stop_mining'),'Mining stopped');
+    }else{
+      await handleResult(callApi('reset_session'),'Session reset');
+    }
+  }catch(error){
+    console.error('Mining action:',error);
+  }finally{
+    // A poll started before the operation may still contain the previous state.
+    await stateRefreshRequest;
+    await refreshState();
+    miningActionPending=false;
+    syncMiningControls();
   }
 }
 
@@ -2422,7 +2516,14 @@ $('#securityCopyReport').addEventListener('click',async()=>{
   }catch(e){box.textContent=`ERROR: ${e.message}`}
 });
 
-$$('#monitorRangePills button').forEach(button=>button.addEventListener('click',()=>{$$('#monitorRangePills button').forEach(x=>x.classList.toggle('active',x===button));analyticsRangeSeconds=Number(button.dataset.seconds||3600);refreshAnalytics(true)}));
+$$('#monitorRangePills button').forEach(button=>button.addEventListener('click',()=>{
+  for(const option of $$('#monitorRangePills button')){
+    option.classList.toggle('active',option===button);
+    option.setAttribute('aria-pressed',String(option===button));
+  }
+  analyticsRangeSeconds=Number(button.dataset.seconds);
+  refreshAnalytics(true);
+}));
 $('#analyticsSave').addEventListener('click',async()=>{const box=$('#analyticsResult');try{const payload={enabled:$('#analyticsEnabled').value==='on',sample_seconds:Number($('#analyticsSampleSeconds').value||10),retention_days:Number($('#analyticsRetentionDays').value||30)};const r=await handleResult(callApi('configure_analytics',payload),'Monitoring settings saved');renderAnalyticsStatus(r.status||{});box.textContent=r.result||'Settings saved.';await refreshAnalytics(true)}catch(e){box.textContent=`ERROR: ${e.message}`}});
 $('#analyticsExportCsv').addEventListener('click',async()=>{const box=$('#analyticsResult');try{const r=await handleResult(callApi('export_analytics',analyticsRangeSeconds,'csv'),'Analytics CSV exported');box.textContent=r.result}catch(e){box.textContent=`ERROR: ${e.message}`}});
 $('#analyticsExportJson').addEventListener('click',async()=>{const box=$('#analyticsResult');try{const r=await handleResult(callApi('export_analytics',analyticsRangeSeconds,'json'),'Analytics JSON exported');box.textContent=r.result}catch(e){box.textContent=`ERROR: ${e.message}`}});
@@ -2549,7 +2650,8 @@ if(paypalDonate)paypalDonate.addEventListener('click',async()=>{
   }
 });
 
-$('#refreshBtn').addEventListener('click',refreshState);$('#logsRefresh').addEventListener('click',refreshState);
+$('#refreshBtn').addEventListener('click',manualStateRefresh);
+$('#logsRefresh').addEventListener('click',manualStateRefresh);
 $('#logsClear').addEventListener('click',async()=>{
   const button=$('#logsClear');
   button.disabled=true;
@@ -2559,15 +2661,15 @@ $('#logsClear').addEventListener('click',async()=>{
     lastLogSignature='';
     renderLogs(logs);
     renderActivity(logs);
-    showToast('Activity log cleared');
+    await stateRefreshRequest;
     await refreshState();
   }catch(e){
-    showToast(`Clear Log error: ${e.message}`);
+    console.error('Clear activity log:',e);
   }finally{
     button.disabled=false;
   }
 });
-$('#enginePrimary').addEventListener('click',async()=>{if(lastState?.miner_running)await handleResult(callApi('stop_mining'),'Mining stopped');else await handleResult(callApi('start_mining',poolPayload()),'Mining started');await refreshState()});
+$('#enginePrimary').addEventListener('click',()=>runMiningAction(lastState?.miner_running?'stop':'start'));
 $('#quickMining').addEventListener('click',()=>$('#enginePrimary').click());
 initPoolPresets();
 if($('#poolFailoverPolicy'))$('#poolFailoverPolicy').addEventListener('change',()=>syncFailoverPolicyUi(true));
@@ -2604,7 +2706,9 @@ if($('#poolProfileExport'))$('#poolProfileExport').addEventListener('click',asyn
   const box=$('#poolProfileResult');try{const r=await handleResult(callApi('export_pool_profiles'),'Sanitized profiles exported');box.textContent=r.result||r.report||'Profiles exported.';if(r.report){try{await navigator.clipboard.writeText(r.report);showToast('Sanitized profile export copied')}catch{}}}catch(e){box.textContent=`ERROR: ${e.message}`}
 });
 
-$('#poolStart').addEventListener('click',async()=>{await handleResult(callApi('start_mining',poolPayload()),'Mining started');await refreshState()});$('#poolStop').addEventListener('click',async()=>{await handleResult(callApi('stop_mining'),'Mining stopped');await refreshState()});$('#poolReset').addEventListener('click',async()=>{await handleResult(callApi('reset_session'),'Session reset');await refreshState()});
+$('#poolStart').addEventListener('click',()=>runMiningAction('start'));
+$('#poolStop').addEventListener('click',()=>runMiningAction('stop'));
+$('#poolReset').addEventListener('click',()=>runMiningAction('reset'));
 $$('.benchmark-preset').forEach(button=>button.addEventListener('click',()=>{
   $$('.benchmark-preset').forEach(x=>x.classList.toggle('active',x===button));
   if($('#benchmarkDuration'))$('#benchmarkDuration').value=button.dataset.duration||30;

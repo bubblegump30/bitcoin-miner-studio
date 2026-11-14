@@ -12,6 +12,14 @@ A local-first Windows x64 workspace for SHA-256d CPU benchmarking, pool mining, 
 
 The EXE has no Microsoft Authenticode signature. The Purple Dragon manifest is publisher-signed and checks the protected files; the ZIP checksum checks the downloaded archive.
 
+## Screenshots
+
+[![Bitcoin Miner Studio Dashboard showing mining status and quick actions](docs/screenshots/dashboard.jpg)](docs/screenshots/dashboard.jpg)
+
+| Benchmark Lab | Mining Academy |
+| --- | --- |
+| [![Benchmark Lab showing SHA-256d timing and worker-scaling controls](docs/screenshots/benchmark-lab.jpg)](docs/screenshots/benchmark-lab.jpg) | [![Mining Academy showing the lesson list and a knowledge check](docs/screenshots/mining-academy.jpg)](docs/screenshots/mining-academy.jpg) |
+
 ## What's in the app
 
 - **Mining and profiles:** local SHA-256d CPU mining, Stratum pool profiles, backups and failover, connection tests, and ASIC monitoring.

@@ -53,7 +53,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Reliability regressions failed.' }
           node --check ui/script.js
           if ($LASTEXITCODE -ne 0) { throw 'JavaScript syntax failed.' }
-          node --test tests/pool_presets.test.cjs
+          node --test tests/pool_presets.test.cjs tests/workspace_qol.test.cjs
           if ($LASTEXITCODE -ne 0) { throw 'Pool preset regressions failed.' }
       - name: Build and finalize verified native Windows package
         shell: pwsh

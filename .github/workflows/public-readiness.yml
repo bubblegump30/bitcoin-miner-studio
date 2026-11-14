@@ -73,7 +73,7 @@ jobs:
       - name: Validate optional pool preset boundaries
         shell: pwsh
         run: |
-          node --test tests/pool_presets.test.cjs
+          node --test tests/pool_presets.test.cjs tests/workspace_qol.test.cjs
           if ($LASTEXITCODE -ne 0) { throw 'Pool preset boundary regressions failed.' }
 
       - name: Run deterministic public-readiness regressions

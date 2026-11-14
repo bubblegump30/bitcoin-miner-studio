@@ -49,7 +49,7 @@
     <main class="content">
       <header class="topbar glass">
         <button class="mobile-menu" id="mobileMenu">☰</button>
-        <div class="search-wrap"><span>⌕</span><input id="searchInput" type="text" placeholder="Search tools or run a command..."/><kbd>Ctrl K</kbd></div>
+        <div class="search-wrap"><span>⌕</span><button id="searchInput" type="button" aria-haspopup="dialog">Search tools or run a command…</button><kbd>Ctrl K</kbd></div>
         <div class="top-actions">
           <button class="architecture-top-chip" id="architectureTopChip" data-view-jump="diagnostics" title="v2 application architecture health"><span>▦</span><strong>Architecture</strong><small id="architectureTopState">STARTING</small></button>
           <button class="performance-plus-toggle" id="performancePlusToggle" title="Reduce UI/GPU overhead and prioritize mining responsiveness"><span>⚡</span><strong>Performance+</strong><small id="performancePlusState">OFF</small></button>
@@ -73,7 +73,7 @@
               <p class="theme-note">Theme changes are cosmetic only. Mining, Pool, ASIC, Bitcoin Core, security, and payout settings are untouched.</p>
             </div>
           </div>
-          <button class="icon-btn" id="refreshBtn" title="Refresh">↻</button>
+          <button class="icon-btn" id="refreshBtn" title="Refresh app state" aria-label="Refresh app state">↻</button>
           <button class="icon-btn notification" data-view-jump="logs">♢<b id="alertCount">0</b></button>
           <button class="profile" data-view-jump="pool"><span class="avatar">BTC</span><span><strong>SHA-256d</strong><small id="profileStatus">Ready</small></span><span>⌄</span></button>
         </div>
@@ -87,7 +87,7 @@
         </div>
         <div class="workspace-recents" id="workspaceRecents" aria-label="Recent workspaces"></div>
         <div class="workspace-bar-actions">
-          <button class="ghost-btn" id="workspaceCommandButton" type="button">Command Palette <kbd>Ctrl K</kbd></button>
+          <button class="ghost-btn" id="workspaceCommandButton" type="button" aria-haspopup="dialog">Command Palette <kbd>Ctrl K</kbd></button>
         </div>
       </section>
 
@@ -1319,11 +1319,11 @@
             <div><small>LOCAL TELEMETRY RECORDER</small><strong id="monitorRecorderState">Starting</strong><span id="monitorRecorderDetail">Preparing local SQLite history.</span></div>
           </div>
           <div class="monitor-range-pills" id="monitorRangePills">
-            <button data-seconds="3600" class="active">1H</button>
-            <button data-seconds="21600">6H</button>
-            <button data-seconds="86400">24H</button>
-            <button data-seconds="604800">7D</button>
-            <button data-seconds="2592000">30D</button>
+            <button data-seconds="3600" class="active" aria-pressed="true">1H</button>
+            <button data-seconds="21600" aria-pressed="false">6H</button>
+            <button data-seconds="86400" aria-pressed="false">24H</button>
+            <button data-seconds="604800" aria-pressed="false">7D</button>
+            <button data-seconds="2592000" aria-pressed="false">30D</button>
           </div>
           <div class="monitor-hero-meta">
             <div><small>SAMPLES</small><strong id="monitorSampleCount">0</strong></div>
@@ -1737,6 +1737,6 @@
     </section>
   </div>
 
-  <div class="toast" id="toast">Action completed.</div>
+  <div class="toast" id="toast" role="status" aria-atomic="true"></div>
   <script src="script.js"></script>
 </body></html>

@@ -2522,11 +2522,11 @@ class WebBackend:
         if not trusted:
             return {"ok": False, "error": security_error}
         try:
+            if self.miner.running:
+                return {"ok": True, "message": "Mining is already running."}
             self._save_pool(payload)
             if self.benchmark.running:
                 self.benchmark.stop()
-            if self.miner.running:
-                return {"ok": True, "message": "Mining is already running."}
             password = self._password(payload, "pool_password", self.session_pool_password) or "x"
             suggested = self.cfg.get("suggest_difficulty") if self.cfg.get("suggest_difficulty_enabled") else None
             self.miner.start(
